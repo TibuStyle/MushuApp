@@ -24,20 +24,28 @@
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
 body {
     background-color: var(--bg-color);
     color: var(--text-main);
     display: flex;
     justify-content: center;
-    min-height: 100vh;
     font-family: 'Outfit', sans-serif;
     -webkit-font-smoothing: antialiased;
+    position: fixed;
+    width: 100%;
 }
 
 .app-container {
     width: 100%;
     max-width: 480px;
-    height: 100vh;
+    height: 100%;
     display: flex;
     flex-direction: column;
     position: relative;
@@ -69,7 +77,9 @@ body {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    padding-bottom: 90px; /* Space for bottom nav */
+    padding-bottom: 90px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
 }
 
 /* Views */
