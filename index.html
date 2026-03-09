@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <!-- MushuApp Version 1.1 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mushu App - Costos de Recetas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffb6c1">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+    <!-- Splash Screen -->
+    <div id="splash-screen">
+        <div class="splash-content">
+            <img src="mushu_logo.png" alt="Mushu Logo" class="splash-logo">
+            <div class="spinner-container">
+                <div class="spinner"></div>
+            </div>
+            <p class="splash-text">Con amor para shelita miau ❤️🐈‍⬛</p>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <img src="mushu_logo.jpg" alt="Mushu Logo" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 8px;">
+            <h1>Mushu App</h1>
+            <p>Calculadora de Costos</p>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="content-area">
+            
+            <!-- SECTION: MATERIALES -->
+            <section id="view-materials" class="view active">
+                <div class="section-header">
+                    <h2>Materiales</h2>
+                </div>
+
+                <!-- Productos -->
+                <div class="category-block" id="cat-productos">
+                    <div class="category-header" onclick="toggleCategory('productos')">
+                        <div class="category-header-left">
+                            <i class='bx bx-chevron-down category-chevron' id="chevron-productos"></i>
+                            <i class='bx bx-package category-icon'></i>
+                            <div>
+                                <h3>Productos</h3>
+                                <p class="category-desc">Materia prima para tus recetas</p>
+                            </div>
+                        </div>
+                        <button class="btn-add-small" onclick="event.stopPropagation(); showAddMaterialModal(null, 'productos')">
+                            <i class='bx bx-plus'></i>
+                        </button>
+                    </div>
+                    <div class="category-body open" id="body-productos">
+                        <div class="list-container" id="list-productos"></div>
+                    </div>
+                </div>
+
+                <!-- Decoración -->
+                <div class="category-block" id="cat-decoracion">
+                    <div class="category-header" onclick="toggleCategory('decoracion')">
+                        <div class="category-header-left">
+                            <i class='bx bx-chevron-down category-chevron' id="chevron-decoracion"></i>
+                            <i class='bx bx-palette category-icon'></i>
+                            <div>
+                                <h3>Decoración</h3>
+                                <p class="category-desc">Adornos y detalles para decorar</p>
+                            </div>
+                        </div>
+                        <button class="btn-add-small" onclick="event.stopPropagation(); showAddMaterialModal(null, 'decoracion')">
+                            <i class='bx bx-plus'></i>
+                        </button>
+                    </div>
+                    <div class="category-body open" id="body-decoracion">
+                        <div class="list-container" id="list-decoracion"></div>
+                    </div>
+                </div>
+
+                <!-- Extra -->
+                <div class="category-block" id="cat-extra">
+                    <div class="category-header" onclick="toggleCategory('extra')">
+                        <div class="category-header-left">
+                            <i class='bx bx-chevron-down category-chevron' id="chevron-extra"></i>
+                            <i class='bx bx-star category-icon'></i>
+                            <div>
+                                <h3>Extra</h3>
+                                <p class="category-desc">Cajas, impresiones, packaging</p>
+                            </div>
+                        </div>
+                        <button class="btn-add-small" onclick="event.stopPropagation(); addExtraSubcategory()">
+                            <i class='bx bx-plus'></i>
+                        </button>
+                    </div>
+                    <div class="category-body open" id="body-extra">
+                        <div class="list-container" id="list-extra"></div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- SECTION: RECETAS -->
+            <section id="view-recetas" class="view">
+                <div class="section-header">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <h2>Recetas</h2>
+                        <div class="selling-price-toggle">
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-selling-price" onchange="toggleSellingPrice()">
+                                <span class="slider round"></span>
+                            </label>
+                            <span>Precio de venta mín.</span>
+                        </div>
+                    </div>
+                    <button class="btn-primary" onclick="showAddRecipeModal()">
+                        <i class='bx bx-plus'></i> Nueva
+                    </button>
+                </div>
+
+                <div class="list-container" id="recipes-list">
+                    <!-- Recipe cards will be injected here -->
+                    <div class="empty-state">No hay recetas todavía. Crea tu primera receta.</div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <button type="button" id="nav-materials" class="nav-item active" onclick="switchTab('materials')">
+                <i class='bx bx-list-ul'></i>
+                <span>Materiales</span>
+            </button>
+            <button type="button" id="nav-recetas" class="nav-item" onclick="switchTab('recetas')">
+                <i class='bx bx-book'></i>
+                <span>Recetas</span>
+            </button>
+            <button type="button" id="nav-clases" class="nav-item" onclick="switchTab('clases')">
+                <i class="bx bxs-graduation"></i>
+                <span>Clases</span>
+            </button>
+        </nav>
+        
+        <!-- MODALS -->
+
+        <!-- Add Material Modal -->
+        <div class="modal-overlay" id="modal-material" onclick="closeModal('modal-material')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>Agregar Material</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-material')"><i class='bx bx-x'></i></button>
+                </div>
+                <form id="form-material" onsubmit="saveMaterial(event)">
+                    <div class="form-group">
+                        <label>Nombre del Material</label>
+                        <input type="text" id="mat-name" required placeholder="Ej: Harina">
+                    </div>
+                    <div class="form-group" id="mat-subcategory-group" style="display:none;">
+                        <label>Subcategoría Extra (Ej: Tortas, Cupcakes)</label>
+                        <input type="text" id="mat-subcategory" placeholder="Ej: Packaging Tortas">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Precio (CLP)</label>
+                            <input type="number" id="mat-price" required placeholder="990" min="0">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Cantidad Base (Ej: 1, 500)</label>
+                            <input type="number" id="mat-qty" required placeholder="1" min="0.01" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label>Unidad</label>
+                            <select id="mat-unit">
+                                <option value="kg">Kilos (kg)</option>
+                                <option value="g">Gramos (g)</option>
+                                <option value="l">Litros (L)</option>
+                                <option value="cm3">mL</option>
+                                <option value="u">Unidad (ej. Huevos)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-submit">Guardar Material</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add Recipe Modal -->
+        <div class="modal-overlay" id="modal-recipe" onclick="closeModal('modal-recipe')">
+            <div class="modal-content large-modal" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>Crear Receta</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-recipe')"><i class='bx bx-x'></i></button>
+                </div>
+                <div class="recipe-creation-container">
+                    <div class="form-group">
+                        <label>Nombre de la Receta</label>
+                        <input type="text" id="recipe-name" placeholder="Ej: Torta Selva Negra">
+                    </div>
+                    
+                    <!-- PRODUCTOS -->
+                    <div class="recipe-ingredients-section">
+                        <h4><i class='bx bx-package'></i> Productos</h4>
+                        <div id="recipe-ingredients-list" class="recipe-ingredients-list"></div>
+                        <div class="add-ingredient-form">
+                            <div class="form-row align-bottom">
+                                <div class="form-group flex-2">
+                                    <label>Producto</label>
+                                    <select id="recipe-add-mat"></select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Cantidad</label>
+                                    <input type="number" id="recipe-add-qty" placeholder="500" min="0.01" step="0.01">
+                                </div>
+                                <div class="form-group">
+                                    <label>Unidad</label>
+                                    <select id="recipe-add-unit">
+                                        <option value="g">Gramos (g)</option>
+                                        <option value="kg">Kilos (kg)</option>
+                                        <option value="cm3">mL</option>
+                                        <option value="l">Litros (l)</option>
+                                        <option value="u">Unidades (u)</option>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn-add-small" onclick="addIngredientToRecipeForm()">
+                                    <i class='bx bx-plus'></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DECORACIÓN -->
+                    <div class="recipe-ingredients-section">
+                        <h4><i class='bx bx-palette'></i> Decoración</h4>
+                        <div id="recipe-decorations-list" class="recipe-ingredients-list"></div>
+                        <div class="add-ingredient-form">
+                            <div class="form-row align-bottom">
+                                <div class="form-group flex-2">
+                                    <label>Decoración</label>
+                                    <select id="recipe-add-deco-mat"></select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Cantidad</label>
+                                    <input type="number" id="recipe-add-deco-qty" placeholder="100" min="0.01" step="0.01">
+                                </div>
+                                <div class="form-group">
+                                    <label>Unidad</label>
+                                    <select id="recipe-add-deco-unit">
+                                        <option value="g">Gramos (g)</option>
+                                        <option value="kg">Kilos (kg)</option>
+                                        <option value="cm3">mL</option>
+                                        <option value="l">Litros (l)</option>
+                                        <option value="u">Unidades (u)</option>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn-add-small" onclick="addDecorationToRecipeForm()">
+                                    <i class='bx bx-plus'></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EXTRA -->
+                    <div class="recipe-ingredients-section">
+                        <h4><i class='bx bx-star'></i> Extra (Opcional)</h4>
+                        <div class="form-group">
+                            <label>Selecciona un paquete de extras</label>
+                            <select id="recipe-extra-subcat" onchange="onExtraSubcategoryChange()"></select>
+                        </div>
+                        <div id="recipe-extra-details"></div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>¿Dividir en Porciones? (Opcional)</label>
+                        <input type="number" id="recipe-portions" placeholder="Ej: 15" min="1" step="1" oninput="updateRecipeTotal()">
+                    </div>
+
+                    <div class="recipe-summary">
+                        <span>Costo Total:</span>
+                        <div style="text-align: right;">
+                            <strong id="recipe-total-cost">$0 CLP</strong>
+                            <div id="recipe-portion-cost" style="font-size: 14px; opacity: 0.8; display: none;">$0 CLP / porción</div>
+                        </div>
+                    </div>
+
+                    <button class="btn-submit" onclick="saveRecipe()">Guardar Receta</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">Mensaje</div>
+
+    <script src="app.js"></script>
+</body>
+</html>
