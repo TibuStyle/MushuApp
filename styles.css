@@ -51,14 +51,18 @@ body {
 }
 
 .app-container {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
     width: 100%;
     max-width: 480px;
     height: 100%;
     height: 100dvh;
     display: flex;
     flex-direction: column;
-    position: relative;
     background: var(--bg-color);
+    overflow: hidden;
 }
 
 .app-header {

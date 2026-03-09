@@ -25,7 +25,16 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(() => console.log('Service Worker Registered'))
             .catch(err => console.log('Service Worker Failed', err));
     }
+/* 🔒 Prevenir el deslizamiento del elástico (Overscroll) en iOS/Android */
+document.addEventListener('touchmove', function (e) {
+    const scrollableElement = e.target.closest('.content-area, .modal-content');
+    if (!scrollableElement) {
+        e.preventDefault();
+    }
+}, { passive: false });
 
+// Forzar el scroll al inicio en recarga para evitar desajustes de la barra de URL
+window.scrollTo(0, 0);
     // Splash Screen timeout: 3 seconds
     setTimeout(() => {
         const splash = document.getElementById('splash-screen');
