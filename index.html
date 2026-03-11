@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- MushuApp Version 2.0 -->
+    <!-- MushuApp Version 2.1 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mushu App - Costos de Recetas</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <!-- PWA -->
-    <link rel="manifest" href="manifest.json?v=2.0">
+    <link rel="manifest" href="manifest.json?v=2.1">
     <meta name="theme-color" content="#ffb6c1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -33,13 +33,14 @@
         <header class="app-header">
             <div class="header-top">
                 <div class="header-spacer"></div>
-                <img src="mushu_logo.png" alt="Mushu Logo" class="header-logo">
+                <div class="header-center">
+                    <img src="mushu_logo.png" alt="Mushu Logo" class="header-logo">
+                    <p class="header-subtitle">Calculadora de Costos</p>
+                </div>
                 <button class="btn-settings" type="button" onclick="showSettingsModal()" title="Configuración">
                     <i class='bx bx-cog'></i>
                 </button>
             </div>
-            <h1>Mushu App</h1>
-            <p>Calculadora de Costos</p>
         </header>
 
         <!-- Main Content Area -->
@@ -361,7 +362,7 @@
 
                 <!-- Info -->
                 <div class="settings-section" style="text-align: center; opacity: 0.5;">
-                    <p style="font-size: 12px;">MushuApp v2.0 • Hecho con ❤️</p>
+                    <p style="font-size: 12px;">MushuApp v2.1 • Hecho con ❤️</p>
                 </div>
             </div>
         </div>
