@@ -2,14 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- MushuApp Version 3.0 -->
+    <!-- MushuApp Version 3.1 - Fase 2: Clases -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mushu App - Costos de Recetas</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    <!-- PWA -->
-    <link rel="manifest" href="manifest.json?v=3.0">
+    <link rel="manifest" href="manifest.json?v=3.1">
     <meta name="theme-color" content="#ffb6c1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -51,73 +50,43 @@
                 <div class="section-header">
                     <h2>Materiales</h2>
                 </div>
-
-                <!-- Buscador de materiales -->
                 <div class="search-box">
                     <i class='bx bx-search'></i>
                     <input type="text" id="search-materials" placeholder="Buscar material..." oninput="filterMaterials()">
                 </div>
-
-                <!-- Productos -->
                 <div class="category-block" id="cat-productos">
                     <div class="category-header" onclick="toggleCategory('productos')">
                         <div class="category-header-left">
                             <i class='bx bx-chevron-down category-chevron' id="chevron-productos"></i>
                             <i class='bx bx-package category-icon'></i>
-                            <div>
-                                <h3>Productos</h3>
-                                <p class="category-desc">Materia prima para tus recetas</p>
-                            </div>
+                            <div><h3>Productos</h3><p class="category-desc">Materia prima para tus recetas</p></div>
                         </div>
-                        <button class="btn-add-small" onclick="event.stopPropagation(); showAddMaterialModal(null, 'productos')">
-                            <i class='bx bx-plus'></i>
-                        </button>
+                        <button class="btn-add-small" onclick="event.stopPropagation(); showAddMaterialModal(null, 'productos')"><i class='bx bx-plus'></i></button>
                     </div>
-                    <div class="category-body open" id="body-productos">
-                        <div class="list-container" id="list-productos"></div>
-                    </div>
+                    <div class="category-body open" id="body-productos"><div class="list-container" id="list-productos"></div></div>
                 </div>
-
-                <!-- Decoración -->
                 <div class="category-block" id="cat-decoracion">
                     <div class="category-header" onclick="toggleCategory('decoracion')">
                         <div class="category-header-left">
                             <i class='bx bx-chevron-down category-chevron' id="chevron-decoracion"></i>
                             <i class='bx bx-palette category-icon'></i>
-                            <div>
-                                <h3>Decoración</h3>
-                                <p class="category-desc">Adornos y detalles para decorar</p>
-                            </div>
+                            <div><h3>Decoración</h3><p class="category-desc">Adornos y detalles para decorar</p></div>
                         </div>
-                        <button class="btn-add-small" onclick="event.stopPropagation(); showAddMaterialModal(null, 'decoracion')">
-                            <i class='bx bx-plus'></i>
-                        </button>
+                        <button class="btn-add-small" onclick="event.stopPropagation(); showAddMaterialModal(null, 'decoracion')"><i class='bx bx-plus'></i></button>
                     </div>
-                    <div class="category-body open" id="body-decoracion">
-                        <div class="list-container" id="list-decoracion"></div>
-                    </div>
+                    <div class="category-body open" id="body-decoracion"><div class="list-container" id="list-decoracion"></div></div>
                 </div>
-
-                <!-- Extra -->
                 <div class="category-block" id="cat-extra">
                     <div class="category-header" onclick="toggleCategory('extra')">
                         <div class="category-header-left">
                             <i class='bx bx-chevron-down category-chevron' id="chevron-extra"></i>
                             <i class='bx bx-star category-icon'></i>
-                            <div>
-                                <h3>Extra</h3>
-                                <p class="category-desc">Cajas, impresiones, packaging</p>
-                            </div>
+                            <div><h3>Extra</h3><p class="category-desc">Cajas, impresiones, packaging</p></div>
                         </div>
-                        <button class="btn-add-small" onclick="event.stopPropagation(); addExtraSubcategory()">
-                            <i class='bx bx-plus'></i>
-                        </button>
+                        <button class="btn-add-small" onclick="event.stopPropagation(); addExtraSubcategory()"><i class='bx bx-plus'></i></button>
                     </div>
-                    <div class="category-body open" id="body-extra">
-                        <div class="list-container" id="list-extra"></div>
-                    </div>
+                    <div class="category-body open" id="body-extra"><div class="list-container" id="list-extra"></div></div>
                 </div>
-
             </section>
 
             <!-- SECTION: RECETAS -->
@@ -126,18 +95,12 @@
                     <div style="display: flex; flex-direction: column; gap: 4px;">
                         <h2>Recetas</h2>
                         <div class="selling-price-toggle">
-                            <label class="switch">
-                                <input type="checkbox" id="toggle-selling-price" onchange="toggleSellingPrice()">
-                                <span class="slider round"></span>
-                            </label>
+                            <label class="switch"><input type="checkbox" id="toggle-selling-price" onchange="toggleSellingPrice()"><span class="slider round"></span></label>
                             <span>Precio de venta mín.</span>
                         </div>
                     </div>
-                    <button class="btn-primary" onclick="showAddRecipeModal()">
-                        <i class='bx bx-plus'></i> Nueva
-                    </button>
+                    <button class="btn-primary" onclick="showAddRecipeModal()"><i class='bx bx-plus'></i> Nueva</button>
                 </div>
-
                 <div class="list-container" id="recipes-list">
                     <div class="empty-state">No hay recetas todavía. Crea tu primera receta.</div>
                 </div>
@@ -145,13 +108,40 @@
 
             <!-- SECTION: CLASES -->
             <section id="view-clases" class="view">
-                <div class="section-header">
-                    <h2>Clases</h2>
+                <!-- Vista Profesor -->
+                <div id="teacher-classes-view" style="display:none;">
+                    <div class="section-header">
+                        <h2>🎓 Mis Clases</h2>
+                        <button class="btn-primary" onclick="showCreateCourseModal()"><i class='bx bx-plus'></i> Curso</button>
+                    </div>
+                    <div id="courses-list" class="list-container"></div>
                 </div>
-                <div class="empty-state">
-                    <i class='bx bxs-graduation' style="font-size: 48px; color: var(--secondary-color); display: block; margin-bottom: 12px;"></i>
-                    <p style="font-weight: 600;">🚧 Próximamente</p>
-                    <p style="font-size: 13px; margin-top: 8px;">Aquí podrás guardar apuntes y enlaces de tus clases de pastelería</p>
+
+                <!-- Vista Alumno -->
+                <div id="student-classes-view" style="display:none;">
+                    <div class="section-header">
+                        <h2>🎓 Mis Clases</h2>
+                    </div>
+                    <div class="import-class-box" onclick="showImportClassModal()">
+                        <i class='bx bx-import'></i>
+                        <div>
+                            <strong>Ingresar Código de Clase</strong>
+                            <p>Pega el código que te dio tu profe</p>
+                        </div>
+                    </div>
+                    <div id="imported-classes-list" class="list-container" style="margin-top:16px;"></div>
+                </div>
+
+                <!-- Vista sin modo (primera vez) -->
+                <div id="no-mode-classes-view">
+                    <div class="section-header">
+                        <h2>🎓 Clases</h2>
+                    </div>
+                    <div class="empty-state">
+                        <i class='bx bxs-graduation' style="font-size: 48px; color: var(--secondary-color); display: block; margin-bottom: 12px;"></i>
+                        <p style="font-weight: 600;">Configura tu modo</p>
+                        <p style="font-size: 13px; margin-top: 8px;">Ve a Configuración ⚙️ y activa el Modo Profesor o registra tu nombre como alumno</p>
+                    </div>
                 </div>
             </section>
 
@@ -159,21 +149,12 @@
 
         <!-- Bottom Navigation -->
         <nav class="bottom-nav">
-            <button type="button" id="nav-materials" class="nav-item active" onclick="switchTab('materials')">
-                <i class='bx bx-list-ul'></i>
-                <span>Materiales</span>
-            </button>
-            <button type="button" id="nav-recetas" class="nav-item" onclick="switchTab('recetas')">
-                <i class='bx bx-book'></i>
-                <span>Recetas</span>
-            </button>
-            <button type="button" id="nav-clases" class="nav-item" onclick="switchTab('clases')">
-                <i class="bx bxs-graduation"></i>
-                <span>Clases</span>
-            </button>
+            <button type="button" id="nav-materials" class="nav-item active" onclick="switchTab('materials')"><i class='bx bx-list-ul'></i><span>Materiales</span></button>
+            <button type="button" id="nav-recetas" class="nav-item" onclick="switchTab('recetas')"><i class='bx bx-book'></i><span>Recetas</span></button>
+            <button type="button" id="nav-clases" class="nav-item" onclick="switchTab('clases')"><i class="bx bxs-graduation"></i><span>Clases</span></button>
         </nav>
         
-        <!-- MODALS -->
+        <!-- ============ MODALS ============ -->
 
         <!-- Add Material Modal -->
         <div class="modal-overlay" id="modal-material" onclick="closeModal('modal-material')">
@@ -183,40 +164,15 @@
                     <button class="btn-close" type="button" onclick="closeModal('modal-material')"><i class='bx bx-x'></i></button>
                 </div>
                 <form id="form-material" onsubmit="saveMaterial(event)">
-                    <div class="form-group">
-                        <label>Nombre del Material</label>
-                        <input type="text" id="mat-name" required placeholder="Ej: Harina">
-                    </div>
-                    <div class="form-group" id="mat-subcategory-group" style="display:none;">
-                        <label>Subcategoría Extra</label>
-                        <input type="text" id="mat-subcategory" placeholder="Ej: Packaging Tortas">
-                    </div>
+                    <div class="form-group"><label>Nombre del Material</label><input type="text" id="mat-name" required placeholder="Ej: Harina"></div>
+                    <div class="form-group" id="mat-subcategory-group" style="display:none;"><label>Subcategoría Extra</label><input type="text" id="mat-subcategory" placeholder="Ej: Packaging Tortas"></div>
+                    <div class="form-row"><div class="form-group"><label>Precio (CLP)</label><input type="number" id="mat-price" required placeholder="990" min="0"></div></div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>Precio (CLP)</label>
-                            <input type="number" id="mat-price" required placeholder="990" min="0">
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Cantidad Base</label>
-                            <input type="number" id="mat-qty" required placeholder="1" min="0.01" step="0.01">
-                        </div>
-                        <div class="form-group">
-                            <label>Unidad</label>
-                            <select id="mat-unit">
-                                <option value="kg">Kilos (kg)</option>
-                                <option value="g">Gramos (g)</option>
-                                <option value="l">Litros (L)</option>
-                                <option value="cm3">mL</option>
-                                <option value="u">Unidad (ej. Huevos)</option>
-                            </select>
-                        </div>
+                        <div class="form-group"><label>Cantidad Base</label><input type="number" id="mat-qty" required placeholder="1" min="0.01" step="0.01"></div>
+                        <div class="form-group"><label>Unidad</label><select id="mat-unit"><option value="kg">Kilos (kg)</option><option value="g">Gramos (g)</option><option value="l">Litros (L)</option><option value="cm3">mL</option><option value="u">Unidad</option></select></div>
                     </div>
                     <button type="submit" class="btn-submit">Guardar Material</button>
                 </form>
-
-                <!-- Price History -->
                 <div id="price-history-section" class="price-history-section" style="display:none;">
                     <h4><i class='bx bx-line-chart'></i> Historial de Precios</h4>
                     <div id="price-history-list"></div>
@@ -230,103 +186,39 @@
                 <div class="modal-header">
                     <h3>Crear Receta</h3>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <button class="btn-icon" type="button" id="btn-duplicate-recipe" onclick="duplicateCurrentRecipe()" title="Duplicar receta" style="display:none;">
-                            <i class='bx bx-copy'></i>
-                        </button>
+                        <button class="btn-icon" type="button" id="btn-duplicate-recipe" onclick="duplicateCurrentRecipe()" title="Duplicar" style="display:none;"><i class='bx bx-copy'></i></button>
                         <button class="btn-close" type="button" onclick="closeModal('modal-recipe')"><i class='bx bx-x'></i></button>
                     </div>
                 </div>
                 <div class="recipe-creation-container">
-                    <div class="form-group">
-                        <label>Nombre de la Receta</label>
-                        <input type="text" id="recipe-name" placeholder="Ej: Torta Selva Negra">
-                    </div>
-                    
-                    <!-- PRODUCTOS -->
+                    <div class="form-group"><label>Nombre de la Receta</label><input type="text" id="recipe-name" placeholder="Ej: Torta Selva Negra"></div>
                     <div class="recipe-ingredients-section">
                         <h4><i class='bx bx-package'></i> Productos</h4>
                         <div id="recipe-ingredients-list" class="recipe-ingredients-list"></div>
-                        <div class="add-ingredient-form">
-                            <div class="form-row align-bottom">
-                                <div class="form-group flex-2">
-                                    <label>Producto</label>
-                                    <select id="recipe-add-mat"></select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Cantidad</label>
-                                    <input type="number" id="recipe-add-qty" placeholder="500" min="0.01" step="0.01">
-                                </div>
-                                <div class="form-group">
-                                    <label>Unidad</label>
-                                    <select id="recipe-add-unit">
-                                        <option value="g">Gramos (g)</option>
-                                        <option value="kg">Kilos (kg)</option>
-                                        <option value="cm3">mL</option>
-                                        <option value="l">Litros (l)</option>
-                                        <option value="u">Unidades (u)</option>
-                                    </select>
-                                </div>
-                                <button type="button" class="btn-add-small" onclick="addIngredientToRecipeForm()">
-                                    <i class='bx bx-plus'></i>
-                                </button>
-                            </div>
-                        </div>
+                        <div class="add-ingredient-form"><div class="form-row align-bottom">
+                            <div class="form-group flex-2"><label>Producto</label><select id="recipe-add-mat"></select></div>
+                            <div class="form-group"><label>Cantidad</label><input type="number" id="recipe-add-qty" placeholder="500" min="0.01" step="0.01"></div>
+                            <div class="form-group"><label>Unidad</label><select id="recipe-add-unit"><option value="g">g</option><option value="kg">kg</option><option value="cm3">mL</option><option value="l">L</option><option value="u">u</option></select></div>
+                            <button type="button" class="btn-add-small" onclick="addIngredientToRecipeForm()"><i class='bx bx-plus'></i></button>
+                        </div></div>
                     </div>
-
-                    <!-- DECORACIÓN -->
                     <div class="recipe-ingredients-section">
                         <h4><i class='bx bx-palette'></i> Decoración</h4>
                         <div id="recipe-decorations-list" class="recipe-ingredients-list"></div>
-                        <div class="add-ingredient-form">
-                            <div class="form-row align-bottom">
-                                <div class="form-group flex-2">
-                                    <label>Decoración</label>
-                                    <select id="recipe-add-deco-mat"></select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Cantidad</label>
-                                    <input type="number" id="recipe-add-deco-qty" placeholder="100" min="0.01" step="0.01">
-                                </div>
-                                <div class="form-group">
-                                    <label>Unidad</label>
-                                    <select id="recipe-add-deco-unit">
-                                        <option value="g">Gramos (g)</option>
-                                        <option value="kg">Kilos (kg)</option>
-                                        <option value="cm3">mL</option>
-                                        <option value="l">Litros (l)</option>
-                                        <option value="u">Unidades (u)</option>
-                                    </select>
-                                </div>
-                                <button type="button" class="btn-add-small" onclick="addDecorationToRecipeForm()">
-                                    <i class='bx bx-plus'></i>
-                                </button>
-                            </div>
-                        </div>
+                        <div class="add-ingredient-form"><div class="form-row align-bottom">
+                            <div class="form-group flex-2"><label>Decoración</label><select id="recipe-add-deco-mat"></select></div>
+                            <div class="form-group"><label>Cantidad</label><input type="number" id="recipe-add-deco-qty" placeholder="100" min="0.01" step="0.01"></div>
+                            <div class="form-group"><label>Unidad</label><select id="recipe-add-deco-unit"><option value="g">g</option><option value="kg">kg</option><option value="cm3">mL</option><option value="l">L</option><option value="u">u</option></select></div>
+                            <button type="button" class="btn-add-small" onclick="addDecorationToRecipeForm()"><i class='bx bx-plus'></i></button>
+                        </div></div>
                     </div>
-
-                    <!-- EXTRA -->
                     <div class="recipe-ingredients-section">
                         <h4><i class='bx bx-star'></i> Extra (Opcional)</h4>
-                        <div class="form-group">
-                            <label>Selecciona un paquete de extras</label>
-                            <select id="recipe-extra-subcat" onchange="onExtraSubcategoryChange()"></select>
-                        </div>
+                        <div class="form-group"><label>Paquete de extras</label><select id="recipe-extra-subcat" onchange="onExtraSubcategoryChange()"></select></div>
                         <div id="recipe-extra-details"></div>
                     </div>
-
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label>¿Dividir en Porciones? (Opcional)</label>
-                        <input type="number" id="recipe-portions" placeholder="Ej: 15" min="1" step="1" oninput="updateRecipeTotal()">
-                    </div>
-
-                    <div class="recipe-summary">
-                        <span>Costo Total:</span>
-                        <div style="text-align: right;">
-                            <strong id="recipe-total-cost">$0 CLP</strong>
-                            <div id="recipe-portion-cost" style="font-size: 14px; opacity: 0.8; display: none;">$0 CLP / porción</div>
-                        </div>
-                    </div>
-
+                    <div class="form-group" style="margin-bottom: 20px;"><label>¿Dividir en Porciones?</label><input type="number" id="recipe-portions" placeholder="Ej: 15" min="1" step="1" oninput="updateRecipeTotal()"></div>
+                    <div class="recipe-summary"><span>Costo Total:</span><div style="text-align: right;"><strong id="recipe-total-cost">$0 CLP</strong><div id="recipe-portion-cost" style="font-size: 14px; opacity: 0.8; display: none;">$0 CLP / porción</div></div></div>
                     <button class="btn-submit" onclick="saveRecipe()">Guardar Receta</button>
                 </div>
             </div>
@@ -340,64 +232,186 @@
                     <button class="btn-close" type="button" onclick="closeModal('modal-settings')"><i class='bx bx-x'></i></button>
                 </div>
 
+                <!-- Modo Profesor -->
+                <div class="settings-section">
+                    <h4><i class='bx bxs-graduation'></i> Modo Profesor</h4>
+                    <p class="settings-desc">Activa para crear cursos, clases y generar códigos</p>
+                    <div class="settings-row">
+                        <span>Modo Profesor</span>
+                        <label class="switch"><input type="checkbox" id="toggle-teacher-mode" onchange="toggleTeacherMode()"><span class="slider round"></span></label>
+                    </div>
+                    <div id="teacher-password-section" style="display:none; margin-top:12px;">
+                        <div class="form-group" style="margin-bottom:8px;"><label>Contraseña</label><input type="password" id="teacher-password" placeholder="Crea una contraseña"></div>
+                        <button class="btn-submit" style="margin-top:8px;" onclick="saveTeacherPassword()">Guardar Contraseña</button>
+                    </div>
+                </div>
+
+                <!-- Nombre Alumno -->
+                <div class="settings-section" id="student-name-section">
+                    <h4><i class='bx bx-user'></i> Tu Nombre (Alumno)</h4>
+                    <p class="settings-desc">Se usa como marca de agua en el contenido de clases</p>
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <input type="text" id="student-name-input" placeholder="Ej: María González">
+                    </div>
+                    <button class="btn-submit" style="margin-top:0;" onclick="saveStudentName()">Guardar Nombre</button>
+                </div>
+
                 <!-- Margen de Ganancia -->
                 <div class="settings-section">
                     <h4><i class='bx bx-trending-up'></i> Margen de Ganancia</h4>
                     <p class="settings-desc">Multiplicador para el precio de venta sugerido</p>
-                    <div class="settings-row">
-                        <span>Multiplicar costo por:</span>
-                        <input type="number" id="profit-margin" value="2" min="1" max="10" step="0.1" class="input-small" onchange="saveProfitMargin()">
-                    </div>
+                    <div class="settings-row"><span>Multiplicar costo por:</span><input type="number" id="profit-margin" value="2" min="1" max="10" step="0.1" class="input-small" onchange="saveProfitMargin()"></div>
                     <p class="settings-hint">Ej: 2 = duplicar, 2.5 = x2.5, 3 = triplicar</p>
                 </div>
 
                 <!-- Respaldo -->
                 <div class="settings-section">
                     <h4><i class='bx bx-data'></i> Respaldo de Datos</h4>
-                    <p class="settings-desc">Exporta tus datos para no perderlos o impórtalos en otro dispositivo</p>
+                    <p class="settings-desc">Exporta o importa tus datos</p>
                     <div class="backup-buttons">
-                        <button class="btn-backup export" onclick="exportData()">
-                            <i class='bx bx-download'></i> Exportar
-                        </button>
-                        <button class="btn-backup import" onclick="document.getElementById('import-file').click()">
-                            <i class='bx bx-upload'></i> Importar
-                        </button>
+                        <button class="btn-backup export" onclick="exportData()"><i class='bx bx-download'></i> Exportar</button>
+                        <button class="btn-backup import" onclick="document.getElementById('import-file').click()"><i class='bx bx-upload'></i> Importar</button>
                         <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)">
                     </div>
                 </div>
 
-                <!-- Info -->
-                <div class="settings-section" style="text-align: center; opacity: 0.5;">
-                    <p style="font-size: 12px;">MushuApp v3.0 • Hecho con ❤️</p>
-                </div>
+                <div class="settings-section" style="text-align: center; opacity: 0.5;"><p style="font-size: 12px;">MushuApp v3.1 • Hecho con ❤️</p></div>
             </div>
         </div>
 
         <!-- Social Media Modal -->
         <div class="modal-overlay" id="modal-social" onclick="closeModal('modal-social')">
             <div class="modal-content social-modal" onclick="event.stopPropagation()">
-                <div class="modal-header">
-                    <h3>🩷 Nuestras Redes</h3>
-                    <button class="btn-close" type="button" onclick="closeModal('modal-social')"><i class='bx bx-x'></i></button>
-                </div>
+                <div class="modal-header"><h3>🩷 Nuestras Redes</h3><button class="btn-close" type="button" onclick="closeModal('modal-social')"><i class='bx bx-x'></i></button></div>
                 <div class="social-content">
                     <img src="mushu_logo.png" alt="Mushu Logo" class="social-logo">
                     <p class="social-name">Mushu Pastry</p>
                     <p class="social-desc">Pastelería artesanal hecha con amor 🎂</p>
-                    
                     <div class="social-links">
                         <a href="https://www.instagram.com/mushu.pastry/" target="_blank" rel="noopener noreferrer" class="social-link instagram">
                             <i class='bx bxl-instagram'></i>
-                            <div class="social-link-info">
-                                <span class="social-link-name">Instagram</span>
-                                <span class="social-link-user">@mushu.pastry</span>
-                            </div>
+                            <div class="social-link-info"><span class="social-link-name">Instagram</span><span class="social-link-user">@mushu.pastry</span></div>
                             <i class='bx bx-link-external social-link-arrow'></i>
                         </a>
                     </div>
-
                     <p class="social-footer">¡Síguenos para ver nuestras creaciones! ✨</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- Create/Edit Course Modal -->
+        <div class="modal-overlay" id="modal-course" onclick="closeModal('modal-course')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3 id="modal-course-title">Crear Curso</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-course')"><i class='bx bx-x'></i></button>
+                </div>
+                <div class="form-group"><label>Nombre del Curso</label><input type="text" id="course-name" placeholder="Ej: Pastelería Básica"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Día</label>
+                        <select id="course-day">
+                            <option value="Lunes">Lunes</option>
+                            <option value="Martes">Martes</option>
+                            <option value="Miércoles">Miércoles</option>
+                            <option value="Jueves">Jueves</option>
+                            <option value="Viernes">Viernes</option>
+                            <option value="Sábado">Sábado</option>
+                            <option value="Domingo">Domingo</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Horario (opcional)</label><input type="text" id="course-schedule" placeholder="Ej: 9:00 - 12:00"></div>
+                </div>
+                <div class="form-group">
+                    <label>Alumnos</label>
+                    <div id="course-students-list" class="course-students-list"></div>
+                    <div class="form-row align-bottom" style="margin-top:8px;">
+                        <div class="form-group" style="margin-bottom:0; flex:1;"><input type="text" id="course-add-student" placeholder="Nombre del alumno"></div>
+                        <button type="button" class="btn-add-small" onclick="addStudentToCourse()"><i class='bx bx-plus'></i></button>
+                    </div>
+                </div>
+                <button class="btn-submit" onclick="saveCourse()">Guardar Curso</button>
+            </div>
+        </div>
+
+        <!-- Create Class Modal -->
+        <div class="modal-overlay" id="modal-create-class" onclick="closeModal('modal-create-class')">
+            <div class="modal-content large-modal" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3 id="modal-class-title">Crear Clase</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-create-class')"><i class='bx bx-x'></i></button>
+                </div>
+                <div class="form-group"><label>Curso</label><select id="class-course-select" onchange="onClassCourseChange()"></select></div>
+                <div class="form-group"><label>Fecha</label><input type="date" id="class-date"></div>
+                <div class="form-group"><label>Nombre de la Clase</label><input type="text" id="class-name" placeholder="Ej: Torta Selva Negra"></div>
+                <div class="form-group">
+                    <label>Receta Escrita</label>
+                    <textarea id="class-recipe-text" rows="8" placeholder="Ingredientes:&#10;- 500g harina&#10;- 300g azúcar&#10;&#10;Preparación:&#10;1. Precalentar horno a 180°&#10;2. Mezclar secos..." class="class-textarea"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>📷 Fotos (máx 5)</label>
+                    <input type="file" id="class-photos-input" accept="image/*" multiple onchange="handleClassPhotos(event)" style="display:none;">
+                    <button type="button" class="btn-backup import" style="width:100%;" onclick="document.getElementById('class-photos-input').click()"><i class='bx bx-camera'></i> Agregar Fotos</button>
+                    <div id="class-photos-preview" class="class-photos-preview"></div>
+                </div>
+                <div class="form-group"><label>💡 Tips de la Profe (opcional)</label><textarea id="class-tips" rows="3" placeholder="Ej: El chocolate se derrite a baño maría..." class="class-textarea"></textarea></div>
+                <div class="form-group"><label>Receta con Costos (opcional)</label><select id="class-linked-recipe"><option value="">Sin vincular</option></select></div>
+                <div class="form-group">
+                    <label>⏰ Código vence en</label>
+                    <select id="class-code-expiry">
+                        <option value="24">24 horas</option>
+                        <option value="48">48 horas</option>
+                        <option value="72">72 horas</option>
+                        <option value="168">1 semana</option>
+                        <option value="0">Sin vencimiento</option>
+                    </select>
+                </div>
+                <button class="btn-submit" onclick="saveClass()">Guardar Clase</button>
+            </div>
+        </div>
+
+        <!-- Attendance + Codes Modal -->
+        <div class="modal-overlay" id="modal-attendance" onclick="closeModal('modal-attendance')">
+            <div class="modal-content large-modal" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>📋 Asistencia</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-attendance')"><i class='bx bx-x'></i></button>
+                </div>
+                <div id="attendance-class-info"></div>
+                <div id="attendance-list"></div>
+                <button class="btn-submit" id="btn-generate-codes" onclick="generateCodes()"><i class='bx bx-key'></i> Generar Códigos para Todos</button>
+                <div id="generated-codes-section" style="display:none; margin-top:20px;">
+                    <h4 style="margin-bottom:12px;">📋 Códigos Generados</h4>
+                    <div id="generated-codes-list"></div>
+                    <div class="backup-buttons" style="margin-top:12px;">
+                        <button class="btn-backup export" onclick="copyAllCodes()"><i class='bx bx-copy'></i> Copiar Todos</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Import Class Modal (Student) -->
+        <div class="modal-overlay" id="modal-import-class" onclick="closeModal('modal-import-class')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>📥 Ingresar Código</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-import-class')"><i class='bx bx-x'></i></button>
+                </div>
+                <div class="form-group">
+                    <label>Pega tu código de clase</label>
+                    <textarea id="import-class-code" rows="4" placeholder="Pega aquí el código que te dio tu profe..." class="class-textarea"></textarea>
+                </div>
+                <button class="btn-submit" onclick="importClassFromCode()"><i class='bx bx-import'></i> Importar Clase</button>
+            </div>
+        </div>
+
+        <!-- View Class Content Modal (Student) -->
+        <div class="modal-overlay" id="modal-view-class" onclick="closeModal('modal-view-class')">
+            <div class="modal-content large-modal" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3 id="view-class-title">Clase</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-view-class')"><i class='bx bx-x'></i></button>
+                </div>
+                <div id="view-class-content" class="view-class-content"></div>
             </div>
         </div>
 
