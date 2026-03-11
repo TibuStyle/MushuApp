@@ -1,6 +1,7 @@
 // --- Data State ---
 let materials = JSON.parse(localStorage.getItem('mushu_materials')) || [];
 let recipes = JSON.parse(localStorage.getItem('mushu_recipes')) || [];
+let profitMargin = parseFloat(localStorage.getItem('mushu_profit_margin')) || 2;
 
 // Current recipe state
 let currentRecipeIngredients = [];
@@ -14,33 +15,37 @@ let showMinSellingPrice = false;
 
 // --- Init ---
 document.addEventListener('DOMContentLoaded', () => {
+    const savedMargin = localStorage.getItem('mushu_profit_margin');
+    if (savedMargin) profitMargin = parseFloat(savedMargin);
+
     renderMaterials();
     renderRecipes();
     updateMaterialSelect();
+    updateDecorationSelect();
     updateExtraSubcategorySelect();
-    
+
     // PWA Service Worker Registration
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
             .then(() => console.log('Service Worker Registered'))
             .catch(err => console.log('Service Worker Failed', err));
     }
-/* 🔒 Prevenir el deslizamiento del elástico (Overscroll) en iOS/Android */
-document.addEventListener('touchmove', function (e) {
-    const scrollableElement = e.target.closest('.content-area, .modal-content');
-    if (!scrollableElement) {
-        e.preventDefault();
-    }
-}, { passive: false });
 
-// Forzar el scroll al inicio en recarga para evitar desajustes de la barra de URL
-window.scrollTo(0, 0);
-    // Splash Screen timeout: 3 seconds
+    // Prevent overscroll on iOS/Android
+    document.addEventListener('touchmove', function (e) {
+        const scrollableElement = e.target.closest('.content-area, .modal-content');
+        if (!scrollableElement) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    window.scrollTo(0, 0);
+
+    // Splash Screen timeout
     setTimeout(() => {
         const splash = document.getElementById('splash-screen');
         if (splash) {
             splash.classList.add('fade-out');
-            // Remove from DOM after transition (0.5s)
             setTimeout(() => splash.remove(), 500);
         }
     }, 3000);
@@ -48,23 +53,14 @@ window.scrollTo(0, 0);
 
 // --- Tab Navigation ---
 function switchTab(tabName) {
-    console.log('Switching to tab:', tabName);
-    if (tabName === 'clases') {
-        showToast("¡Pronto disponible! 🚀");
-        return;
-    }
     const view = document.getElementById(`view-${tabName}`);
     const nav = document.getElementById(`nav-${tabName}`);
-    console.log('Found view:', !!view, 'Found nav:', !!nav);
-    
-    if (!view || !nav) {
-        console.error('Tab elements not found for:', tabName);
-        return;
-    }
+
+    if (!view || !nav) return;
 
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    
+
     view.classList.add('active');
     nav.classList.add('active');
 }
@@ -72,7 +68,7 @@ function switchTab(tabName) {
 // --- Modals ---
 function showAddMaterialModal(materialId = null, category = 'productos', subcategory = '') {
     document.getElementById('form-material').reset();
-    
+
     const placeholders = {
         productos: { name: 'Ej: Harina', price: '990' },
         decoracion: { name: 'Ej: Chispas de chocolate', price: '1500' },
@@ -85,7 +81,7 @@ function showAddMaterialModal(materialId = null, category = 'productos', subcate
     if (materialId) {
         const mat = materials.find(m => String(m.id) === String(materialId));
         if (mat) {
-            currentEditingMaterialId = mat.id;
+            currentEditingMaterialId = String(mat.id);
             currentMaterialCategory = mat.category || 'productos';
             currentMaterialSubcategory = mat.subcategory || '';
             document.getElementById('mat-name').value = mat.name;
@@ -126,21 +122,28 @@ function showAddMaterialModal(materialId = null, category = 'productos', subcate
     const ph = placeholders[currentMaterialCategory] || placeholders.productos;
     document.getElementById('mat-name').placeholder = ph.name;
     document.getElementById('mat-price').placeholder = ph.price;
-    
+
     document.getElementById('modal-material').classList.add('active');
 }
 
 function showAddRecipeModal(recipeId = null) {
+    const btnDuplicate = document.getElementById('btn-duplicate-recipe');
+
     if (recipeId) {
         const recipe = recipes.find(r => String(r.id) === String(recipeId));
         if (recipe) {
-            currentEditingRecipeId = recipe.id;
+            currentEditingRecipeId = String(recipe.id);
             document.getElementById('recipe-name').value = recipe.name;
             document.getElementById('recipe-portions').value = recipe.portions || '';
-            currentRecipeIngredients = [...(recipe.ingredients || [])];
-            currentRecipeDecorations = [...(recipe.decorations || [])];
+            currentRecipeIngredients = JSON.parse(JSON.stringify(recipe.ingredients || []));
+            currentRecipeDecorations = JSON.parse(JSON.stringify(recipe.decorations || []));
             currentRecipeExtra = recipe.extraSubcategory || null;
             document.querySelector('#modal-recipe h3').textContent = "Editar Receta";
+
+            // Recalculate costs with current material prices
+            recalculateIngredientCosts();
+
+            if (btnDuplicate) btnDuplicate.style.display = 'flex';
         }
     } else {
         currentEditingRecipeId = null;
@@ -150,6 +153,8 @@ function showAddRecipeModal(recipeId = null) {
         currentRecipeDecorations = [];
         currentRecipeExtra = null;
         document.querySelector('#modal-recipe h3').textContent = "Crear Receta";
+
+        if (btnDuplicate) btnDuplicate.style.display = 'none';
     }
 
     renderCurrentRecipeIngredients();
@@ -159,16 +164,21 @@ function showAddRecipeModal(recipeId = null) {
     updateExtraSubcategorySelect();
     renderExtraInRecipe();
     updateRecipeTotal();
-    
+
     document.getElementById('recipe-add-qty').value = '';
     document.getElementById('recipe-add-deco-qty').value = '';
 
-    // Set the extra select value
     if (currentRecipeExtra) {
         document.getElementById('recipe-extra-subcat').value = currentRecipeExtra;
     }
-    
+
     document.getElementById('modal-recipe').classList.add('active');
+}
+
+function showSettingsModal() {
+    const marginInput = document.getElementById('profit-margin');
+    if (marginInput) marginInput.value = profitMargin;
+    document.getElementById('modal-settings').classList.add('active');
 }
 
 function closeModal(modalId) {
@@ -187,7 +197,7 @@ function showToast(message, isError = false) {
 // --- Materials Logic ---
 function saveMaterial(e) {
     e.preventDefault();
-    
+
     const name = document.getElementById('mat-name').value.trim();
     const price = parseFloat(document.getElementById('mat-price').value);
     const qty = parseFloat(document.getElementById('mat-qty').value);
@@ -208,6 +218,7 @@ function saveMaterial(e) {
     if (currentEditingMaterialId) {
         const idx = materials.findIndex(m => String(m.id) === String(currentEditingMaterialId));
         if (idx !== -1) materials[idx] = material;
+        recalculateAllRecipes();
         showToast("Material actualizado!");
     } else {
         materials.push(material);
@@ -227,6 +238,7 @@ function deleteMaterial(id) {
     if (confirm("¿Estás seguro de eliminar este material?")) {
         materials = materials.filter(m => String(m.id) !== String(id));
         saveMaterialsToStorage();
+        recalculateAllRecipes();
         renderMaterials();
         updateMaterialSelect();
         updateDecorationSelect();
@@ -238,18 +250,26 @@ function saveMaterialsToStorage() {
     localStorage.setItem('mushu_materials', JSON.stringify(materials));
 }
 
+// --- Search / Filter Materials ---
+function filterMaterials() {
+    renderMaterials();
+}
+
 function renderMaterials() {
-    // Productos & Decoracion
+    const searchInput = document.getElementById('search-materials');
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
     ['productos', 'decoracion'].forEach(catKey => {
         const list = document.getElementById(`list-${catKey}`);
         const items = materials.filter(m => (m.category || 'productos') === catKey);
+        const filtered = query ? items.filter(m => m.name.toLowerCase().includes(query)) : items;
         const emptyMsg = catKey === 'productos' ? 'Agrega tu primera materia prima' : 'Agrega elementos de decoración';
 
-        if (items.length === 0) {
-            list.innerHTML = `<div class="empty-state" style="padding:20px; font-size: 13px;">${emptyMsg}</div>`;
+        if (filtered.length === 0) {
+            list.innerHTML = `<div class="empty-state" style="padding:20px; font-size: 13px;">${query ? 'Sin resultados' : emptyMsg}</div>`;
             return;
         }
-        list.innerHTML = items.map(mat => `
+        list.innerHTML = filtered.sort((a, b) => a.name.localeCompare(b.name)).map(mat => `
             <div class="card" onclick="showAddMaterialModal('${mat.id}')" style="cursor: pointer;">
                 <div class="card-info">
                     <h3>${mat.name}</h3>
@@ -265,7 +285,10 @@ function renderMaterials() {
         `).join('');
     });
 
-    // Extra - grouped by subcategory with collapsible headers
+    renderExtraMaterials(query);
+}
+
+function renderExtraMaterials(query) {
     const extraList = document.getElementById('list-extra');
     const extraItems = materials.filter(m => m.category === 'extra');
 
@@ -284,8 +307,11 @@ function renderMaterials() {
     let html = '';
     extraSubcategories.forEach(subcat => {
         const items = extraItems.filter(m => m.subcategory === subcat);
+        const filtered = query ? items.filter(m => m.name.toLowerCase().includes(query)) : items;
         const subcatTotal = items.reduce((sum, m) => sum + m.price, 0);
         const subcatId = subcat.replace(/[^a-zA-Z0-9]/g, '_');
+
+        if (query && filtered.length === 0) return;
 
         html += `<div class="extra-subcat">`;
         html += `<div class="extra-subcat-header" onclick="toggleExtraSubcat('${subcatId}')">
@@ -305,10 +331,12 @@ function renderMaterials() {
                     </div>
                  </div>`;
         html += `<div class="extra-subcat-body open" id="body-extra-${subcatId}">`;
-        if (items.length === 0) {
+
+        const displayItems = query ? filtered : items;
+        if (displayItems.length === 0) {
             html += '<div class="empty-state" style="padding:12px; font-size:12px;">Sin items aún. Presiona + para agregar.</div>';
         } else {
-            html += items.map(mat => `
+            html += displayItems.sort((a, b) => a.name.localeCompare(b.name)).map(mat => `
                 <div class="card" onclick="showAddMaterialModal('${mat.id}')" style="cursor: pointer; margin-left:8px;">
                     <div class="card-info">
                         <h3>${mat.name}</h3>
@@ -326,7 +354,7 @@ function renderMaterials() {
         html += `</div></div>`;
     });
 
-    extraList.innerHTML = html;
+    extraList.innerHTML = html || '<div class="empty-state" style="padding:20px; font-size: 13px;">Sin resultados</div>';
 }
 
 // --- Toggle Category Sections ---
@@ -382,8 +410,10 @@ function updateMaterialSelect() {
         select.innerHTML = '<option value="">No hay productos</option>';
         return;
     }
-    select.innerHTML = '<option value="">Selecciona...</option>' + 
-        productMats.map(mat => `<option value="${mat.id}">${mat.name} ($${formatCLP(mat.price)} x ${mat.qty}${mat.unit})</option>`).join('');
+    select.innerHTML = '<option value="">Selecciona...</option>' +
+        productMats.sort((a, b) => a.name.localeCompare(b.name)).map(mat =>
+            `<option value="${mat.id}">${mat.name} ($${formatCLP(mat.price)} x ${mat.qty}${mat.unit})</option>`
+        ).join('');
 }
 
 function updateDecorationSelect() {
@@ -393,27 +423,29 @@ function updateDecorationSelect() {
         select.innerHTML = '<option value="">No hay decoraciones</option>';
         return;
     }
-    select.innerHTML = '<option value="">Selecciona...</option>' + 
-        decoMats.map(mat => `<option value="${mat.id}">${mat.name} ($${formatCLP(mat.price)} x ${mat.qty}${mat.unit})</option>`).join('');
+    select.innerHTML = '<option value="">Selecciona...</option>' +
+        decoMats.sort((a, b) => a.name.localeCompare(b.name)).map(mat =>
+            `<option value="${mat.id}">${mat.name} ($${formatCLP(mat.price)} x ${mat.qty}${mat.unit})</option>`
+        ).join('');
 }
 
 function updateExtraSubcategorySelect() {
     const select = document.getElementById('recipe-extra-subcat');
     const extraItems = materials.filter(m => m.category === 'extra');
     const subcats = [...new Set(extraItems.map(m => m.subcategory).filter(Boolean))];
-    
+
     if (subcats.length === 0) {
         select.innerHTML = '<option value="">No hay extras</option>';
         return;
     }
-    select.innerHTML = '<option value="">Sin extra</option>' + 
+    select.innerHTML = '<option value="">Sin extra</option>' +
         subcats.map(sub => {
             const total = extraItems.filter(m => m.subcategory === sub).reduce((s, m) => s + m.price, 0);
             return `<option value="${sub}">${sub} ($${formatCLP(total)})</option>`;
         }).join('');
 }
 
-// Cost calculation
+// --- Cost Calculation (FIX: division by zero protection) ---
 function calculateIngredientCost(mat, reqQty, reqUnit) {
     let matQtyBase = mat.qty;
     let matUnit = mat.unit;
@@ -440,7 +472,77 @@ function calculateIngredientCost(mat, reqQty, reqUnit) {
         standardReqQty = (isEgg && (matUnit === 'g' || matUnit === 'kg')) ? reqQty * EGG_WEIGHT_GR : reqQty;
     }
 
+    if (standardMatQty <= 0) return 0;
+
     return Math.round((standardReqQty * matPrice) / standardMatQty);
+}
+
+// --- Recalculate Costs When Materials Change ---
+function recalculateIngredientCosts() {
+    currentRecipeIngredients.forEach(ing => {
+        const mat = materials.find(m => String(m.id) === String(ing.matId));
+        if (mat) {
+            ing.cost = calculateIngredientCost(mat, ing.qty, ing.unit);
+        }
+    });
+    currentRecipeDecorations.forEach(dec => {
+        const mat = materials.find(m => String(m.id) === String(dec.matId));
+        if (mat) {
+            dec.cost = calculateIngredientCost(mat, dec.qty, dec.unit);
+        }
+    });
+}
+
+function recalculateAllRecipes() {
+    let anyChanged = false;
+
+    recipes.forEach(recipe => {
+        let changed = false;
+
+        (recipe.ingredients || []).forEach(ing => {
+            const mat = materials.find(m => String(m.id) === String(ing.matId));
+            if (mat) {
+                const newCost = calculateIngredientCost(mat, ing.qty, ing.unit);
+                if (newCost !== ing.cost) {
+                    ing.cost = newCost;
+                    changed = true;
+                }
+            }
+        });
+
+        (recipe.decorations || []).forEach(dec => {
+            const mat = materials.find(m => String(m.id) === String(dec.matId));
+            if (mat) {
+                const newCost = calculateIngredientCost(mat, dec.qty, dec.unit);
+                if (newCost !== dec.cost) {
+                    dec.cost = newCost;
+                    changed = true;
+                }
+            }
+        });
+
+        if (recipe.extraSubcategory) {
+            const newExtraCost = materials
+                .filter(m => m.category === 'extra' && m.subcategory === recipe.extraSubcategory)
+                .reduce((s, m) => s + m.price, 0);
+            if (newExtraCost !== recipe.extraCost) {
+                recipe.extraCost = newExtraCost;
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            const ingredientsCost = (recipe.ingredients || []).reduce((sum, ing) => sum + ing.cost, 0);
+            const decorationsCost = (recipe.decorations || []).reduce((sum, ing) => sum + ing.cost, 0);
+            recipe.totalCost = ingredientsCost + decorationsCost + (recipe.extraCost || 0);
+            anyChanged = true;
+        }
+    });
+
+    if (anyChanged) {
+        saveRecipesToStorage();
+        renderRecipes();
+    }
 }
 
 // --- Ingredient (Product) functions ---
@@ -453,12 +555,12 @@ function addIngredientToRecipeForm() {
         showToast("Completa los datos del ingrediente", true);
         return;
     }
-    const material = materials.find(m => m.id === matId);
+    const material = materials.find(m => String(m.id) === String(matId));
     if (!material) return;
 
     currentRecipeIngredients.push({
         id: Date.now().toString(),
-        matId: material.id, name: material.name,
+        matId: String(material.id), name: material.name,
         qty, unit, cost: calculateIngredientCost(material, qty, unit)
     });
 
@@ -469,7 +571,7 @@ function addIngredientToRecipeForm() {
 }
 
 function removeIngredientFromRecipe(ingId) {
-    currentRecipeIngredients = currentRecipeIngredients.filter(ing => ing.id !== ingId);
+    currentRecipeIngredients = currentRecipeIngredients.filter(ing => String(ing.id) !== String(ingId));
     renderCurrentRecipeIngredients();
     updateRecipeTotal();
 }
@@ -506,12 +608,12 @@ function addDecorationToRecipeForm() {
         showToast("Completa los datos de la decoración", true);
         return;
     }
-    const material = materials.find(m => m.id === matId);
+    const material = materials.find(m => String(m.id) === String(matId));
     if (!material) return;
 
     currentRecipeDecorations.push({
         id: Date.now().toString(),
-        matId: material.id, name: material.name,
+        matId: String(material.id), name: material.name,
         qty, unit, cost: calculateIngredientCost(material, qty, unit)
     });
 
@@ -522,7 +624,7 @@ function addDecorationToRecipeForm() {
 }
 
 function removeDecorationFromRecipe(ingId) {
-    currentRecipeDecorations = currentRecipeDecorations.filter(ing => ing.id !== ingId);
+    currentRecipeDecorations = currentRecipeDecorations.filter(ing => String(ing.id) !== String(ingId));
     renderCurrentRecipeDecorations();
     updateRecipeTotal();
 }
@@ -594,10 +696,10 @@ function updateRecipeTotal() {
     const total = ingredientsCost + decorationsCost + extraCost;
 
     document.getElementById('recipe-total-cost').textContent = `$${formatCLP(total)} CLP`;
-    
+
     const portions = parseInt(document.getElementById('recipe-portions').value);
     const portionCostDiv = document.getElementById('recipe-portion-cost');
-    
+
     if (!isNaN(portions) && portions > 1) {
         portionCostDiv.textContent = `$${formatCLP(Math.round(total / portions))} CLP / porción`;
         portionCostDiv.style.display = 'block';
@@ -623,7 +725,13 @@ function saveRecipe() {
     if (currentEditingRecipeId) {
         const idx = recipes.findIndex(r => String(r.id) === String(currentEditingRecipeId));
         if (idx !== -1) {
-            recipes[idx] = { ...recipes[idx], name, ingredients: currentRecipeIngredients, decorations: currentRecipeDecorations, extraSubcategory: currentRecipeExtra, extraCost, totalCost, portions };
+            recipes[idx] = {
+                ...recipes[idx], name,
+                ingredients: currentRecipeIngredients,
+                decorations: currentRecipeDecorations,
+                extraSubcategory: currentRecipeExtra,
+                extraCost, totalCost, portions
+            };
             showToast("Receta actualizada!");
         }
     } else {
@@ -650,6 +758,24 @@ function deleteRecipe(id) {
     }
 }
 
+function duplicateCurrentRecipe() {
+    if (!currentEditingRecipeId) return;
+    const recipe = recipes.find(r => String(r.id) === String(currentEditingRecipeId));
+    if (!recipe) return;
+
+    const newRecipe = {
+        ...JSON.parse(JSON.stringify(recipe)),
+        id: Date.now().toString(),
+        name: recipe.name + ' (copia)'
+    };
+
+    recipes.push(newRecipe);
+    saveRecipesToStorage();
+    renderRecipes();
+    closeModal('modal-recipe');
+    showToast(`Receta "${newRecipe.name}" duplicada!`);
+}
+
 function saveRecipesToStorage() {
     localStorage.setItem('mushu_recipes', JSON.stringify(recipes));
 }
@@ -668,19 +794,19 @@ function renderRecipes() {
 
     list.innerHTML = recipes.map(recipe => {
         let displayPrice = recipe.totalCost;
-        let pricingLabel = showMinSellingPrice ? "Sugerido: " : "Precio costo: ";
+        let pricingLabel = "Precio costo: ";
 
         if (showMinSellingPrice) {
-            // Lógica: Duplicar cost -> Redondear hacia abajo a múltiplo de 500
-            // Ejemplo: 14.200 -> 14.000 | 14.700 -> 14.500
-            let rawSellingPrice = recipe.totalCost * 2;
+            let rawSellingPrice = recipe.totalCost * profitMargin;
             displayPrice = Math.floor(rawSellingPrice / 500) * 500;
-            pricingLabel = "Sugerido: ";
+            pricingLabel = `Sugerido (x${profitMargin}): `;
         }
 
-        const portionsText = recipe.portions > 1 ? ` • ${recipe.portions} porciones ($${formatCLP(Math.round(displayPrice / recipe.portions))} c/u)` : '';
+        const portionsText = recipe.portions > 1
+            ? ` • ${recipe.portions} porciones ($${formatCLP(Math.round(displayPrice / recipe.portions))} c/u)`
+            : '';
         const totalItems = (recipe.ingredients || []).length + (recipe.decorations || []).length;
-        
+
         return `
         <div class="card" onclick="showAddRecipeModal('${recipe.id}')" style="cursor: pointer;">
             <div class="card-info">
@@ -697,7 +823,91 @@ function renderRecipes() {
                 </button>
             </div>
         </div>
-    `;}).join('');
+    `;
+    }).join('');
+}
+
+// --- Settings ---
+function saveProfitMargin() {
+    const val = parseFloat(document.getElementById('profit-margin').value);
+    if (isNaN(val) || val < 1) {
+        showToast("El margen debe ser al menos 1", true);
+        return;
+    }
+    profitMargin = val;
+    localStorage.setItem('mushu_profit_margin', profitMargin.toString());
+    renderRecipes();
+    showToast(`Margen actualizado a x${profitMargin}`);
+}
+
+// --- Export / Import Data ---
+function exportData() {
+    const data = {
+        version: '2.0',
+        exportDate: new Date().toISOString(),
+        materials: materials,
+        recipes: recipes,
+        extraSubcategories: JSON.parse(localStorage.getItem('mushu_extra_subcategories') || '[]'),
+        profitMargin: profitMargin
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mushuapp_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast("Datos exportados correctamente! 📦");
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        try {
+            const data = JSON.parse(e.target.result);
+
+            if (!data.materials || !data.recipes) {
+                showToast("Archivo no válido", true);
+                return;
+            }
+
+            if (!confirm(`¿Importar datos? Esto reemplazará:\n• ${data.materials.length} materiales\n• ${data.recipes.length} recetas\n\n¿Continuar?`)) {
+                return;
+            }
+
+            materials = data.materials;
+            recipes = data.recipes;
+            profitMargin = data.profitMargin || 2;
+
+            if (data.extraSubcategories) {
+                localStorage.setItem('mushu_extra_subcategories', JSON.stringify(data.extraSubcategories));
+            }
+
+            saveMaterialsToStorage();
+            saveRecipesToStorage();
+            localStorage.setItem('mushu_profit_margin', profitMargin.toString());
+
+            renderMaterials();
+            renderRecipes();
+            updateMaterialSelect();
+            updateDecorationSelect();
+            updateExtraSubcategorySelect();
+
+            showToast(`Importado: ${materials.length} materiales, ${recipes.length} recetas ✅`);
+        } catch (err) {
+            showToast("Error al leer el archivo", true);
+            console.error(err);
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
 }
 
 // --- Utils ---
