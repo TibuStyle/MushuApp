@@ -1,4 +1,7 @@
-// === MushuApp v3.2 - Fase 2.1 ===
+// === MushuApp v3.3 - Modo Profesor con clave fija ===
+
+// --- CONFIG ---
+const TEACHER_MASTER_PASSWORD = 'amormiomucushu88';
 
 // --- Data State ---
 let materials = JSON.parse(localStorage.getItem('mushu_materials')) || [];
@@ -6,7 +9,7 @@ let recipes = JSON.parse(localStorage.getItem('mushu_recipes')) || [];
 let profitMargin = parseFloat(localStorage.getItem('mushu_profit_margin')) || 2;
 let courses = JSON.parse(localStorage.getItem('mushu_courses')) || [];
 let importedClasses = JSON.parse(localStorage.getItem('mushu_imported_classes')) || [];
-let teacherMode = JSON.parse(localStorage.getItem('mushu_teacher_mode')) || { active: false, password: '' };
+let teacherMode = JSON.parse(localStorage.getItem('mushu_teacher_mode')) || { active: false };
 let studentName = localStorage.getItem('mushu_student_name') || '';
 
 let currentRecipeIngredients = [];
@@ -201,14 +204,11 @@ function showSettingsModal() {
     const tt = document.getElementById('toggle-teacher-mode');
     if (tt) tt.checked = teacherMode.active;
 
-    const tps = document.getElementById('teacher-password-section');
-    if (tps) tps.style.display = teacherMode.active && !teacherMode.password ? 'block' : 'none';
+    const sns = document.getElementById('student-name-section');
+    if (sns) sns.style.display = teacherMode.active ? 'none' : 'block';
 
     const sni = document.getElementById('student-name-input');
     if (sni) sni.value = studentName;
-
-    const sns = document.getElementById('student-name-section');
-    if (sns) sns.style.display = teacherMode.active ? 'none' : 'block';
 
     document.getElementById('modal-settings').classList.add('active');
 }
@@ -704,7 +704,6 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
     const ec = getExtraCost();
     const tc = ic + dc + ec;
     const po = parseInt(document.getElementById('recipe-portions').value) || 1;
-
     const finalFolder = recipeFolder || 'Mis Recetas';
 
     if (currentEditingRecipeId) {
@@ -727,7 +726,7 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
             showToast("Receta actualizada!");
         }
     } else {
-        recipes.push({
+        const newRecipe = {
             id: Date.now().toString(),
             name: n,
             ingredients: currentRecipeIngredients,
@@ -740,13 +739,25 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
             recipeSource: recipeSource,
             sourceCourseName: sourceCourseName,
             sourceClassDate: sourceClassDate
-        });
+        };
+        recipes.push(newRecipe);
         showToast("Receta guardada!");
+
+        // Si viene desde clase, dejarla seleccionada automáticamente
+        if (recipeSource === 'class') {
+            currentSelectedClassRecipe = JSON.parse(JSON.stringify(newRecipe));
+            renderSelectedClassRecipeBox();
+        }
     }
 
     saveRecipesToStorage();
     renderRecipes();
     closeModal('modal-recipe');
+
+    // Si estábamos creando una receta desde clase, volver al modal clase
+    if (recipeSource === 'class') {
+        document.getElementById('modal-create-class').classList.add('active');
+    }
 }
 
 function deleteRecipe(id) {
@@ -802,7 +813,6 @@ function generateRecipeTip(r) {
     }
     return '';
 }
-
 
 // ========================================
 // RECIPES RENDER BY FOLDERS
@@ -953,45 +963,26 @@ function saveProfitMargin() {
 
 function toggleTeacherMode() {
     const checked = document.getElementById('toggle-teacher-mode').checked;
-    const passSection = document.getElementById('teacher-password-section');
     const studentSection = document.getElementById('student-name-section');
 
     if (checked) {
-        if (teacherMode.password) {
-            const pass = prompt('Ingresa tu contraseña de profesor:');
-            if (pass !== teacherMode.password) {
-                document.getElementById('toggle-teacher-mode').checked = false;
-                showToast('Contraseña incorrecta', true);
-                return;
-            }
-            teacherMode.active = true;
-            localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
-            if (passSection) passSection.style.display = 'none';
-            if (studentSection) studentSection.style.display = 'none';
-            showToast('Modo Profesor activado 🎓');
-        } else {
-            if (passSection) passSection.style.display = 'block';
-            if (studentSection) studentSection.style.display = 'none';
+        const pass = prompt('Ingresa la contraseña de profesor:');
+        if (pass !== TEACHER_MASTER_PASSWORD) {
+            document.getElementById('toggle-teacher-mode').checked = false;
+            showToast('Contraseña incorrecta', true);
+            return;
         }
+        teacherMode.active = true;
+        localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
+        if (studentSection) studentSection.style.display = 'none';
+        showToast('Modo Profesor activado 🎓');
     } else {
         teacherMode.active = false;
         localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
-        if (passSection) passSection.style.display = 'none';
         if (studentSection) studentSection.style.display = 'block';
         showToast('Modo Profesor desactivado');
     }
-    updateClassesView();
-}
 
-function saveTeacherPassword() {
-    const pass = document.getElementById('teacher-password').value.trim();
-    if (!pass || pass.length < 4) { showToast('Mínimo 4 caracteres', true); return; }
-    teacherMode.active = true;
-    teacherMode.password = pass;
-    localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
-    document.getElementById('teacher-password-section').style.display = 'none';
-    document.getElementById('student-name-section').style.display = 'none';
-    showToast('Modo Profesor activado 🎓');
     updateClassesView();
 }
 
@@ -1153,7 +1144,6 @@ function renderCourses() {
 
     list.innerHTML = courses.map((course, idx) => {
         const bodyOpen = idx === 0 ? 'open' : '';
-        const chev = idx === 0 ? 'rotate(0deg)' : 'rotate(-90deg)';
         const classesHTML = (course.classes || []).sort((a, b) => new Date(b.date) - new Date(a.date)).map(cls => {
             const att = cls.attendance || [];
             const present = att.filter(a => a.present).length;
@@ -1172,9 +1162,11 @@ function renderCourses() {
                 </div>`;
         }).join('');
 
+        const folderId = course.id;
+
         return `
             <div class="course-card">
-                <div class="course-card-header" onclick="toggleFolderBody('course-folder','${course.id}')">
+                <div class="course-card-header" onclick="toggleFolderBody('course-folder','${folderId}')">
                     <div class="course-card-header-left">
                         <i class='bx bxs-graduation' style="font-size:24px;color:var(--secondary-color);"></i>
                         <div>
@@ -1188,7 +1180,7 @@ function renderCourses() {
                         <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteCourse('${course.id}')"><i class='bx bx-trash'></i></button>
                     </div>
                 </div>
-                <div class="course-card-body ${bodyOpen}" id="course-folder-body-${course.id}">
+                <div class="course-card-body ${bodyOpen}" id="course-folder-body-${folderId}">
                     ${classesHTML}
                     <button class="btn-add-class" onclick="showCreateClassModal('${course.id}')">
                         <i class='bx bx-plus'></i> Nueva Clase
@@ -1197,11 +1189,6 @@ function renderCourses() {
             </div>
         `;
     }).join('');
-
-    courses.forEach((course, idx) => {
-        const chevron = document.getElementById(`course-folder-chevron-${course.id}`);
-        if (chevron) chevron.style.transform = idx === 0 ? 'rotate(0deg)' : 'rotate(-90deg)';
-    });
 }
 
 // ========================================
@@ -1276,7 +1263,6 @@ function createNewRecipeForClass() {
     const course = courses.find(c => String(c.id) === String(courseId));
     if (!course) { showToast('Selecciona un curso', true); return; }
 
-    // Reset recipe modal for new recipe linked to class
     currentEditingRecipeId = null;
     document.getElementById('recipe-name').value = '';
     document.getElementById('recipe-portions').value = '';
@@ -1436,6 +1422,16 @@ function saveClass() {
     saveCourses();
     renderCourses();
     closeModal('modal-create-class');
+}
+
+function deleteClass(courseId, classId) {
+    if (!confirm('¿Eliminar esta clase?')) return;
+    const course = courses.find(c => String(c.id) === String(courseId));
+    if (!course) return;
+    course.classes = (course.classes || []).filter(cl => String(cl.id) !== String(classId));
+    saveCourses();
+    renderCourses();
+    showToast('Clase eliminada');
 }
 
 // ========================================
@@ -1813,7 +1809,6 @@ function completeClassImport(decoded) {
     importedClasses.push(importedClass);
     saveImportedClasses();
 
-    // Also save recipe in student's recipes using REAL course name
     const recipeCopy = JSON.parse(JSON.stringify(decoded.linkedRecipe));
     recipeCopy.id = Date.now().toString() + '-class';
     recipeCopy.recipeFolder = decoded.courseName;
@@ -1821,7 +1816,6 @@ function completeClassImport(decoded) {
     recipeCopy.sourceCourseName = decoded.courseName;
     recipeCopy.sourceClassDate = decoded.date;
 
-    // Avoid duplicate exact same class recipe
     const alreadyExists = recipes.find(r =>
         r.name === recipeCopy.name &&
         r.recipeFolder === recipeCopy.recipeFolder &&
@@ -1971,7 +1965,7 @@ function viewImportedClass(classId) {
 // ========================================
 function exportData() {
     const d = {
-        version: '3.2',
+        version: '3.3',
         exportDate: new Date().toISOString(),
         materials,
         recipes,
