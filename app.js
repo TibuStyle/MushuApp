@@ -140,7 +140,6 @@ function showAddRecipeModal(recipeId = null) {
             currentRecipeExtra = recipe.extraSubcategory || null;
             document.querySelector('#modal-recipe h3').textContent = "Editar Receta";
 
-            // Recalculate costs with current material prices
             recalculateIngredientCosts();
 
             if (btnDuplicate) btnDuplicate.style.display = 'flex';
@@ -792,6 +791,8 @@ function renderRecipes() {
         return;
     }
 
+    const priceColor = showMinSellingPrice ? 'var(--secondary-color)' : 'var(--primary-color)';
+
     list.innerHTML = recipes.map(recipe => {
         let displayPrice = recipe.totalCost;
         let pricingLabel = "Precio costo: ";
@@ -803,7 +804,7 @@ function renderRecipes() {
         }
 
         const portionsText = recipe.portions > 1
-            ? ` • ${recipe.portions} porciones ($${formatCLP(Math.round(displayPrice / recipe.portions))} c/u)`
+            ? ` • ${recipe.portions} porciones (<span style="color:${priceColor}; font-weight:600;">$${formatCLP(Math.round(displayPrice / recipe.portions))} c/u</span>)`
             : '';
         const totalItems = (recipe.ingredients || []).length + (recipe.decorations || []).length;
 
@@ -816,7 +817,7 @@ function renderRecipes() {
             <div style="display:flex; align-items:center; gap:15px;" onclick="event.stopPropagation()">
                 <div style="text-align: right;">
                     <div style="font-size:10px; color:var(--text-muted);">${pricingLabel}</div>
-                    <span class="card-price" style="font-size:20px;">$${formatCLP(displayPrice)}</span>
+                    <span class="card-price" style="font-size:20px; color:${priceColor};">$${formatCLP(displayPrice)}</span>
                 </div>
                 <button class="btn-icon danger" onclick="deleteRecipe('${recipe.id}')">
                     <i class='bx bx-trash'></i>
