@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- MushuApp Version 2.1 -->
+    <!-- MushuApp Version 2.2 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mushu App - Costos de Recetas</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <!-- PWA -->
-    <link rel="manifest" href="manifest.json?v=2.1">
+    <link rel="manifest" href="manifest.json?v=2.2">
     <meta name="theme-color" content="#ffb6c1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -34,7 +34,7 @@
             <div class="header-top">
                 <div class="header-spacer"></div>
                 <div class="header-center">
-                    <img src="mushu_logo.png" alt="Mushu Logo" class="header-logo">
+                    <img src="mushu_logo.png" alt="Mushu Logo" class="header-logo" onclick="showSocialModal()" title="Nuestras redes">
                     <p class="header-subtitle">Calculadora de Costos</p>
                 </div>
                 <button class="btn-settings" type="button" onclick="showSettingsModal()" title="Configuración">
@@ -362,7 +362,35 @@
 
                 <!-- Info -->
                 <div class="settings-section" style="text-align: center; opacity: 0.5;">
-                    <p style="font-size: 12px;">MushuApp v2.1 • Hecho con ❤️</p>
+                    <p style="font-size: 12px;">MushuApp v2.2 • Hecho con ❤️</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Social Media Modal -->
+        <div class="modal-overlay" id="modal-social" onclick="closeModal('modal-social')">
+            <div class="modal-content social-modal" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>🩷 Nuestras Redes</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-social')"><i class='bx bx-x'></i></button>
+                </div>
+                <div class="social-content">
+                    <img src="mushu_logo.png" alt="Mushu Logo" class="social-logo">
+                    <p class="social-name">Mushu Pastry</p>
+                    <p class="social-desc">Pastelería artesanal hecha con amor 🎂</p>
+                    
+                    <div class="social-links">
+                        <a href="https://www.instagram.com/mushu.pastry/" target="_blank" rel="noopener noreferrer" class="social-link instagram">
+                            <i class='bx bxl-instagram'></i>
+                            <div class="social-link-info">
+                                <span class="social-link-name">Instagram</span>
+                                <span class="social-link-user">@mushu.pastry</span>
+                            </div>
+                            <i class='bx bx-link-external social-link-arrow'></i>
+                        </a>
+                    </div>
+
+                    <p class="social-footer">¡Síguenos para ver nuestras creaciones! ✨</p>
                 </div>
             </div>
         </div>
