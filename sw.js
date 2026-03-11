@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mushu-cache-v6';
+const CACHE_NAME = 'mushu-cache-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -21,7 +21,9 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS).then(() => {
         return Promise.allSettled(
-          EXTERNAL_ASSETS.map(url => cache.add(url).catch(() => console.log('No se pudo cachear:', url)))
+          EXTERNAL_ASSETS.map(url =>
+            cache.add(url).catch(() => console.log('No se pudo cachear:', url))
+          )
         );
       });
     })
