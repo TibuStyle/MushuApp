@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- MushuApp Version 3.3 -->
+    <!-- MushuApp Version 3.4 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mushu App - Costos de Recetas</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    <link rel="manifest" href="manifest.json?v=3.3">
+    <link rel="manifest" href="manifest.json?v=3.4">
     <meta name="theme-color" content="#ffb6c1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -104,7 +104,7 @@
                                 <p class="category-desc">Cajas, impresiones, packaging</p>
                             </div>
                         </div>
-                        <button class="btn-add-small" onclick="event.stopPropagation(); addExtraSubcategory()">
+                        <button class="btn-add-small" onclick="event.stopPropagation(); showAddExtraSubcategoryModal()">
                             <i class='bx bx-plus'></i>
                         </button>
                     </div>
@@ -139,7 +139,6 @@
 
             <!-- SECTION: CLASES -->
             <section id="view-clases" class="view">
-                <!-- Vista Profesor -->
                 <div id="teacher-classes-view" style="display:none;">
                     <div class="section-header">
                         <h2>🎓 Mis Clases</h2>
@@ -150,7 +149,6 @@
                     <div id="courses-list" class="list-container"></div>
                 </div>
 
-                <!-- Vista Alumno -->
                 <div id="student-classes-view" style="display:none;">
                     <div class="section-header">
                         <h2>🎓 Mis Clases</h2>
@@ -169,7 +167,6 @@
                     </div>
                 </div>
 
-                <!-- Vista sin modo -->
                 <div id="no-mode-classes-view">
                     <div class="section-header">
                         <h2>🎓 Clases</h2>
@@ -424,7 +421,51 @@
                 </div>
 
                 <div class="settings-section" style="text-align: center; opacity: 0.5;">
-                    <p style="font-size: 12px;">MushuApp v3.3 • Hecho con ❤️</p>
+                    <p style="font-size: 12px;">MushuApp v3.4 • Hecho con ❤️</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Clave Profesor -->
+        <div class="modal-overlay" id="modal-teacher-password" onclick="closeModal('modal-teacher-password')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>🔒 Modo Profesor</h3>
+                    <button class="btn-close" type="button" onclick="cancelTeacherModeModal()">
+                        <i class='bx bx-x'></i>
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label>Ingresa la clave de profesor</label>
+                    <input type="password" id="teacher-password-modal-input" placeholder="Contraseña">
+                </div>
+
+                <div class="backup-buttons">
+                    <button class="btn-backup export" onclick="confirmTeacherModePassword()">Entrar</button>
+                    <button class="btn-backup import" onclick="cancelTeacherModeModal()">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Nueva Subcategoría Extra -->
+        <div class="modal-overlay" id="modal-extra-subcategory" onclick="closeModal('modal-extra-subcategory')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>⭐ Nueva Subcategoría</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-extra-subcategory')">
+                        <i class='bx bx-x'></i>
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label>Nombre de la subcategoría</label>
+                    <input type="text" id="extra-subcategory-name" placeholder="Ej: Tortas, Cupcakes, Packaging">
+                </div>
+
+                <div class="backup-buttons">
+                    <button class="btn-backup export" onclick="saveExtraSubcategoryFromModal()">Guardar</button>
+                    <button class="btn-backup import" onclick="closeModal('modal-extra-subcategory')">Cancelar</button>
                 </div>
             </div>
         </div>
