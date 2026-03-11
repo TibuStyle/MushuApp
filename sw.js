@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mushu-cache-v7';
+const CACHE_NAME = 'mushu-cache-v8';
 const ASSETS = [
   './',
   './index.html',
