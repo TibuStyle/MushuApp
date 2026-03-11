@@ -100,9 +100,8 @@ body {
     width: 160px;
     height: 160px;
     object-fit: contain;
-    filter: drop-shadow(0 4px 12px rgba(255, 182, 193, 0.4));
-    transition: transform 0.3s ease;
     cursor: pointer;
+    transition: transform 0.3s ease;
 }
 
 .header-logo:hover {
@@ -921,7 +920,6 @@ input:checked + .slider:before {
     width: 140px;
     height: 140px;
     object-fit: contain;
-    filter: drop-shadow(0 4px 15px rgba(255, 182, 193, 0.4));
     margin-bottom: 12px;
 }
 
