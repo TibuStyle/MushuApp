@@ -6,7 +6,7 @@
     --primary-color: #000000;
     --primary-hover: #333333;
     
-    --secondary-color: #ffb6c1; /* Pastel Pink */
+    --secondary-color: #ffb6c1;
     --secondary-hover: #ff9fb4;
     
     --text-main: #000000;
@@ -22,6 +22,10 @@
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
 }
 
 html, body {
@@ -65,13 +69,51 @@ body {
     overflow: hidden;
 }
 
+/* --- Header --- */
 .app-header {
-    padding: 24px 20px 16px;
+    padding: 16px 20px 12px;
     text-align: center;
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     z-index: 10;
+}
+
+.header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.header-spacer {
+    width: 36px;
+}
+
+.header-logo {
+    width: 60px;
+    height: 60px;
+    object-fit: contain;
+}
+
+.btn-settings {
+    background: var(--surface-hover);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 20px;
+    transition: all 0.2s;
+}
+
+.btn-settings:hover {
+    background: var(--secondary-color);
+    color: white;
 }
 
 .app-header h1 {
@@ -86,6 +128,7 @@ body {
     color: var(--text-muted);
 }
 
+/* --- Content Area --- */
 .content-area {
     flex: 1;
     overflow-y: auto;
@@ -95,7 +138,7 @@ body {
     overscroll-behavior-y: contain;
 }
 
-/* Views */
+/* --- Views --- */
 .view {
     display: none;
     animation: fadeIn 0.3s ease;
@@ -122,7 +165,44 @@ body {
     font-weight: 600;
 }
 
-/* Buttons */
+/* --- Search Box --- */
+.search-box {
+    display: flex;
+    align-items: center;
+    background: var(--surface-color);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    gap: 10px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-box:focus-within {
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 2px rgba(255, 182, 193, 0.2);
+}
+
+.search-box i {
+    font-size: 20px;
+    color: var(--text-muted);
+}
+
+.search-box input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 14px;
+    color: var(--text-main);
+    width: 100%;
+    padding: 0;
+}
+
+.search-box input::placeholder {
+    color: #94a3b8;
+}
+
+/* --- Buttons --- */
 .btn-primary {
     background-color: var(--primary-color);
     color: white;
@@ -136,7 +216,7 @@ body {
     align-items: center;
     gap: 4px;
     transition: all 0.2s;
-    box-shadow: 0 4px 14px rgba(249, 115, 22, 0.3);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary:hover {
@@ -161,11 +241,15 @@ body {
     cursor: pointer;
     transition: all 0.2s;
 }
+
 .btn-icon:hover {
     background-color: var(--primary-color);
+    color: white;
 }
+
 .btn-icon.danger:hover {
     background-color: var(--danger-color);
+    color: white;
 }
 
 .btn-submit {
@@ -179,14 +263,15 @@ body {
     font-weight: 600;
     cursor: pointer;
     margin-top: 20px;
-    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.3);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     transition: transform 0.2s;
 }
+
 .btn-submit:active {
     transform: scale(0.98);
 }
 
-/* Lists and Cards */
+/* --- Lists and Cards --- */
 .empty-state {
     text-align: center;
     color: var(--text-muted);
@@ -202,6 +287,7 @@ body {
     gap: 12px;
 }
 
+/* --- Category Blocks --- */
 .category-block {
     background: var(--surface-color);
     border-radius: var(--radius-md);
@@ -219,6 +305,7 @@ body {
     user-select: none;
     transition: background 0.2s;
 }
+
 .category-header:hover {
     background: var(--surface-hover);
 }
@@ -264,6 +351,7 @@ body {
     padding: 0 16px 16px;
 }
 
+/* --- Add Small Button --- */
 .btn-add-small {
     background: var(--secondary-color);
     color: white;
@@ -278,6 +366,7 @@ body {
     cursor: pointer;
     transition: transform 0.2s, background 0.2s;
     box-shadow: 0 2px 8px rgba(255, 182, 193, 0.4);
+    flex-shrink: 0;
 }
 
 .btn-add-small i {
@@ -295,6 +384,7 @@ body {
     background: var(--secondary-hover);
 }
 
+/* --- Extra Subcategories --- */
 .extra-subcat {
     margin-bottom: 10px;
 }
@@ -335,6 +425,7 @@ body {
     padding: 8px 0;
 }
 
+/* --- Cards --- */
 .card {
     background-color: var(--surface-color);
     border-radius: var(--radius-md);
@@ -362,13 +453,14 @@ body {
     font-size: 14px;
     color: var(--text-muted);
 }
+
 .card-price {
     font-weight: 600;
     color: var(--primary-color);
     font-size: 16px;
 }
 
-/* Bottom Nav */
+/* --- Bottom Navigation --- */
 .bottom-nav {
     position: absolute;
     bottom: 0;
@@ -418,14 +510,14 @@ body {
     transform: translateY(-2px) scale(1.1);
 }
 
-/* Modals */
+/* --- Modals --- */
 .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
     background: rgba(0, 0, 0, 0.4);
     backdrop-filter: blur(4px);
-    z-index: 100;
-    display: none; /* Flex when active */
+    z-index: 200;
+    display: none;
     justify-content: center;
     align-items: flex-end;
     opacity: 0;
@@ -467,6 +559,9 @@ body {
 
 .modal-header h3 {
     font-size: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .btn-close {
@@ -481,12 +576,16 @@ body {
     align-items: center;
     font-size: 20px;
     cursor: pointer;
-}
-.btn-close:hover {
-    color: var(--text-main);
+    transition: all 0.2s;
 }
 
-/* Forms */
+.btn-close:hover {
+    color: var(--text-main);
+    background: var(--danger-color);
+    color: white;
+}
+
+/* --- Forms --- */
 .form-group {
     margin-bottom: 16px;
 }
@@ -499,6 +598,7 @@ body {
     display: flex;
     gap: 12px;
 }
+
 .form-row .form-group {
     flex: 1;
 }
@@ -522,6 +622,7 @@ input, select {
     padding: 12px 14px;
     border-radius: var(--radius-sm);
     font-size: 15px;
+    font-family: 'Outfit', sans-serif;
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -535,7 +636,7 @@ input:focus, select:focus {
     box-shadow: 0 0 0 2px rgba(255, 182, 193, 0.2);
 }
 
-/* Recipe Creation */
+/* --- Recipe Creation --- */
 .recipe-ingredients-section {
     background: var(--surface-color);
     border-radius: var(--radius-md);
@@ -548,6 +649,9 @@ input:focus, select:focus {
     margin-bottom: 12px;
     font-size: 15px;
     color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .recipe-ingredients-list {
@@ -566,10 +670,12 @@ input:focus, select:focus {
     align-items: center;
     font-size: 14px;
 }
+
 .ingredient-details {
     display: flex;
     flex-direction: column;
 }
+
 .ingredient-cost {
     font-weight: 600;
     color: var(--primary-color);
@@ -594,12 +700,13 @@ input:focus, select:focus {
 .recipe-summary span {
     color: rgba(255, 255, 255, 0.9);
 }
+
 .recipe-summary strong {
     font-size: 24px;
     color: white;
 }
 
-/* Toast */
+/* --- Toast --- */
 .toast {
     position: fixed;
     top: 20px;
@@ -618,11 +725,12 @@ input:focus, select:focus {
 .toast.show {
     transform: translateX(-50%) translateY(0);
 }
+
 .toast.error {
     background: var(--danger-color);
 }
 
-/* Selling Price Toggle Switch */
+/* --- Selling Price Toggle --- */
 .selling-price-toggle {
     display: flex;
     align-items: center;
@@ -642,6 +750,7 @@ input:focus, select:focus {
     opacity: 0;
     width: 0;
     height: 0;
+    padding: 0;
 }
 
 .slider {
@@ -686,7 +795,102 @@ input:checked + .slider:before {
     border-radius: 50%;
 }
 
-/* Splash Screen Styles */
+/* --- Settings Modal --- */
+.settings-section {
+    background: var(--surface-hover);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.settings-section h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.settings-section h4 i {
+    color: var(--secondary-color);
+    font-size: 18px;
+}
+
+.settings-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.settings-row span {
+    font-size: 14px;
+}
+
+.input-small {
+    width: 80px !important;
+    text-align: center;
+    padding: 8px 10px !important;
+    font-size: 16px !important;
+    font-weight: 600;
+}
+
+.settings-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    opacity: 0.7;
+}
+
+.backup-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-backup {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.btn-backup.export {
+    background: var(--primary-color);
+    color: white;
+}
+
+.btn-backup.export:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.btn-backup.import {
+    background: var(--secondary-color);
+    color: white;
+}
+
+.btn-backup.import:hover {
+    background: var(--secondary-hover);
+    transform: translateY(-2px);
+}
+
+/* --- Splash Screen --- */
 #splash-screen {
     position: fixed;
     top: 0;
