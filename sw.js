@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mushu-cache-v5';
+const CACHE_NAME = 'mushu-cache-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -10,20 +10,16 @@ const ASSETS = [
   './icon-512.png'
 ];
 
-// Fuentes externas para cachear
 const EXTERNAL_ASSETS = [
   'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap',
   'https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css'
 ];
 
-// Install: cachear archivos locales y externos
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Primero los locales (obligatorios)
       return cache.addAll(ASSETS).then(() => {
-        // Luego los externos (opcionales, no falla si no hay internet)
         return Promise.allSettled(
           EXTERNAL_ASSETS.map(url => cache.add(url).catch(() => console.log('No se pudo cachear:', url)))
         );
@@ -32,7 +28,6 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activate: limpiar cachés antiguos
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
@@ -48,16 +43,13 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Network First para archivos propios, Cache First para externos
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Para archivos propios: intentar red primero, si falla usar caché
   if (url.origin === self.location.origin) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          // Si la red responde, actualizar el caché
           const responseClone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(event.request, responseClone);
@@ -65,12 +57,10 @@ self.addEventListener('fetch', (event) => {
           return response;
         })
         .catch(() => {
-          // Sin red, usar caché
           return caches.match(event.request);
         })
     );
   } else {
-    // Para recursos externos (fonts, boxicons): caché primero
     event.respondWith(
       caches.match(event.request).then((response) => {
         return response || fetch(event.request).then((fetchResponse) => {
@@ -80,7 +70,6 @@ self.addEventListener('fetch', (event) => {
           });
           return fetchResponse;
         }).catch(() => {
-          // Sin caché ni red, no hay nada que hacer
           return new Response('', { status: 408 });
         });
       })
