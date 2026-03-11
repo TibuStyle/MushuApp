@@ -180,6 +180,10 @@ function showSettingsModal() {
     document.getElementById('modal-settings').classList.add('active');
 }
 
+function showSocialModal() {
+    document.getElementById('modal-social').classList.add('active');
+}
+
 function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('active');
 }
@@ -844,7 +848,7 @@ function saveProfitMargin() {
 // --- Export / Import Data ---
 function exportData() {
     const data = {
-        version: '2.0',
+        version: '2.2',
         exportDate: new Date().toISOString(),
         materials: materials,
         recipes: recipes,
@@ -914,9 +918,4 @@ function importData(event) {
 // --- Utils ---
 function formatCLP(number) {
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-}
-
-// --- Social Modal ---
-function showSocialModal() {
-    document.getElementById('modal-social').classList.add('active');
 }
