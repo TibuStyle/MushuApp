@@ -2,14 +2,14 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- MushuApp Version 1.1 -->
+    <!-- MushuApp Version 2.0 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mushu App - Costos de Recetas</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <!-- PWA -->
-    <link rel="manifest" href="manifest.json?v=1.2">
+    <link rel="manifest" href="manifest.json?v=2.0">
     <meta name="theme-color" content="#ffb6c1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -31,7 +31,13 @@
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <img src="mushu_logo.jpg" alt="Mushu Logo" style="width: 80px; height: 80px; object-fit: contain; margin-bottom: 8px;">
+            <div class="header-top">
+                <div class="header-spacer"></div>
+                <img src="mushu_logo.png" alt="Mushu Logo" class="header-logo">
+                <button class="btn-settings" type="button" onclick="showSettingsModal()" title="Configuración">
+                    <i class='bx bx-cog'></i>
+                </button>
+            </div>
             <h1>Mushu App</h1>
             <p>Calculadora de Costos</p>
         </header>
@@ -43,6 +49,12 @@
             <section id="view-materials" class="view active">
                 <div class="section-header">
                     <h2>Materiales</h2>
+                </div>
+
+                <!-- Buscador de materiales -->
+                <div class="search-box">
+                    <i class='bx bx-search'></i>
+                    <input type="text" id="search-materials" placeholder="Buscar material..." oninput="filterMaterials()">
                 </div>
 
                 <!-- Productos -->
@@ -126,8 +138,19 @@
                 </div>
 
                 <div class="list-container" id="recipes-list">
-                    <!-- Recipe cards will be injected here -->
                     <div class="empty-state">No hay recetas todavía. Crea tu primera receta.</div>
+                </div>
+            </section>
+
+            <!-- SECTION: CLASES (Placeholder) -->
+            <section id="view-clases" class="view">
+                <div class="section-header">
+                    <h2>Clases</h2>
+                </div>
+                <div class="empty-state">
+                    <i class='bx bxs-graduation' style="font-size: 48px; color: var(--secondary-color); display: block; margin-bottom: 12px;"></i>
+                    <p style="font-weight: 600;">🚧 Próximamente</p>
+                    <p style="font-size: 13px; margin-top: 8px;">Aquí podrás guardar apuntes y enlaces de tus clases de pastelería</p>
                 </div>
             </section>
 
@@ -164,7 +187,7 @@
                         <input type="text" id="mat-name" required placeholder="Ej: Harina">
                     </div>
                     <div class="form-group" id="mat-subcategory-group" style="display:none;">
-                        <label>Subcategoría Extra (Ej: Tortas, Cupcakes)</label>
+                        <label>Subcategoría Extra</label>
                         <input type="text" id="mat-subcategory" placeholder="Ej: Packaging Tortas">
                     </div>
                     <div class="form-row">
@@ -175,7 +198,7 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Cantidad Base (Ej: 1, 500)</label>
+                            <label>Cantidad Base</label>
                             <input type="number" id="mat-qty" required placeholder="1" min="0.01" step="0.01">
                         </div>
                         <div class="form-group">
@@ -199,7 +222,12 @@
             <div class="modal-content large-modal" onclick="event.stopPropagation()">
                 <div class="modal-header">
                     <h3>Crear Receta</h3>
-                    <button class="btn-close" type="button" onclick="closeModal('modal-recipe')"><i class='bx bx-x'></i></button>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button class="btn-icon" type="button" id="btn-duplicate-recipe" onclick="duplicateCurrentRecipe()" title="Duplicar receta" style="display:none;">
+                            <i class='bx bx-copy'></i>
+                        </button>
+                        <button class="btn-close" type="button" onclick="closeModal('modal-recipe')"><i class='bx bx-x'></i></button>
+                    </div>
                 </div>
                 <div class="recipe-creation-container">
                     <div class="form-group">
@@ -293,6 +321,47 @@
                     </div>
 
                     <button class="btn-submit" onclick="saveRecipe()">Guardar Receta</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div class="modal-overlay" id="modal-settings" onclick="closeModal('modal-settings')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3><i class='bx bx-cog'></i> Configuración</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-settings')"><i class='bx bx-x'></i></button>
+                </div>
+
+                <!-- Margen de Ganancia -->
+                <div class="settings-section">
+                    <h4><i class='bx bx-trending-up'></i> Margen de Ganancia</h4>
+                    <p class="settings-desc">Multiplicador para el precio de venta sugerido</p>
+                    <div class="settings-row">
+                        <span>Multiplicar costo por:</span>
+                        <input type="number" id="profit-margin" value="2" min="1" max="10" step="0.1" class="input-small" onchange="saveProfitMargin()">
+                    </div>
+                    <p class="settings-hint">Ej: 2 = duplicar, 2.5 = x2.5, 3 = triplicar</p>
+                </div>
+
+                <!-- Respaldo -->
+                <div class="settings-section">
+                    <h4><i class='bx bx-data'></i> Respaldo de Datos</h4>
+                    <p class="settings-desc">Exporta tus datos para no perderlos o impórtalos en otro dispositivo</p>
+                    <div class="backup-buttons">
+                        <button class="btn-backup export" onclick="exportData()">
+                            <i class='bx bx-download'></i> Exportar
+                        </button>
+                        <button class="btn-backup import" onclick="document.getElementById('import-file').click()">
+                            <i class='bx bx-upload'></i> Importar
+                        </button>
+                        <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importData(event)">
+                    </div>
+                </div>
+
+                <!-- Info -->
+                <div class="settings-section" style="text-align: center; opacity: 0.5;">
+                    <p style="font-size: 12px;">MushuApp v2.0 • Hecho con ❤️</p>
                 </div>
             </div>
         </div>
