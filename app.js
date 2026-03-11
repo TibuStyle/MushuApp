@@ -915,3 +915,8 @@ function importData(event) {
 function formatCLP(number) {
     return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
+
+// --- Social Modal ---
+function showSocialModal() {
+    document.getElementById('modal-social').classList.add('active');
+}
