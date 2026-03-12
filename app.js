@@ -2494,8 +2494,24 @@ function createRecipeInModule(moduleName) {
 
     document.getElementById('recipe-name').value = '';
     document.getElementById('recipe-portions').value = '';
-    document.getElementById('recipe-folder-group').style.display = 'block';
-    document.getElementById('recipe-folder-input').value = moduleName;
+    document.getElementById('recipe-add-qty').value = '';
+    document.getElementById('recipe-add-deco-qty').value = '';
+
+    const folderGroup = document.getElementById('recipe-folder-group');
+    const folderSelect = document.getElementById('recipe-folder-input');
+
+    if (folderGroup) folderGroup.style.display = 'block';
+
+    // llenar selector
+    const options = [`<option value="Mis Recetas">Mis Recetas</option>`];
+    modules
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(mod => {
+            options.push(`<option value="${mod.name}">${mod.name} (${mod.prefix})</option>`);
+        });
+
+    folderSelect.innerHTML = options.join('');
+    folderSelect.value = moduleName;
 
     renderCurrentRecipeIngredients();
     renderCurrentRecipeDecorations();
