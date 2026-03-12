@@ -2274,3 +2274,96 @@ function showCreateModuleModal(moduleId = null) {
 
     document.getElementById('modal-module').classList.add('active');
 }
+
+// ========================================
+// FUNCIONES FALTANTES 2
+// ========================================
+function showSocialModal() {
+    document.getElementById('modal-social').classList.add('active');
+}
+
+function toggleTeacherMode() {
+    const checked = document.getElementById('toggle-teacher-mode').checked;
+    const studentSection = document.getElementById('student-name-section');
+
+    if (checked) {
+        showTeacherPasswordModal();
+        return;
+    } else {
+        teacherMode.active = false;
+        localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
+        if (studentSection) studentSection.style.display = 'block';
+        showToast('Modo Profesor desactivado');
+    }
+
+    updateClassesView();
+    updateRecipesView();
+}
+
+function showTeacherPasswordModal() {
+    document.getElementById('teacher-password-modal-input').value = '';
+    document.getElementById('modal-teacher-password').classList.add('active');
+}
+
+function confirmTeacherModePassword() {
+    const pass = document.getElementById('teacher-password-modal-input').value;
+    if (pass !== TEACHER_MASTER_PASSWORD) {
+        document.getElementById('toggle-teacher-mode').checked = false;
+        showToast('Contraseña incorrecta', true);
+        return;
+    }
+    teacherMode.active = true;
+    localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
+    const studentSection = document.getElementById('student-name-section');
+    if (studentSection) studentSection.style.display = 'none';
+    closeModal('modal-teacher-password');
+    showToast('Modo Profesor activado 🎓');
+    updateClassesView();
+    updateRecipesView();
+}
+
+function cancelTeacherModeModal() {
+    document.getElementById('toggle-teacher-mode').checked = false;
+    closeModal('modal-teacher-password');
+}
+
+function showAddExtraSubcategoryModal() {
+    document.getElementById('extra-subcategory-name').value = '';
+    document.getElementById('modal-extra-subcategory').classList.add('active');
+}
+
+function saveExtraSubcategoryFromModal() {
+    const n = document.getElementById('extra-subcategory-name').value.trim();
+    if (!n) {
+        showToast('Ingresa un nombre', true);
+        return;
+    }
+    let s = JSON.parse(localStorage.getItem('mushu_extra_subcategories') || '[]');
+    if (s.includes(n)) {
+        showToast('Ya existe', true);
+        return;
+    }
+    s.push(n);
+    localStorage.setItem('mushu_extra_subcategories', JSON.stringify(s));
+    renderMaterials();
+    updateExtraSubcategorySelect();
+    closeModal('modal-extra-subcategory');
+    showToast(`"${n}" creada!`);
+}
+
+function deleteMaterial(id) {
+    showConfirmModal(
+        'Eliminar material',
+        '¿Estás seguro de eliminar este material?',
+        () => {
+            materials = materials.filter(m => String(m.id) !== String(id));
+            saveMaterialsToStorage();
+            recalculateAllRecipes();
+            renderMaterials();
+            updateMaterialSelect();
+            updateDecorationSelect();
+            updateExtraSubcategorySelect();
+            showToast('Material eliminado');
+        }
+    );
+}
