@@ -909,6 +909,15 @@ input:checked + .slider:before { transform: translateX(16px); }
 }
 .code-item-copy:hover { background: var(--secondary-hover); }
 
+/* NUEVO: código visible corto */
+.code-item-short {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--secondary-color);
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+}
+
 .class-photos-preview {
     display: flex;
     gap: 8px;
@@ -1195,6 +1204,31 @@ input:checked + .slider:before { transform: translateX(16px); }
 
 #modal-teacher-password .modal-content,
 #modal-extra-subcategory .modal-content,
-#modal-confirm .modal-content {
+#modal-confirm .modal-content,
+#modal-select-recipe .modal-content {
     max-width: 420px;
+}
+
+/* NUEVO: lista de selección de recetas */
+.select-recipe-item {
+    background: var(--surface-hover);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    border: 1px solid rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.select-recipe-item:hover {
+    background: rgba(255,182,193,0.12);
+    border-color: var(--secondary-color);
+}
+.select-recipe-item h4 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 4px;
+}
+.select-recipe-item p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0;
 }
