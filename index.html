@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- MushuApp Version 4.0 -->
+    <!-- MushuApp Version 4.1 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mushu App - Costos de Recetas</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="boxicons.min.css">
-    <link rel="manifest" href="manifest.json?v=4.0">
+    <link rel="manifest" href="manifest.json?v=4.1">
     <meta name="theme-color" content="#ffb6c1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -59,7 +59,7 @@
                 <div class="category-block" id="cat-productos">
                     <div class="category-header" onclick="toggleCategory('productos')">
                         <div class="category-header-left">
-                            <i class='bx bx-chevron-down category-chevron' id="chevron-productos"></i>
+                            <i class='bx bx-chevron-down category-chevron' id="chevron-productos" style="transform: rotate(-90deg);"></i>
                             <i class='bx bx-package category-icon'></i>
                             <div>
                                 <h3>Productos</h3>
@@ -70,7 +70,7 @@
                             <i class='bx bx-plus'></i>
                         </button>
                     </div>
-                    <div class="category-body open" id="body-productos">
+                    <div class="category-body" id="body-productos">
                         <div class="list-container" id="list-productos"></div>
                     </div>
                 </div>
@@ -78,7 +78,7 @@
                 <div class="category-block" id="cat-decoracion">
                     <div class="category-header" onclick="toggleCategory('decoracion')">
                         <div class="category-header-left">
-                            <i class='bx bx-chevron-down category-chevron' id="chevron-decoracion"></i>
+                            <i class='bx bx-chevron-down category-chevron' id="chevron-decoracion" style="transform: rotate(-90deg);"></i>
                             <i class='bx bx-palette category-icon'></i>
                             <div>
                                 <h3>Decoración</h3>
@@ -89,7 +89,7 @@
                             <i class='bx bx-plus'></i>
                         </button>
                     </div>
-                    <div class="category-body open" id="body-decoracion">
+                    <div class="category-body" id="body-decoracion">
                         <div class="list-container" id="list-decoracion"></div>
                     </div>
                 </div>
@@ -97,7 +97,7 @@
                 <div class="category-block" id="cat-extra">
                     <div class="category-header" onclick="toggleCategory('extra')">
                         <div class="category-header-left">
-                            <i class='bx bx-chevron-down category-chevron' id="chevron-extra"></i>
+                            <i class='bx bx-chevron-down category-chevron' id="chevron-extra" style="transform: rotate(-90deg);"></i>
                             <i class='bx bx-star category-icon'></i>
                             <div>
                                 <h3>Extra</h3>
@@ -108,7 +108,7 @@
                             <i class='bx bx-plus'></i>
                         </button>
                     </div>
-                    <div class="category-body open" id="body-extra">
+                    <div class="category-body" id="body-extra">
                         <div class="list-container" id="list-extra"></div>
                     </div>
                 </div>
@@ -134,7 +134,7 @@
                                 <i class='bx bx-folder-plus'></i> Módulo
                             </button>
                             <button class="btn-primary" onclick="showAddRecipeModal()">
-                                <i class='bx bx-plus'></i> Mía
+                                <i class='bx bx-plus'></i> Nueva receta
                             </button>
                         </div>
                     </div>
@@ -158,7 +158,7 @@
                             </div>
                         </div>
                         <button class="btn-primary" onclick="showAddRecipeModal()">
-                            <i class='bx bx-plus'></i> Nueva
+                            <i class='bx bx-plus'></i> Nueva receta
                         </button>
                     </div>
 
@@ -181,7 +181,7 @@
                             </div>
                         </div>
                         <button class="btn-primary" onclick="showAddRecipeModal()">
-                            <i class='bx bx-plus'></i> Nueva
+                            <i class='bx bx-plus'></i> Nueva receta
                         </button>
                     </div>
 
@@ -323,8 +323,8 @@
                     </div>
 
                     <div class="form-group" id="recipe-folder-group" style="display:none;">
-                        <label>Carpeta / Grupo</label>
-                        <input type="text" id="recipe-folder-input" placeholder="Ej: Pastelería 1">
+                        <label>Guardar en</label>
+                        <select id="recipe-folder-input"></select>
                     </div>
                     
                     <div class="recipe-ingredients-section">
@@ -409,7 +409,7 @@
                         </div>
                     </div>
 
-                    <button class="btn-submit" onclick="saveRecipe()">Guardar Receta</button>
+                    <button type="button" class="btn-submit" onclick="saveRecipe()">Guardar Receta</button>
                 </div>
             </div>
         </div>
@@ -437,7 +437,7 @@
                     </p>
                 </div>
 
-                <button class="btn-submit" onclick="saveModule()">Guardar Módulo</button>
+                <button type="button" class="btn-submit" onclick="saveModule()">Guardar Módulo</button>
             </div>
         </div>
 
@@ -470,7 +470,7 @@
                         <label>Nombre completo</label>
                         <input type="text" id="student-name-input" placeholder="Ej: María González">
                     </div>
-                    <button class="btn-submit" style="margin-top:0;" onclick="saveStudentName()">Guardar Nombre</button>
+                    <button type="button" class="btn-submit" style="margin-top:0;" onclick="saveStudentName()">Guardar Nombre</button>
                 </div>
 
                 <div class="settings-section">
@@ -480,7 +480,7 @@
                         <span>Multiplicar costo por:</span>
                         <input type="number" id="profit-margin" value="2" min="1" max="10" step="0.1" class="input-small" onchange="saveProfitMargin()">
                     </div>
-                    <p class="settings-hint">Ej: 2 = duplicar, 2.5 = x2.5, 3 = triplicar</p>
+                    <p style="font-size:11px; color:var(--text-muted); margin-top:8px; opacity:0.7;">Ej: 2 = duplicar, 2.5 = x2.5, 3 = triplicar</p>
                 </div>
 
                 <div class="settings-section">
@@ -497,8 +497,8 @@
                     </div>
                 </div>
 
-                <div class="settings-section" style="text-align: center; opacity: 0.5;">
-                    <p style="font-size: 12px;">MushuApp v4.0 • Hecho con ❤️</p>
+                <div class="settings-section" style="text-align:center; opacity:0.5;">
+                    <p style="font-size:12px;">MushuApp v4.1 • Hecho con ❤️</p>
                 </div>
             </div>
         </div>
@@ -670,7 +670,7 @@
                     </div>
                 </div>
 
-                <button class="btn-submit" onclick="saveCourse()">Guardar Curso</button>
+                <button type="button" class="btn-submit" onclick="saveCourse()">Guardar Curso</button>
             </div>
         </div>
 
@@ -737,7 +737,7 @@
                     </select>
                 </div>
 
-                <button class="btn-submit" onclick="saveClass()">Guardar Clase</button>
+                <button type="button" class="btn-submit" onclick="saveClass()">Guardar Clase</button>
             </div>
         </div>
 
@@ -755,10 +755,10 @@
                 <div id="attendance-list"></div>
 
                 <div style="display:flex; gap:10px; margin-top:20px;">
-                    <button class="btn-submit" id="btn-generate-codes" onclick="generateCodes()" style="margin-top:0; flex:1;">
+                    <button type="button" class="btn-submit" id="btn-generate-codes" onclick="generateCodes()" style="margin-top:0; flex:1;">
                         <i class='bx bx-key'></i> Generar Códigos
                     </button>
-                    <button class="btn-submit" id="btn-save-attendance" onclick="saveAttendanceOnly()" style="margin-top:0; flex:1; background:linear-gradient(135deg,var(--secondary-color),var(--secondary-hover));">
+                    <button type="button" class="btn-submit" id="btn-save-attendance" onclick="saveAttendanceOnly()" style="margin-top:0; flex:1; background:linear-gradient(135deg,var(--secondary-color),var(--secondary-hover));">
                         <i class='bx bx-save'></i> Guardar
                     </button>
                 </div>
@@ -767,10 +767,10 @@
                     <h4 style="margin-bottom:12px;">📋 Códigos Generados</h4>
                     <div id="generated-codes-list"></div>
                     <div class="backup-buttons" style="margin-top:12px;">
-                        <button class="btn-backup export" onclick="copyAllCodes()">
+                        <button type="button" class="btn-backup export" onclick="copyAllCodes()">
                             <i class='bx bx-copy'></i> Copiar Todos
                         </button>
-                        <button class="btn-backup import" onclick="regenerateCodes()">
+                        <button type="button" class="btn-backup import" onclick="regenerateCodes()">
                             <i class='bx bx-refresh'></i> Regenerar
                         </button>
                     </div>
@@ -793,7 +793,7 @@
                     <textarea id="import-class-code" rows="4" placeholder="Ej: PA1R75T01" class="class-textarea"></textarea>
                 </div>
 
-                <button class="btn-submit" onclick="importClassFromCode()">
+                <button type="button" class="btn-submit" onclick="importClassFromCode()">
                     <i class='bx bx-import'></i> Importar Clase
                 </button>
             </div>
@@ -815,7 +815,7 @@
 
                 <div id="missing-materials-list"></div>
 
-                <button class="btn-submit" onclick="saveMissingMaterialsAndContinue()">
+                <button type="button" class="btn-submit" onclick="saveMissingMaterialsAndContinue()">
                     <i class='bx bx-check'></i> Guardar y Continuar
                 </button>
             </div>
