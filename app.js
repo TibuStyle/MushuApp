@@ -830,6 +830,8 @@ function generateRecipeTip(r) {
 // RECIPES VIEWS
 // ========================================
 function updateRecipesView() {
+    const openFolders = getOpenRecipeFolders();
+
     const teacherView = document.getElementById('teacher-recipes-view');
     const studentView = document.getElementById('student-recipes-view');
     const defaultView = document.getElementById('default-recipes-view');
@@ -850,6 +852,8 @@ function updateRecipesView() {
         defaultView.style.display = 'block';
         renderDefaultRecipes();
     }
+
+    restoreOpenRecipeFolders(openFolders);
 }
 
 function renderTeacherRecipes() {
