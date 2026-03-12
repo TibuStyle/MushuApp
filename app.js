@@ -426,6 +426,141 @@ function closeModal(id) {
 
 // --- Toast ---
 function showToast(msg, err = false) {
+    // ========================================
+// MATERIALS
+// ========================================
+function saveMaterialsToStorage() {
+    localStorage.setItem('mushu_materials', JSON.stringify(materials));
+}
+
+function getPriceBadgeHTML(mat) {
+    if (!mat.priceHistory || mat.priceHistory.length < 2) return '';
+    const cur = mat.price;
+    const prev = mat.priceHistory[mat.priceHistory.length - 2].price;
+    const diff = cur - prev;
+    const pct = Math.round(Math.abs(diff) / prev * 100);
+    if (diff === 0) return '';
+    if (diff < 0) {
+        return `<div class="price-badge cheaper"><i class='bx bx-trending-down'></i> ${pct}% más barato - Ahorras $${formatCLP(Math.abs(diff))}</div>`;
+    }
+    return `<div class="price-badge expensive"><i class='bx bx-trending-up'></i> ${pct}% más caro - Pagas $${formatCLP(diff)} de más</div>`;
+}
+
+function renderPriceHistory(mat) {
+    const sec = document.getElementById('price-history-section');
+    const list = document.getElementById('price-history-list');
+    if (!mat || !mat.priceHistory || mat.priceHistory.length < 1) {
+        sec.style.display = 'none';
+        return;
+    }
+    sec.style.display = 'block';
+    list.innerHTML = [...mat.priceHistory].reverse().map((e, i, a) => {
+        let ch = '';
+        const pi = i + 1;
+        if (pi < a.length) {
+            const p = a[pi].price;
+            const d = e.price - p;
+            const pc = Math.round(Math.abs(d) / p * 100);
+            if (d > 0) ch = `<span class="price-history-change up">+${pc}%</span>`;
+            else if (d < 0) ch = `<span class="price-history-change down">-${pc}%</span>`;
+        }
+        return `<div class="price-history-item"><span class="price-history-date">${formatDate(e.date)}</span><span class="price-history-value">$${formatCLP(e.price)}</span>${ch}</div>`;
+    }).join('');
+}
+
+function filterMaterials() {
+    renderMaterials();
+}
+
+function renderMaterials() {
+    const si = document.getElementById('search-materials');
+    const q = si ? si.value.toLowerCase().trim() : '';
+
+    ['productos', 'decoracion'].forEach(ck => {
+        const list = document.getElementById(`list-${ck}`);
+        const items = materials.filter(m => (m.category || 'productos') === ck);
+        const f = q ? items.filter(m => m.name.toLowerCase().includes(q)) : items;
+        const em = ck === 'productos' ? 'Agrega tu primera materia prima' : 'Agrega elementos de decoración';
+
+        if (f.length === 0) {
+            list.innerHTML = `<div class="empty-state" style="padding:20px;font-size:13px;">${q ? 'Sin resultados' : em}</div>`;
+            return;
+        }
+
+        list.innerHTML = f.sort((a, b) => a.name.localeCompare(b.name)).map(m => `
+            <div class="card" onclick="showAddMaterialModal('${m.id}')" style="cursor:pointer;">
+                <div class="card-info">
+                    <h3>${m.name}</h3>
+                    <p>${m.qty} ${m.unit}</p>
+                    ${getPriceBadgeHTML(m)}
+                </div>
+                <div style="display:flex;align-items:center;gap:15px;" onclick="event.stopPropagation()">
+                    <span class="card-price">$${formatCLP(m.price)}</span>
+                    <button class="btn-icon danger" onclick="deleteMaterial('${m.id}')"><i class='bx bx-trash'></i></button>
+                </div>
+            </div>
+        `).join('');
+    });
+
+    renderExtraMaterials(q);
+}
+
+function renderExtraMaterials(q) {
+    const el = document.getElementById('list-extra');
+    const ei = materials.filter(m => m.category === 'extra');
+    let es = JSON.parse(localStorage.getItem('mushu_extra_subcategories')) || [];
+
+    ei.forEach(m => {
+        if (m.subcategory && !es.includes(m.subcategory)) es.push(m.subcategory);
+    });
+
+    if (es.length === 0) {
+        el.innerHTML = '<div class="empty-state" style="padding:20px;font-size:13px;">Presiona + para crear una subcategoría</div>';
+        return;
+    }
+
+    let h = '';
+    es.forEach(sc => {
+        const items = ei.filter(m => m.subcategory === sc);
+        const f = q ? items.filter(m => m.name.toLowerCase().includes(q)) : items;
+        const tot = items.reduce((s, m) => s + m.price, 0);
+        const sid = sc.replace(/[^a-zA-Z0-9]/g, '_');
+
+        if (q && f.length === 0) return;
+
+        h += `<div class="extra-subcat">
+            <div class="extra-subcat-header" onclick="toggleExtraSubcat('${sid}')">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <i class='bx bx-chevron-down' id="chevron-extra-${sid}" style="transition:transform 0.3s;"></i>
+                    <i class='bx bx-folder' style="color:var(--secondary-color);"></i>
+                    <span>${sc}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;" onclick="event.stopPropagation()">
+                    <span class="card-price">$${formatCLP(tot)}</span>
+                    <button class="btn-add-small" onclick="showAddMaterialModal(null,'extra','${sc}')"><i class='bx bx-plus'></i></button>
+                    <button class="btn-icon danger" style="width:26px;height:26px;font-size:14px;" onclick="deleteExtraSubcategory('${sc}')"><i class='bx bx-trash'></i></button>
+                </div>
+            </div>
+            <div class="extra-subcat-body open" id="body-extra-${sid}">
+                ${(q ? f : items).sort((a, b) => a.name.localeCompare(b.name)).map(m => `
+                    <div class="card" onclick="showAddMaterialModal('${m.id}')" style="cursor:pointer;margin-left:8px;">
+                        <div class="card-info">
+                            <h3>${m.name}</h3>
+                            <p>${m.qty} ${m.unit}</p>
+                            ${getPriceBadgeHTML(m)}
+                        </div>
+                        <div style="display:flex;align-items:center;gap:15px;" onclick="event.stopPropagation()">
+                            <span class="card-price">$${formatCLP(m.price)}</span>
+                            <button class="btn-icon danger" onclick="deleteMaterial('${m.id}')"><i class='bx bx-trash'></i></button>
+                        </div>
+                    </div>
+                `).join('') || '<div class="empty-state" style="padding:12px;font-size:12px;">Sin items.</div>'}
+            </div>
+        </div>`;
+    });
+
+    el.innerHTML = h || '<div class="empty-state" style="padding:20px;font-size:13px;">Sin resultados</div>';
+}
     const t = document.getElementById('toast');
     t.textContent = msg;
     t.className = 'toast show';
