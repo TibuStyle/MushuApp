@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mushu-cache-v8';
+const CACHE_NAME = 'mushu-cache-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -36,7 +36,6 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
-            console.log('Eliminando caché antiguo:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -58,9 +57,7 @@ self.addEventListener('fetch', (event) => {
           });
           return response;
         })
-        .catch(() => {
-          return caches.match(event.request);
-        })
+        .catch(() => caches.match(event.request))
     );
   } else {
     event.respondWith(
@@ -71,9 +68,7 @@ self.addEventListener('fetch', (event) => {
             cache.put(event.request, responseClone);
           });
           return fetchResponse;
-        }).catch(() => {
-          return new Response('', { status: 408 });
-        });
+        }).catch(() => new Response('', { status: 408 }));
       })
     );
   }
