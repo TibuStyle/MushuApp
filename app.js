@@ -1,4 +1,4 @@
-// === MushuApp v3.3 - Modo Profesor con clave fija ===
+// === MushuApp v3.4 - Modales internos para profesor y extras ===
 
 // --- CONFIG ---
 const TEACHER_MASTER_PASSWORD = 'amormiomucushu88';
@@ -213,8 +213,63 @@ function showSettingsModal() {
     document.getElementById('modal-settings').classList.add('active');
 }
 
-function showSocialModal() { document.getElementById('modal-social').classList.add('active'); }
-function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function showSocialModal() {
+    document.getElementById('modal-social').classList.add('active');
+}
+
+function showTeacherPasswordModal() {
+    document.getElementById('teacher-password-modal-input').value = '';
+    document.getElementById('modal-teacher-password').classList.add('active');
+}
+
+function confirmTeacherModePassword() {
+    const pass = document.getElementById('teacher-password-modal-input').value;
+    if (pass !== TEACHER_MASTER_PASSWORD) {
+        document.getElementById('toggle-teacher-mode').checked = false;
+        showToast('Contraseña incorrecta', true);
+        return;
+    }
+    teacherMode.active = true;
+    localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
+    const studentSection = document.getElementById('student-name-section');
+    if (studentSection) studentSection.style.display = 'none';
+    closeModal('modal-teacher-password');
+    showToast('Modo Profesor activado 🎓');
+    updateClassesView();
+}
+
+function cancelTeacherModeModal() {
+    document.getElementById('toggle-teacher-mode').checked = false;
+    closeModal('modal-teacher-password');
+}
+
+function showAddExtraSubcategoryModal() {
+    document.getElementById('extra-subcategory-name').value = '';
+    document.getElementById('modal-extra-subcategory').classList.add('active');
+}
+
+function saveExtraSubcategoryFromModal() {
+    const n = document.getElementById('extra-subcategory-name').value.trim();
+    if (!n) {
+        showToast('Ingresa un nombre', true);
+        return;
+    }
+    let s = JSON.parse(localStorage.getItem('mushu_extra_subcategories') || '[]');
+    if (s.includes(n)) {
+        showToast('Ya existe', true);
+        return;
+    }
+    s.push(n);
+    localStorage.setItem('mushu_extra_subcategories', JSON.stringify(s));
+    renderMaterials();
+    updateExtraSubcategorySelect();
+    closeModal('modal-extra-subcategory');
+    showToast(`"${n}" creada!`);
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
 
 // --- Toast ---
 function showToast(msg, err = false) {
@@ -438,16 +493,7 @@ function toggleExtraSubcat(sid) {
 }
 
 function addExtraSubcategory() {
-    const n = prompt('Nombre subcategoría:');
-    if (!n || !n.trim()) return;
-    const t = n.trim();
-    let s = JSON.parse(localStorage.getItem('mushu_extra_subcategories') || '[]');
-    if (s.includes(t)) { showToast('Ya existe', true); return; }
-    s.push(t);
-    localStorage.setItem('mushu_extra_subcategories', JSON.stringify(s));
-    renderMaterials();
-    updateExtraSubcategorySelect();
-    showToast(`"${t}" creada!`);
+    showAddExtraSubcategoryModal();
 }
 
 function deleteExtraSubcategory(sc) {
@@ -743,7 +789,6 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
         recipes.push(newRecipe);
         showToast("Receta guardada!");
 
-        // Si viene desde clase, dejarla seleccionada automáticamente
         if (recipeSource === 'class') {
             currentSelectedClassRecipe = JSON.parse(JSON.stringify(newRecipe));
             renderSelectedClassRecipeBox();
@@ -754,7 +799,6 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
     renderRecipes();
     closeModal('modal-recipe');
 
-    // Si estábamos creando una receta desde clase, volver al modal clase
     if (recipeSource === 'class') {
         document.getElementById('modal-create-class').classList.add('active');
     }
@@ -966,16 +1010,8 @@ function toggleTeacherMode() {
     const studentSection = document.getElementById('student-name-section');
 
     if (checked) {
-        const pass = prompt('Ingresa la contraseña de profesor:');
-        if (pass !== TEACHER_MASTER_PASSWORD) {
-            document.getElementById('toggle-teacher-mode').checked = false;
-            showToast('Contraseña incorrecta', true);
-            return;
-        }
-        teacherMode.active = true;
-        localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
-        if (studentSection) studentSection.style.display = 'none';
-        showToast('Modo Profesor activado 🎓');
+        showTeacherPasswordModal();
+        return;
     } else {
         teacherMode.active = false;
         localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
@@ -1965,7 +2001,7 @@ function viewImportedClass(classId) {
 // ========================================
 function exportData() {
     const d = {
-        version: '3.3',
+        version: '3.4',
         exportDate: new Date().toISOString(),
         materials,
         recipes,
