@@ -1213,6 +1213,95 @@ function renderRecipeCard(r, priceColor) {
     `;
 }
 
+   function renderRecipeCard(r, priceColor) {
+    let dp = r.totalCost;
+    let pl = "Precio costo:";
+    if (showMinSellingPrice) {
+        dp = Math.floor((r.totalCost * profitMargin) / 500) * 500;
+        pl = `Sugerido (x${profitMargin}):`;
+    }
+
+    const ic = (r.ingredients || []).reduce((s, i) => s + i.cost, 0);
+    const dc = (r.decorations || []).reduce((s, i) => s + i.cost, 0);
+    const ec = r.extraCost || 0;
+    const ti = (r.ingredients || []).length + (r.decorations || []).length;
+    const se = Math.floor((r.totalCost * profitMargin) / 500) * 500;
+
+    const pb = r.portions > 1
+        ? `<div class="portions-badge"><i class='bx bx-cut'></i> ${r.portions} porciones • $${formatCLP(Math.round(dp / r.portions))} c/u</div>`
+        : '';
+
+    let bd = '';
+    if ((r.ingredients || []).length > 0) {
+        bd += `<div class="recipe-breakdown-section">
+            <div class="recipe-breakdown-header"><span><i class='bx bx-package'></i> Ingredientes</span><span>$${formatCLP(ic)}</span></div>
+            ${r.ingredients.map(i => `<div class="recipe-breakdown-item"><span>${i.name} (${i.qty} ${i.unit})</span><span>$${formatCLP(i.cost)}</span></div>`).join('')}
+        </div>`;
+    }
+    if ((r.decorations || []).length > 0) {
+        bd += `<div class="recipe-breakdown-section">
+            <div class="recipe-breakdown-header"><span><i class='bx bx-palette'></i> Decoración</span><span>$${formatCLP(dc)}</span></div>
+            ${r.decorations.map(d => `<div class="recipe-breakdown-item"><span>${d.name} (${d.qty} ${d.unit})</span><span>$${formatCLP(d.cost)}</span></div>`).join('')}
+        </div>`;
+    }
+    if (r.extraSubcategory && ec > 0) {
+        const eis = materials.filter(m => m.category === 'extra' && m.subcategory === r.extraSubcategory);
+        bd += `<div class="recipe-breakdown-section">
+            <div class="recipe-breakdown-header"><span><i class='bx bx-star'></i> Extra</span><span>$${formatCLP(ec)}</span></div>
+            ${eis.map(m => `<div class="recipe-breakdown-item"><span>${m.name}</span><span>$${formatCLP(m.price)}</span></div>`).join('')}
+        </div>`;
+    }
+    bd += `<div class="recipe-breakdown-total"><span>COSTO TOTAL</span><span>$${formatCLP(r.totalCost)}</span></div>`;
+
+    let sl = `<div class="recipe-selling-section"><div class="recipe-selling-row highlight"><span>💰 Venta entera:</span><span>$${formatCLP(se)}</span></div>`;
+    if (r.portions > 1) {
+        const sp = Math.round(se / r.portions);
+        sl += `<div class="recipe-selling-row"><span>🍰 Por porción (${r.portions}x):</span><span>$${formatCLP(sp)} c/u</span></div>
+               <div class="recipe-selling-row"><span>Total porciones:</span><span>$${formatCLP(sp * r.portions)}</span></div>`;
+    }
+    sl += `</div>`;
+
+    const tip = generateRecipeTip(r);
+    const tipH = tip ? `<div class="recipe-tip"><strong>💡 Consejo</strong>${tip}</div>` : '';
+
+    const sourceBadge = r.recipeSource === 'class'
+        ? `<div class="module-badge"><i class='bx bx-book'></i> Receta de módulo</div>`
+        : '';
+
+    return `
+        <div class="recipe-card">
+            <div class="recipe-card-header">
+                <div class="recipe-card-info">
+                    <h3>${r.name}</h3>
+                    <p>${ti} Items${r.extraSubcategory ? ' + Extra' : ''}</p>
+                    ${sourceBadge}
+                    ${pb}
+                </div>
+                <div class="recipe-card-price">
+                    <div class="recipe-card-price-label">${pl}</div>
+                    <div class="recipe-card-price-value" style="color:${priceColor};">$${formatCLP(dp)}</div>
+                </div>
+            </div>
+            <div class="recipe-card-toggle" id="recipe-toggle-${r.id}" onclick="toggleRecipeDetail('${r.id}')">
+                <span>Ver detalle</span><i class='bx bx-chevron-down'></i>
+            </div>
+            <div class="recipe-card-detail" id="recipe-detail-${r.id}">
+                <div class="recipe-detail-content">
+                    ${bd}
+                    ${sl}
+                    ${tipH}
+                    <div style="display:flex;gap:10px;margin-top:16px;">
+                        <button class="btn-submit" style="margin-top:0;flex:1;" onclick="showAddRecipeModal('${r.id}')"><i class='bx bx-edit'></i> Editar</button>
+                        <button class="btn-icon danger" style="width:48px;height:48px;font-size:20px;" onclick="deleteRecipe('${r.id}')"><i class='bx bx-trash'></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+    
+// ========================================
+// COURSES / CLASSES VIEW
 
 // ========================================
 // COURSES / CLASSES VIEW
