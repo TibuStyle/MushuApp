@@ -2596,3 +2596,75 @@ function restoreOpenRecipeFolders(openFolders) {
         if (chevron) chevron.style.transform = 'rotate(0deg)';
     });
 }
+
+function selectExistingRecipeForClass() {
+    if (recipes.length === 0) {
+        showToast('No hay recetas aún. Crea una primero.', true);
+        return;
+    }
+
+    document.getElementById('search-select-recipe').value = '';
+    renderRecipeSelectionList(recipes);
+    document.getElementById('modal-select-recipe').classList.add('active');
+}
+
+function filterRecipeSelection() {
+    const q = document.getElementById('search-select-recipe').value.toLowerCase().trim();
+    const filtered = recipes.filter(r =>
+        r.name.toLowerCase().includes(q) ||
+        (r.recipeFolder || '').toLowerCase().includes(q)
+    );
+    renderRecipeSelectionList(filtered);
+}
+
+function renderRecipeSelectionList(recipeList) {
+    const list = document.getElementById('select-recipe-list');
+    if (!recipeList.length) {
+        list.innerHTML = '<div class="empty-state" style="padding:20px;font-size:13px;">Sin recetas encontradas</div>';
+        return;
+    }
+
+    list.innerHTML = recipeList
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(r => `
+            <div class="select-recipe-item" onclick="selectRecipeForClass('${r.id}')">
+                <h4>${r.name}</h4>
+                <p>${r.recipeFolder || 'Mis Recetas'} • $${formatCLP(r.totalCost)} • ${r.portions > 1 ? r.portions + ' porciones' : 'Entera'}</p>
+            </div>
+        `).join('');
+}
+
+function selectRecipeForClass(recipeId) {
+    const r = recipes.find(x => String(x.id) === String(recipeId));
+    if (!r) return;
+
+    currentSelectedClassRecipe = JSON.parse(JSON.stringify(r));
+    renderSelectedClassRecipeBox();
+    closeModal('modal-select-recipe');
+    showToast(`Receta "${currentSelectedClassRecipe.name}" seleccionada`);
+}
+
+function renderSelectedClassRecipeBox() {
+    const box = document.getElementById('selected-class-recipe-box');
+    if (!currentSelectedClassRecipe) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        return;
+    }
+
+    box.style.display = 'block';
+    box.className = 'selected-class-recipe-box';
+    box.innerHTML = `
+        <strong>📖 ${currentSelectedClassRecipe.name}</strong>
+        <p>Costo: $${formatCLP(currentSelectedClassRecipe.totalCost)} • ${currentSelectedClassRecipe.portions > 1 ? currentSelectedClassRecipe.portions + ' porciones' : 'Entera'}</p>
+        <div class="selected-class-recipe-actions">
+            <button class="change" onclick="selectExistingRecipeForClass()">Cambiar</button>
+            <button class="clear" onclick="clearSelectedClassRecipe()">Quitar</button>
+        </div>
+    `;
+}
+
+function clearSelectedClassRecipe() {
+    currentSelectedClassRecipe = null;
+    renderSelectedClassRecipeBox();
+}
