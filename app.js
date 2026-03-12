@@ -426,7 +426,14 @@ function closeModal(id) {
 
 // --- Toast ---
 function showToast(msg, err = false) {
-    // ========================================
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show';
+    if (err) t.classList.add('error');
+    setTimeout(() => t.classList.remove('show'), 3000);
+}
+    
+// ========================================
 // MATERIALS
 // ========================================
 function saveMaterialsToStorage() {
@@ -558,15 +565,6 @@ function renderExtraMaterials(q) {
             </div>
         </div>`;
     });
-
-    el.innerHTML = h || '<div class="empty-state" style="padding:20px;font-size:13px;">Sin resultados</div>';
-}
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast show';
-    if (err) t.classList.add('error');
-    setTimeout(() => t.classList.remove('show'), 3000);
-}
 
 // ========================================
 // MODULES
