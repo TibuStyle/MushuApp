@@ -431,6 +431,20 @@ body {
 }
 .portions-badge i { font-size: 14px; }
 
+/* NUEVO: module badge */
+.module-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,182,193,0.18);
+    color: var(--secondary-color);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 50px;
+    margin-top: 6px;
+}
+
 /* --- Bottom Nav --- */
 .bottom-nav {
     position: absolute;
@@ -855,7 +869,7 @@ input:checked + .slider:before { transform: translateX(16px); }
     border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 .attendance-item:last-child { border-bottom: none; }
-.attendance-left { display: flex; align-items: center; gap: 10px; }
+.attendance-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .attendance-name { font-size: 14px; font-weight: 500; }
 .attendance-status {
     font-size: 20px;
@@ -886,7 +900,7 @@ input:checked + .slider:before { transform: translateX(16px); }
     display: flex; justify-content: space-between; align-items: center;
     gap: 10px;
 }
-.code-item-left { display: flex; align-items: center; gap: 8px; }
+.code-item-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .code-item-status { font-size: 16px; }
 .code-item-name { font-size: 13px; font-weight: 600; }
 .code-item-code {
@@ -965,7 +979,6 @@ input:checked + .slider:before { transform: translateX(16px); }
     padding: 2px;
 }
 
-/* NUEVO: student code badge */
 .student-code-badge {
     display: inline-flex;
     align-items: center;
@@ -977,6 +990,25 @@ input:checked + .slider:before { transform: translateX(16px); }
     color: var(--secondary-color);
     font-size: 11px;
     font-weight: 700;
+}
+
+/* NUEVO: module info box */
+.module-info-box {
+    background: var(--surface-hover);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-top: 10px;
+}
+.module-info-box strong {
+    font-size: 14px;
+    display: block;
+    margin-bottom: 4px;
+}
+.module-info-box p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0;
 }
 
 .view-class-content { position: relative; }
@@ -1218,7 +1250,8 @@ input:checked + .slider:before { transform: translateX(16px); }
 #modal-teacher-password .modal-content,
 #modal-extra-subcategory .modal-content,
 #modal-confirm .modal-content,
-#modal-select-recipe .modal-content {
+#modal-select-recipe .modal-content,
+#modal-module .modal-content {
     max-width: 420px;
 }
 
