@@ -2401,3 +2401,69 @@ function saveModule() {
     updateRecipesView();
     closeModal('modal-module');
 }
+
+function saveMaterial(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('mat-name').value.trim();
+    const price = parseFloat(document.getElementById('mat-price').value);
+    const qty = parseFloat(document.getElementById('mat-qty').value);
+    const unit = document.getElementById('mat-unit').value;
+    const category = currentMaterialCategory;
+    const subcategory = currentMaterialSubcategory;
+
+    if (!name || isNaN(price) || isNaN(qty) || qty <= 0) {
+        showToast("Por favor ingresa datos válidos", true);
+        return;
+    }
+
+    let priceHistory = [];
+
+    if (currentEditingMaterialId) {
+        const idx = materials.findIndex(m => String(m.id) === String(currentEditingMaterialId));
+        if (idx !== -1) {
+            const oldMat = materials[idx];
+            priceHistory = [...(oldMat.priceHistory || [])];
+            if (oldMat.price !== price) {
+                priceHistory.push({
+                    date: new Date().toISOString().slice(0, 10),
+                    price: price
+                });
+            }
+        }
+    } else {
+        priceHistory = [{
+            date: new Date().toISOString().slice(0, 10),
+            price: price
+        }];
+    }
+
+    const material = {
+        id: currentEditingMaterialId || Date.now().toString(),
+        name,
+        price,
+        qty,
+        unit,
+        category,
+        subcategory,
+        priceHistory
+    };
+
+    if (currentEditingMaterialId) {
+        const idx = materials.findIndex(m => String(m.id) === String(currentEditingMaterialId));
+        if (idx !== -1) materials[idx] = material;
+        recalculateAllRecipes();
+        showToast("Material actualizado!");
+    } else {
+        materials.push(material);
+        showToast("Material guardado!");
+    }
+
+    currentEditingMaterialId = null;
+    saveMaterialsToStorage();
+    renderMaterials();
+    updateMaterialSelect();
+    updateDecorationSelect();
+    updateExtraSubcategorySelect();
+    closeModal('modal-material');
+}
