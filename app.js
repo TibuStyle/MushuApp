@@ -942,9 +942,14 @@ function renderModuleFolder(mod, recipesInModule) {
                     <strong>${mod.name}</strong>
                     <p>Prefijo del módulo: ${mod.prefix}</p>
                 </div>
+
+                <button class="btn-add-class" onclick="createRecipeInModule('${mod.name}')">
+                    <i class='bx bx-plus'></i> Nueva receta del módulo
+                </button>
+
                 ${recipesInModule.length
                     ? recipesInModule.sort((a,b)=>a.name.localeCompare(b.name)).map(r => renderRecipeCard(r, priceColor)).join('')
-                    : '<div class="empty-state" style="padding:20px;font-size:13px;margin-top:10px;">Este módulo no tiene recetas aún. Crea una receta y guárdala dentro de este módulo.</div>'}
+                    : '<div class="empty-state" style="padding:20px;font-size:13px;margin-top:10px;">Este módulo no tiene recetas aún. Presiona "Nueva receta del módulo".</div>'}
             </div>
         </div>
     `;
@@ -2466,4 +2471,27 @@ function saveMaterial(e) {
     updateDecorationSelect();
     updateExtraSubcategorySelect();
     closeModal('modal-material');
+}
+
+function createRecipeInModule(moduleName) {
+    currentEditingRecipeId = null;
+    currentRecipeIngredients = [];
+    currentRecipeDecorations = [];
+    currentRecipeExtra = null;
+
+    document.getElementById('recipe-name').value = '';
+    document.getElementById('recipe-portions').value = '';
+    document.getElementById('recipe-folder-group').style.display = 'block';
+    document.getElementById('recipe-folder-input').value = moduleName;
+
+    renderCurrentRecipeIngredients();
+    renderCurrentRecipeDecorations();
+    updateMaterialSelect();
+    updateDecorationSelect();
+    updateExtraSubcategorySelect();
+    renderExtraInRecipe();
+    updateRecipeTotal();
+
+    document.querySelector('#modal-recipe h3').textContent = "Crear Receta del Módulo";
+    document.getElementById('modal-recipe').classList.add('active');
 }
