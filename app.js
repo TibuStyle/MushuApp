@@ -849,8 +849,11 @@ function renderTeacherRecipes() {
     const moduleFolders = {};
 
     modules.forEach(mod => {
-        moduleFolders[mod.name] = recipes.filter(r => (r.recipeFolder || '') === mod.name);
-    });
+    moduleFolders[mod.name] = recipes.filter(r =>
+        (r.recipeFolder || '') === mod.name &&
+        (r.recipeSource === 'module' || r.recipeSource === 'class')
+    );
+});
 
     let html = '';
     html += renderRecipeGroupFolder('Mis Recetas', 'mis_recetas', ownRecipes, true);
