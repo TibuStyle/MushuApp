@@ -933,9 +933,10 @@ function renderModuleFolder(mod, recipesInModule) {
                         <div class="recipe-folder-count">Prefijo: ${mod.prefix} • ${recipesInModule.length} receta${recipesInModule.length !== 1 ? 's' : ''}</div>
                     </div>
                 </div>
-                <div style="display:flex; gap:6px;" onclick="event.stopPropagation()">
+                <div style="display:flex; align-items:center; gap:6px;" onclick="event.stopPropagation()">
                     <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showCreateModuleModal('${mod.id}')"><i class='bx bx-edit'></i></button>
                     <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteModule('${mod.id}')"><i class='bx bx-trash'></i></button>
+                    <i class='bx bx-chevron-down recipe-folder-chevron' id="module-folder-chevron-${moduleId}" style="transform:rotate(-90deg);"></i>
                 </div>
             </div>
 
