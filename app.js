@@ -2495,3 +2495,16 @@ function createRecipeInModule(moduleName) {
     document.querySelector('#modal-recipe h3').textContent = "Crear Receta del Módulo";
     document.getElementById('modal-recipe').classList.add('active');
 }
+
+function deleteModule(moduleId) {
+    showConfirmModal(
+        'Eliminar módulo',
+        '¿Eliminar este módulo? Las recetas que usen su nombre quedarán como están.',
+        () => {
+            modules = modules.filter(m => String(m.id) !== String(moduleId));
+            saveModules();
+            updateRecipesView();
+            showToast('Módulo eliminado');
+        }
+    );
+}
