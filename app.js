@@ -2496,45 +2496,6 @@ function saveMaterial(e) {
     closeModal('modal-material');
 }
 
-function createRecipeInModule(moduleName) {
-    currentEditingRecipeId = null;
-    currentRecipeIngredients = [];
-    currentRecipeDecorations = [];
-    currentRecipeExtra = null;
-
-    document.getElementById('recipe-name').value = '';
-    document.getElementById('recipe-portions').value = '';
-    document.getElementById('recipe-add-qty').value = '';
-    document.getElementById('recipe-add-deco-qty').value = '';
-
-    const folderGroup = document.getElementById('recipe-folder-group');
-    const folderSelect = document.getElementById('recipe-folder-input');
-
-    if (folderGroup) folderGroup.style.display = 'block';
-
-    // llenar selector
-    const options = [`<option value="Mis Recetas">Mis Recetas</option>`];
-    modules
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .forEach(mod => {
-            options.push(`<option value="${mod.name}">${mod.name} (${mod.prefix})</option>`);
-        });
-
-    folderSelect.innerHTML = options.join('');
-    folderSelect.value = moduleName;
-
-    renderCurrentRecipeIngredients();
-    renderCurrentRecipeDecorations();
-    updateMaterialSelect();
-    updateDecorationSelect();
-    updateExtraSubcategorySelect();
-    renderExtraInRecipe();
-    updateRecipeTotal();
-
-    document.querySelector('#modal-recipe h3').textContent = "Crear Receta del Módulo";
-    document.getElementById('modal-recipe').classList.add('active');
-}
-
 function deleteModule(moduleId) {
     showConfirmModal(
         'Eliminar módulo',
@@ -2546,29 +2507,6 @@ function deleteModule(moduleId) {
             showToast('Módulo eliminado');
         }
     );
-}
-
-function createRecipeInModule(moduleName) {
-    currentEditingRecipeId = null;
-    currentRecipeIngredients = [];
-    currentRecipeDecorations = [];
-    currentRecipeExtra = null;
-
-    document.getElementById('recipe-name').value = '';
-    document.getElementById('recipe-portions').value = '';
-    document.getElementById('recipe-folder-group').style.display = 'block';
-    document.getElementById('recipe-folder-input').value = moduleName;
-
-    renderCurrentRecipeIngredients();
-    renderCurrentRecipeDecorations();
-    updateMaterialSelect();
-    updateDecorationSelect();
-    updateExtraSubcategorySelect();
-    renderExtraInRecipe();
-    updateRecipeTotal();
-
-    document.querySelector('#modal-recipe h3').textContent = "Crear Receta del Módulo";
-    document.getElementById('modal-recipe').classList.add('active');
 }
 
 function fillRecipeFolderSelect() {
@@ -2584,4 +2522,37 @@ function fillRecipeFolderSelect() {
         });
 
     select.innerHTML = options.join('');
+}
+
+function createRecipeInModule(moduleName) {
+    window.currentModuleRecipeMode = true;
+
+    currentEditingRecipeId = null;
+    currentRecipeIngredients = [];
+    currentRecipeDecorations = [];
+    currentRecipeExtra = null;
+
+    document.getElementById('recipe-name').value = '';
+    document.getElementById('recipe-portions').value = '';
+    document.getElementById('recipe-add-qty').value = '';
+    document.getElementById('recipe-add-deco-qty').value = '';
+
+    const folderGroup = document.getElementById('recipe-folder-group');
+    const folderSelect = document.getElementById('recipe-folder-input');
+
+    if (folderGroup) folderGroup.style.display = 'block';
+
+    fillRecipeFolderSelect();
+    folderSelect.value = moduleName;
+
+    renderCurrentRecipeIngredients();
+    renderCurrentRecipeDecorations();
+    updateMaterialSelect();
+    updateDecorationSelect();
+    updateExtraSubcategorySelect();
+    renderExtraInRecipe();
+    updateRecipeTotal();
+
+    document.querySelector('#modal-recipe h3').textContent = "Crear Receta del Módulo";
+    document.getElementById('modal-recipe').classList.add('active');
 }
