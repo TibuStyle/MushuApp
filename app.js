@@ -910,9 +910,9 @@ function renderRecipeGroupFolder(folderName, folderId, folderRecipes, openFirst 
                         <div class="recipe-folder-count">${folderRecipes.length} receta${folderRecipes.length !== 1 ? 's' : ''}</div>
                     </div>
                 </div>
-                <i class='bx bx-chevron-down recipe-folder-chevron' id="recipe-folder-chevron-${folderId}" style="transform:${openFirst ? 'rotate(0deg)' : 'rotate(-90deg)'};"></i>
+                <i class='bx bx-chevron-down recipe-folder-chevron' id="recipe-folder-chevron-${folderId}" style="transform:rotate(-90deg);"></i>
             </div>
-            <div class="recipe-folder-body ${openFirst ? 'open' : ''}" id="recipe-folder-body-${folderId}">
+            <div class="recipe-folder-body" id="recipe-folder-body-${folderId}">
                 ${folderRecipes.map(r => renderRecipeCard(r, priceColor)).join('')}
             </div>
         </div>
@@ -2218,6 +2218,8 @@ function showAddRecipeModal(recipeId = null) {
     const btnD = document.getElementById('btn-duplicate-recipe');
     const folderGroup = document.getElementById('recipe-folder-group');
     const folderInput = document.getElementById('recipe-folder-input');
+    
+    fillRecipeFolderSelect();
 
     folderGroup.style.display = teacherMode.active ? 'block' : 'none';
     folderInput.value = '';
@@ -2537,4 +2539,19 @@ function createRecipeInModule(moduleName) {
 
     document.querySelector('#modal-recipe h3').textContent = "Crear Receta del Módulo";
     document.getElementById('modal-recipe').classList.add('active');
+}
+
+function fillRecipeFolderSelect() {
+    const select = document.getElementById('recipe-folder-input');
+    if (!select) return;
+
+    const options = [`<option value="Mis Recetas">Mis Recetas</option>`];
+
+    modules
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .forEach(mod => {
+            options.push(`<option value="${mod.name}">${mod.name} (${mod.prefix})</option>`);
+        });
+
+    select.innerHTML = options.join('');
 }
