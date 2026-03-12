@@ -922,6 +922,7 @@ function renderRecipeGroupFolder(folderName, folderId, folderRecipes, openFirst 
 function renderModuleFolder(mod, recipesInModule) {
     const moduleId = mod.id;
     const priceColor = showMinSellingPrice ? 'var(--secondary-color)' : 'var(--primary-color)';
+
     return `
         <div class="recipe-folder">
             <div class="recipe-folder-header" onclick="toggleFolderBody('module-folder','${moduleId}')">
@@ -937,19 +938,25 @@ function renderModuleFolder(mod, recipesInModule) {
                     <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteModule('${mod.id}')"><i class='bx bx-trash'></i></button>
                 </div>
             </div>
+
             <div class="recipe-folder-body" id="module-folder-body-${moduleId}">
                 <div class="module-info-box">
                     <strong>${mod.name}</strong>
                     <p>Prefijo del módulo: ${mod.prefix}</p>
                 </div>
 
-                <button class="btn-add-class" onclick="createRecipeInModule('${mod.name}')">
-                    <i class='bx bx-plus'></i> Nueva receta del módulo
-                </button>
+                <div style="margin-top:10px;">
+                    <button class="btn-submit" style="margin-top:0;" onclick="createRecipeInModule('${mod.name}')">
+                        <i class='bx bx-plus'></i> Nueva receta del módulo
+                    </button>
+                </div>
 
                 ${recipesInModule.length
-                    ? recipesInModule.sort((a,b)=>a.name.localeCompare(b.name)).map(r => renderRecipeCard(r, priceColor)).join('')
-                    : '<div class="empty-state" style="padding:20px;font-size:13px;margin-top:10px;">Este módulo no tiene recetas aún. Presiona "Nueva receta del módulo".</div>'}
+                    ? recipesInModule
+                        .sort((a, b) => a.name.localeCompare(b.name))
+                        .map(r => renderRecipeCard(r, priceColor))
+                        .join('')
+                    : '<div class="empty-state" style="padding:20px;font-size:13px;margin-top:10px;">Este módulo no tiene recetas aún.</div>'}
             </div>
         </div>
     `;
@@ -2507,4 +2514,27 @@ function deleteModule(moduleId) {
             showToast('Módulo eliminado');
         }
     );
+}
+
+function createRecipeInModule(moduleName) {
+    currentEditingRecipeId = null;
+    currentRecipeIngredients = [];
+    currentRecipeDecorations = [];
+    currentRecipeExtra = null;
+
+    document.getElementById('recipe-name').value = '';
+    document.getElementById('recipe-portions').value = '';
+    document.getElementById('recipe-folder-group').style.display = 'block';
+    document.getElementById('recipe-folder-input').value = moduleName;
+
+    renderCurrentRecipeIngredients();
+    renderCurrentRecipeDecorations();
+    updateMaterialSelect();
+    updateDecorationSelect();
+    updateExtraSubcategorySelect();
+    renderExtraInRecipe();
+    updateRecipeTotal();
+
+    document.querySelector('#modal-recipe h3').textContent = "Crear Receta del Módulo";
+    document.getElementById('modal-recipe').classList.add('active');
 }
