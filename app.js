@@ -2367,3 +2367,37 @@ function deleteMaterial(id) {
         }
     );
 }
+
+function saveModule() {
+    const name = document.getElementById('module-name').value.trim();
+    const prefix = sanitizePrefix(document.getElementById('module-prefix').value.trim());
+
+    if (!name) {
+        showToast('Ingresa nombre del módulo', true);
+        return;
+    }
+
+    if (!prefix || prefix.length < 2) {
+        showToast('Ingresa prefijo válido', true);
+        return;
+    }
+
+    if (currentEditingModuleId) {
+        const idx = modules.findIndex(m => String(m.id) === String(currentEditingModuleId));
+        if (idx !== -1) {
+            modules[idx] = { ...modules[idx], name, prefix };
+            showToast('Módulo actualizado!');
+        }
+    } else {
+        modules.push({
+            id: Date.now().toString(),
+            name,
+            prefix
+        });
+        showToast('Módulo creado!');
+    }
+
+    saveModules();
+    updateRecipesView();
+    closeModal('modal-module');
+}
