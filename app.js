@@ -1,4 +1,4 @@
-// === MushuApp v3.5 - Confirmaciones con modal interno ===
+// === MushuApp v3.6 - Modal selección receta + códigos visibles cortos ===
 
 // --- CONFIG ---
 const TEACHER_MASTER_PASSWORD = 'amormiomucushu88';
@@ -284,6 +284,52 @@ function saveExtraSubcategoryFromModal() {
     updateExtraSubcategorySelect();
     closeModal('modal-extra-subcategory');
     showToast(`"${n}" creada!`);
+}
+
+// NUEVO: modal selección receta
+function selectExistingRecipeForClass() {
+    if (recipes.length === 0) {
+        showToast('No hay recetas aún. Crea una primero.', true);
+        return;
+    }
+    document.getElementById('search-select-recipe').value = '';
+    renderRecipeSelectionList(recipes);
+    document.getElementById('modal-select-recipe').classList.add('active');
+}
+
+function filterRecipeSelection() {
+    const q = document.getElementById('search-select-recipe').value.toLowerCase().trim();
+    const filtered = recipes.filter(r =>
+        r.name.toLowerCase().includes(q) ||
+        (r.recipeFolder || '').toLowerCase().includes(q)
+    );
+    renderRecipeSelectionList(filtered);
+}
+
+function renderRecipeSelectionList(recipeList) {
+    const list = document.getElementById('select-recipe-list');
+    if (!recipeList.length) {
+        list.innerHTML = '<div class="empty-state" style="padding:20px;font-size:13px;">Sin recetas encontradas</div>';
+        return;
+    }
+
+    list.innerHTML = recipeList
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(r => `
+            <div class="select-recipe-item" onclick="selectRecipeForClass('${r.id}')">
+                <h4>${r.name}</h4>
+                <p>${r.recipeFolder || 'Mis Recetas'} • $${formatCLP(r.totalCost)} • ${r.portions > 1 ? r.portions + ' porciones' : 'Entera'}</p>
+            </div>
+        `).join('');
+}
+
+function selectRecipeForClass(recipeId) {
+    const r = recipes.find(x => String(x.id) === String(recipeId));
+    if (!r) return;
+    currentSelectedClassRecipe = JSON.parse(JSON.stringify(r));
+    renderSelectedClassRecipeBox();
+    closeModal('modal-select-recipe');
+    showToast(`Receta "${currentSelectedClassRecipe.name}" seleccionada`);
 }
 
 function closeModal(id) {
@@ -1318,23 +1364,6 @@ function showEditClassModal(courseId, classId) {
     document.getElementById('modal-create-class').classList.add('active');
 }
 
-function selectExistingRecipeForClass() {
-    if (recipes.length === 0) {
-        showToast('No hay recetas aún. Crea una primero.', true);
-        return;
-    }
-
-    const names = recipes.map((r, i) => `${i + 1}. ${r.name} (${r.recipeFolder || 'Mis Recetas'})`).join('\n');
-    const pick = prompt(`Selecciona el número de la receta:\n\n${names}`);
-    const idx = parseInt(pick) - 1;
-
-    if (isNaN(idx) || idx < 0 || idx >= recipes.length) return;
-
-    currentSelectedClassRecipe = JSON.parse(JSON.stringify(recipes[idx]));
-    renderSelectedClassRecipeBox();
-    showToast(`Receta "${currentSelectedClassRecipe.name}" seleccionada`);
-}
-
 function createNewRecipeForClass() {
     const courseId = document.getElementById('class-course-select').value;
     const course = courses.find(c => String(c.id) === String(courseId));
@@ -1473,6 +1502,7 @@ function saveClass() {
             studentName: s.name,
             present: false,
             code: null,
+            shortCode: null,
             codeData: null,
             codeUsed: false,
             activatedAt: null
@@ -1499,21 +1529,6 @@ function saveClass() {
     saveCourses();
     renderCourses();
     closeModal('modal-create-class');
-}
-
-function deleteClass(courseId, classId) {
-    showConfirmModal(
-        'Eliminar clase',
-        '¿Eliminar esta clase?',
-        () => {
-            const course = courses.find(c => String(c.id) === String(courseId));
-            if (!course) return;
-            course.classes = (course.classes || []).filter(cl => String(cl.id) !== String(classId));
-            saveCourses();
-            renderCourses();
-            showToast('Clase eliminada');
-        }
-    );
 }
 
 // ========================================
@@ -1591,6 +1606,22 @@ function renderAttendanceList() {
     }).join('');
 }
 
+function buildVisibleShortCode(course, cls, studentName, present) {
+    const courseBase = (course.baseFolder || course.name || 'CURSO')
+        .replace(/[^a-zA-Z0-9 ]/g, '')
+        .split(' ')
+        .map(w => w[0] || '')
+        .join('')
+        .toUpperCase()
+        .slice(0, 4);
+
+    const dateCode = cls.date.replace(/-/g, '').slice(2);
+    const initials = studentName.split(' ').map(w => w[0] || '').join('').toUpperCase().slice(0, 3);
+    const type = present ? 'P' : 'A';
+
+    return `MUSH-${courseBase}-${dateCode}-${initials}-${type}`;
+}
+
 function generateCodes() {
     const course = courses.find(c => String(c.id) === String(currentAttendanceCourseId));
     if (!course) return;
@@ -1598,12 +1629,6 @@ function generateCodes() {
     if (!cls) return;
 
     currentAttendanceData.forEach(a => {
-        const initials = a.studentName.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
-        const dayCode = course.day.slice(0, 2).toUpperCase();
-        const dateCode = cls.date.replace(/-/g, '').slice(4);
-        const type = a.present ? 'P' : 'A';
-        const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-
         const codeData = {
             className: cls.name,
             courseId: course.id,
@@ -1620,9 +1645,8 @@ function generateCodes() {
         };
 
         const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(codeData))));
-        const shortCode = `MUSH-${dayCode}${dateCode}-${initials}-${type}-${rand}`;
-
-        a.code = shortCode;
+        a.shortCode = buildVisibleShortCode(course, cls, a.studentName, a.present);
+        a.code = encoded;
         a.codeData = encoded;
         a.codeUsed = false;
     });
@@ -1674,7 +1698,8 @@ function renderCodeItem(a) {
                     <span class="code-item-status">${a.present ? '✅' : '❌'}</span>
                     <span class="code-item-name">${a.studentName}</span>
                 </div>
-                <div class="code-item-code">${a.codeData ? a.codeData.slice(0, 40) + '...' : ''}</div>
+                <div class="code-item-short">${a.shortCode || 'MUSH-CODIGO'}</div>
+                <div class="code-item-code">Código completo oculto • usar botón copiar</div>
             </div>
             <button class="code-item-copy" onclick="copySingleCode('${a.studentId}')">Copiar</button>
         </div>`;
@@ -1708,7 +1733,7 @@ function copySingleCode(studentId) {
 function copyAllCodes() {
     const allCodes = currentAttendanceData
         .filter(a => a.codeData)
-        .map(a => `${a.studentName} (${a.present ? 'Presente' : 'Ausente'}):\n${a.codeData}`)
+        .map(a => `${a.studentName} - ${a.shortCode || ''}\n${a.codeData}`)
         .join('\n\n');
 
     if (navigator.clipboard) {
@@ -2052,7 +2077,7 @@ function viewImportedClass(classId) {
 // ========================================
 function exportData() {
     const d = {
-        version: '3.5',
+        version: '3.6',
         exportDate: new Date().toISOString(),
         materials,
         recipes,
