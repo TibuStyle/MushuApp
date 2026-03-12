@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- MushuApp Version 3.7 -->
+    <!-- MushuApp Version 4.0 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mushu App - Costos de Recetas</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="boxicons.min.css">
-    <link rel="manifest" href="manifest.json?v=3.7">
+    <link rel="manifest" href="manifest.json?v=4.0">
     <meta name="theme-color" content="#ffb6c1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -116,24 +116,78 @@
 
             <!-- SECTION: RECETAS -->
             <section id="view-recetas" class="view">
-                <div class="section-header">
-                    <div style="display: flex; flex-direction: column; gap: 4px;">
-                        <h2>Recetas</h2>
-                        <div class="selling-price-toggle">
-                            <label class="switch">
-                                <input type="checkbox" id="toggle-selling-price" onchange="toggleSellingPrice()">
-                                <span class="slider round"></span>
-                            </label>
-                            <span>Precio de venta mín.</span>
+                <!-- Vista Profesor -->
+                <div id="teacher-recipes-view" style="display:none;">
+                    <div class="section-header">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <h2>Recetas</h2>
+                            <div class="selling-price-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle-selling-price" onchange="toggleSellingPrice()">
+                                    <span class="slider round"></span>
+                                </label>
+                                <span>Precio de venta mín.</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:8px;">
+                            <button class="btn-primary" onclick="showCreateModuleModal()">
+                                <i class='bx bx-folder-plus'></i> Módulo
+                            </button>
+                            <button class="btn-primary" onclick="showAddRecipeModal()">
+                                <i class='bx bx-plus'></i> Mía
+                            </button>
                         </div>
                     </div>
-                    <button class="btn-primary" onclick="showAddRecipeModal()">
-                        <i class='bx bx-plus'></i> Nueva
-                    </button>
+
+                    <div id="teacher-recipe-groups-list" class="list-container">
+                        <div class="empty-state">No hay recetas todavía.</div>
+                    </div>
                 </div>
 
-                <div id="recipe-folders-list" class="list-container">
-                    <div class="empty-state">No hay recetas todavía. Crea tu primera receta.</div>
+                <!-- Vista Alumno -->
+                <div id="student-recipes-view" style="display:none;">
+                    <div class="section-header">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <h2>Recetas</h2>
+                            <div class="selling-price-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle-selling-price-student" onchange="toggleSellingPriceStudentMirror()">
+                                    <span class="slider round"></span>
+                                </label>
+                                <span>Precio de venta mín.</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary" onclick="showAddRecipeModal()">
+                            <i class='bx bx-plus'></i> Nueva
+                        </button>
+                    </div>
+
+                    <div id="student-recipe-groups-list" class="list-container">
+                        <div class="empty-state">No hay recetas todavía.</div>
+                    </div>
+                </div>
+
+                <!-- Vista sin modo -->
+                <div id="default-recipes-view">
+                    <div class="section-header">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <h2>Recetas</h2>
+                            <div class="selling-price-toggle">
+                                <label class="switch">
+                                    <input type="checkbox" id="toggle-selling-price-default" onchange="toggleSellingPriceDefaultMirror()">
+                                    <span class="slider round"></span>
+                                </label>
+                                <span>Precio de venta mín.</span>
+                            </div>
+                        </div>
+                        <button class="btn-primary" onclick="showAddRecipeModal()">
+                            <i class='bx bx-plus'></i> Nueva
+                        </button>
+                    </div>
+
+                    <div id="default-recipe-groups-list" class="list-container">
+                        <div class="empty-state">No hay recetas todavía.</div>
+                    </div>
                 </div>
             </section>
 
@@ -141,7 +195,7 @@
             <section id="view-clases" class="view">
                 <div id="teacher-classes-view" style="display:none;">
                     <div class="section-header">
-                        <h2>🎓 Mis Clases</h2>
+                        <h2>🎓 Clases</h2>
                         <button class="btn-primary" onclick="showCreateCourseModal()">
                             <i class='bx bx-plus'></i> Curso
                         </button>
@@ -269,8 +323,8 @@
                     </div>
 
                     <div class="form-group" id="recipe-folder-group" style="display:none;">
-                        <label>Carpeta / Curso</label>
-                        <input type="text" id="recipe-folder-input" placeholder="Ej: Pastelería 1 Básica">
+                        <label>Carpeta / Grupo</label>
+                        <input type="text" id="recipe-folder-input" placeholder="Ej: Pastelería 1">
                     </div>
                     
                     <div class="recipe-ingredients-section">
@@ -360,6 +414,33 @@
             </div>
         </div>
 
+        <!-- Create Module Modal -->
+        <div class="modal-overlay" id="modal-module" onclick="closeModal('modal-module')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>📚 Crear Módulo</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-module')">
+                        <i class='bx bx-x'></i>
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label>Nombre del módulo</label>
+                    <input type="text" id="module-name" placeholder="Ej: Pastelería 1">
+                </div>
+
+                <div class="form-group">
+                    <label>Prefijo del módulo</label>
+                    <input type="text" id="module-prefix" placeholder="Ej: PA1" maxlength="3">
+                    <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">
+                        Este prefijo se usará en los códigos de las clases.
+                    </p>
+                </div>
+
+                <button class="btn-submit" onclick="saveModule()">Guardar Módulo</button>
+            </div>
+        </div>
+
         <!-- Settings Modal -->
         <div class="modal-overlay" id="modal-settings" onclick="closeModal('modal-settings')">
             <div class="modal-content" onclick="event.stopPropagation()">
@@ -372,7 +453,7 @@
 
                 <div class="settings-section">
                     <h4><i class='bx bxs-graduation'></i> Modo Profesor</h4>
-                    <p class="settings-desc">Activa para crear cursos, clases y generar códigos</p>
+                    <p class="settings-desc">Activa para crear módulos, cursos, clases y generar códigos</p>
                     <div class="settings-row">
                         <span>Modo Profesor</span>
                         <label class="switch">
@@ -417,7 +498,7 @@
                 </div>
 
                 <div class="settings-section" style="text-align: center; opacity: 0.5;">
-                    <p style="font-size: 12px;">MushuApp v3.7 • Hecho con ❤️</p>
+                    <p style="font-size: 12px;">MushuApp v4.0 • Hecho con ❤️</p>
                 </div>
             </div>
         </div>
@@ -546,20 +627,14 @@
 
                 <div class="form-group">
                     <label>Nombre del Curso</label>
-                    <input type="text" id="course-name" placeholder="Ej: Pastelería 1 Básica lunes">
+                    <input type="text" id="course-name" placeholder="Ej: Pastelería 1 Lunes">
                 </div>
 
                 <div class="form-group">
-                    <label>Carpeta Base de Recetas (solo profe)</label>
-                    <input type="text" id="course-base-folder" placeholder="Ej: Pastelería 1 Básica">
-                </div>
-
-                <!-- NUEVO -->
-                <div class="form-group">
-                    <label>Prefijo del Curso para Códigos</label>
-                    <input type="text" id="course-prefix" placeholder="Ej: PA1" maxlength="3">
+                    <label>Módulo asociado</label>
+                    <select id="course-module-select"></select>
                     <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">
-                        Ejemplo de código final: PA1R75T01
+                        El curso real usará las recetas y prefijo del módulo seleccionado.
                     </p>
                 </div>
 
@@ -621,19 +696,16 @@
 
                 <div class="form-group">
                     <label>Nombre de la Clase</label>
-                    <input type="text" id="class-name" placeholder="Ej: Clase Brownie">
+                    <input type="text" id="class-name" placeholder="Ej: Clase Galletas">
                 </div>
 
                 <div class="settings-section">
-                    <h4><i class='bx bx-book'></i> Receta de la Clase</h4>
-                    <p class="settings-desc">Usa una receta existente o crea una nueva</p>
+                    <h4><i class='bx bx-book'></i> Receta del Módulo</h4>
+                    <p class="settings-desc">Selecciona una receta del módulo asociado al curso</p>
 
                     <div class="backup-buttons" style="margin-top:12px;">
                         <button class="btn-backup export" onclick="selectExistingRecipeForClass()">
-                            <i class='bx bx-check-square'></i> Usar Existente
-                        </button>
-                        <button class="btn-backup import" onclick="createNewRecipeForClass()">
-                            <i class='bx bx-plus-circle'></i> Crear Nueva
+                            <i class='bx bx-check-square'></i> Seleccionar
                         </button>
                     </div>
 
