@@ -1277,3 +1277,19 @@ input:checked + .slider:before { transform: translateX(16px); }
     color: var(--text-muted);
     margin: 0;
 }
+
+#modal-select-recipe {
+    z-index: 400;
+}
+
+#modal-confirm {
+    z-index: 410;
+}
+
+#modal-teacher-password {
+    z-index: 420;
+}
+
+#modal-extra-subcategory {
+    z-index: 430;
+}
