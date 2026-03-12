@@ -322,30 +322,12 @@ body {
     transition: background 0.2s;
 }
 .recipe-folder-header:hover { background: var(--surface-hover); }
-.recipe-folder-header-left {
-    display: flex; align-items: center; gap: 10px;
-}
-.recipe-folder-header-left h3 {
-    font-size: 15px; font-weight: 600; margin: 0;
-}
-.recipe-folder-count {
-    font-size: 12px; color: var(--text-muted); margin-top: 2px;
-}
-.recipe-folder-chevron {
-    font-size: 20px;
-    color: var(--text-muted);
-    transition: transform 0.3s ease;
-}
-.recipe-folder-body {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.35s ease, padding 0.35s ease;
-    padding: 0 16px;
-}
-.recipe-folder-body.open {
-    max-height: 5000px;
-    padding: 0 16px 16px;
-}
+.recipe-folder-header-left { display: flex; align-items: center; gap: 10px; }
+.recipe-folder-header-left h3 { font-size: 15px; font-weight: 600; margin: 0; }
+.recipe-folder-count { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.recipe-folder-chevron { font-size: 20px; color: var(--text-muted); transition: transform 0.3s ease; }
+.recipe-folder-body { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease; padding: 0 16px; }
+.recipe-folder-body.open { max-height: 5000px; padding: 0 16px 16px; }
 
 /* --- Recipe Card --- */
 .recipe-card {
@@ -806,7 +788,6 @@ input:checked + .slider:before { transform: translateX(16px); }
    FASE 2: CLASES Y CURSOS
    ======================================== */
 
-/* --- Import class box --- */
 .import-class-box {
     display: flex; align-items: center; gap: 14px;
     padding: 16px;
@@ -824,7 +805,6 @@ input:checked + .slider:before { transform: translateX(16px); }
 .import-class-box strong { font-size: 15px; color: var(--text-main); }
 .import-class-box p { font-size: 12px; color: var(--text-muted); margin: 2px 0 0; }
 
-/* --- Course card --- */
 .course-card {
     background: var(--surface-color);
     border-radius: var(--radius-md);
@@ -855,7 +835,6 @@ input:checked + .slider:before { transform: translateX(16px); }
     padding: 0 16px 16px;
 }
 
-/* --- Class item --- */
 .class-item {
     background: var(--surface-hover);
     border-radius: var(--radius-sm);
@@ -870,7 +849,6 @@ input:checked + .slider:before { transform: translateX(16px); }
 .class-item-info p { font-size: 12px; color: var(--text-muted); margin: 0; }
 .class-item-actions { display: flex; gap: 6px; align-items: center; }
 
-/* --- Attendance --- */
 .attendance-item {
     display: flex; justify-content: space-between; align-items: center;
     padding: 12px 0;
@@ -900,7 +878,6 @@ input:checked + .slider:before { transform: translateX(16px); }
     color: var(--warning-color);
 }
 
-/* --- Code item --- */
 .code-item {
     background: var(--surface-hover);
     border-radius: var(--radius-sm);
@@ -932,7 +909,6 @@ input:checked + .slider:before { transform: translateX(16px); }
 }
 .code-item-copy:hover { background: var(--secondary-hover); }
 
-/* --- Photos preview --- */
 .class-photos-preview {
     display: flex;
     gap: 8px;
@@ -963,7 +939,6 @@ input:checked + .slider:before { transform: translateX(16px); }
 }
 .class-photo-remove:hover { transform: scale(1.1); }
 
-/* --- Students list --- */
 .course-students-list { display: flex; flex-direction: column; gap: 6px; }
 .course-student-item {
     display: flex; justify-content: space-between; align-items: center;
@@ -982,7 +957,6 @@ input:checked + .slider:before { transform: translateX(16px); }
     padding: 2px;
 }
 
-/* --- Class content view --- */
 .view-class-content { position: relative; }
 .class-content-header {
     text-align: center;
@@ -1049,9 +1023,10 @@ input:checked + .slider:before { transform: translateX(16px); }
     font-size: 14px;
     line-height: 1.6;
     white-space: pre-wrap;
+    position: relative;
+    overflow: hidden;
 }
 
-/* --- Watermark --- */
 .watermark {
     position: absolute;
     top: 50%; left: 50%;
@@ -1076,7 +1051,6 @@ input:checked + .slider:before { transform: translateX(16px); }
     user-select: none;
 }
 
-/* --- Imported class card --- */
 .imported-class-card {
     background: var(--surface-color);
     border-radius: var(--radius-md);
@@ -1095,7 +1069,6 @@ input:checked + .slider:before { transform: translateX(16px); }
 .imported-class-card p { font-size: 13px; color: var(--text-muted); margin: 2px 0; }
 .imported-class-card .class-content-badge { margin-top: 4px; }
 
-/* --- Add class button --- */
 .btn-add-class {
     display: flex; align-items: center; justify-content: center;
     gap: 6px;
@@ -1117,7 +1090,6 @@ input:checked + .slider:before { transform: translateX(16px); }
    NUEVO: CLASES Y RECETAS POR CARPETAS
    ======================================== */
 
-/* --- Generic folder card --- */
 .folder-card {
     background: var(--surface-color);
     border-radius: var(--radius-md);
@@ -1161,7 +1133,6 @@ input:checked + .slider:before { transform: translateX(16px); }
     padding: 0 16px 16px;
 }
 
-/* --- Selected class recipe box --- */
 .selected-class-recipe-box {
     background: var(--surface-hover);
     border-radius: var(--radius-sm);
@@ -1201,7 +1172,6 @@ input:checked + .slider:before { transform: translateX(16px); }
     color: var(--danger-color);
 }
 
-/* --- Missing materials --- */
 .missing-material-item {
     background: var(--surface-hover);
     border-radius: var(--radius-md);
@@ -1216,9 +1186,14 @@ input:checked + .slider:before { transform: translateX(16px); }
     color: var(--warning-color);
     display: flex; align-items: center; gap: 6px;
 }
-.missing-material-item h4 i {
-    font-size: 18px;
-}
-.missing-material-item .form-row {
-    margin-bottom: 0;
+.missing-material-item h4 i { font-size: 18px; }
+.missing-material-item .form-row { margin-bottom: 0; }
+
+/* ========================================
+   NUEVO: MODALES INTERNOS APP
+   ======================================== */
+
+#modal-teacher-password .modal-content,
+#modal-extra-subcategory .modal-content {
+    max-width: 420px;
 }
