@@ -2556,3 +2556,39 @@ function createRecipeInModule(moduleName) {
     document.querySelector('#modal-recipe h3').textContent = "Crear Receta del Módulo";
     document.getElementById('modal-recipe').classList.add('active');
 }
+
+function getOpenRecipeFolders() {
+    const openFolders = [];
+
+    document.querySelectorAll('.recipe-folder-body.open').forEach(el => {
+        if (el.id) openFolders.push(el.id);
+    });
+
+    document.querySelectorAll('.recipe-card-detail.open').forEach(el => {
+        if (el.id) openFolders.push(el.id);
+    });
+
+    document.querySelectorAll('.course-card-body.open').forEach(el => {
+        if (el.id) openFolders.push(el.id);
+    });
+
+    document.querySelectorAll('.folder-card-body.open').forEach(el => {
+        if (el.id) openFolders.push(el.id);
+    });
+
+    return openFolders;
+}
+
+function restoreOpenRecipeFolders(openFolders) {
+    openFolders.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('open');
+
+        const chevronId = id
+            .replace('-body-', '-chevron-')
+            .replace('body-', 'chevron-');
+
+        const chevron = document.getElementById(chevronId);
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+    });
+}
