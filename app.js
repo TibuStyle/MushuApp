@@ -1,4 +1,4 @@
-// === MushuApp v3.6 - Modal selección receta + códigos visibles cortos ===
+// === MushuApp v3.7 - Prefix + studentCode + blockCode ===
 
 // --- CONFIG ---
 const TEACHER_MASTER_PASSWORD = 'amormiomucushu88';
@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sm) profitMargin = parseFloat(sm);
 
     normalizeExistingRecipes();
+    normalizeExistingCourses();
     renderMaterials();
     renderRecipes();
     updateMaterialSelect();
@@ -83,6 +84,47 @@ function normalizeExistingRecipes() {
     if (changed) saveRecipesToStorage();
 }
 
+// --- Normalize old courses ---
+function normalizeExistingCourses() {
+    let changed = false;
+
+    courses.forEach(course => {
+        if (!course.coursePrefix) {
+            course.coursePrefix = '';
+            changed = true;
+        }
+
+        if (!course.students) course.students = [];
+
+        course.students.forEach((student, index) => {
+            if (!student.studentCode) {
+                student.studentCode = String(index + 1).padStart(2, '0');
+                changed = true;
+            }
+        });
+
+        if (course.classes) {
+            course.classes.forEach(cls => {
+                if (!cls.blockCode) {
+                    cls.blockCode = generateClassBlockCode();
+                    changed = true;
+                }
+                if (cls.attendance) {
+                    cls.attendance.forEach((a, index) => {
+                        if (!a.studentCode) {
+                            const st = course.students.find(s => String(s.id) === String(a.studentId));
+                            a.studentCode = st ? st.studentCode : String(index + 1).padStart(2, '0');
+                            changed = true;
+                        }
+                    });
+                }
+            });
+        }
+    });
+
+    if (changed) saveCourses();
+}
+
 // --- Tabs ---
 function switchTab(tabName) {
     const view = document.getElementById(`view-${tabName}`);
@@ -119,6 +161,23 @@ function showConfirmModal(title, message, action) {
     };
 
     document.getElementById('modal-confirm').classList.add('active');
+}
+
+// --- Utilities for new codes ---
+function sanitizePrefix(text) {
+    return (text || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
+}
+
+function generateClassBlockCode() {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const randomLetter1 = letters[Math.floor(Math.random() * letters.length)];
+    const randomLetter2 = letters[Math.floor(Math.random() * letters.length)];
+    const randomNumbers = Math.floor(100 + Math.random() * 900); // 3 digits
+    return `${randomLetter1}${randomNumbers}${randomLetter2}`;
+}
+
+function buildVisibleShortCode(coursePrefix, blockCode, studentCode) {
+    return `${coursePrefix}${blockCode}${studentCode}`;
 }
 
 // --- Modals ---
@@ -1154,6 +1213,7 @@ function showCreateCourseModal(courseId = null) {
     currentEditingCourseId = null;
     document.getElementById('course-name').value = '';
     document.getElementById('course-base-folder').value = '';
+    document.getElementById('course-prefix').value = '';
     document.getElementById('course-day').value = 'Lunes';
     document.getElementById('course-schedule').value = '';
     document.getElementById('modal-course-title').textContent = 'Crear Curso';
@@ -1164,6 +1224,7 @@ function showCreateCourseModal(courseId = null) {
             currentEditingCourseId = String(course.id);
             document.getElementById('course-name').value = course.name;
             document.getElementById('course-base-folder').value = course.baseFolder || '';
+            document.getElementById('course-prefix').value = course.coursePrefix || '';
             document.getElementById('course-day').value = course.day;
             document.getElementById('course-schedule').value = course.schedule || '';
             currentCourseStudents = [...(course.students || [])];
@@ -1183,13 +1244,28 @@ function addStudentToCourse() {
         showToast('Alumno ya existe', true);
         return;
     }
-    currentCourseStudents.push({ id: Date.now().toString(), name: name });
+
+    const studentCode = String(currentCourseStudents.length + 1).padStart(2, '0');
+
+    currentCourseStudents.push({
+        id: Date.now().toString(),
+        name: name,
+        studentCode: studentCode
+    });
+
     input.value = '';
     renderCourseStudents();
 }
 
 function removeStudentFromCourse(studentId) {
     currentCourseStudents = currentCourseStudents.filter(s => String(s.id) !== String(studentId));
+
+    // Reassign codes in order
+    currentCourseStudents = currentCourseStudents.map((s, index) => ({
+        ...s,
+        studentCode: String(index + 1).padStart(2, '0')
+    }));
+
     renderCourseStudents();
 }
 
@@ -1202,7 +1278,10 @@ function renderCourseStudents() {
     list.innerHTML = currentCourseStudents.map(s => `
         <div class="course-student-item">
             <span>👤 ${s.name}</span>
-            <button onclick="removeStudentFromCourse('${s.id}')"><i class='bx bx-x'></i></button>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span class="student-code-badge">${s.studentCode || '--'}</span>
+                <button onclick="removeStudentFromCourse('${s.id}')"><i class='bx bx-x'></i></button>
+            </div>
         </div>
     `).join('');
 }
@@ -1210,11 +1289,13 @@ function renderCourseStudents() {
 function saveCourse() {
     const name = document.getElementById('course-name').value.trim();
     const baseFolder = document.getElementById('course-base-folder').value.trim();
+    const coursePrefix = sanitizePrefix(document.getElementById('course-prefix').value.trim());
     const day = document.getElementById('course-day').value;
     const schedule = document.getElementById('course-schedule').value.trim();
 
     if (!name) { showToast('Ingresa nombre del curso', true); return; }
     if (!baseFolder) { showToast('Ingresa carpeta base', true); return; }
+    if (!coursePrefix || coursePrefix.length < 2) { showToast('Ingresa un prefijo válido', true); return; }
     if (currentCourseStudents.length === 0) { showToast('Agrega al menos un alumno', true); return; }
 
     if (currentEditingCourseId) {
@@ -1222,7 +1303,7 @@ function saveCourse() {
         if (idx !== -1) {
             courses[idx] = {
                 ...courses[idx],
-                name, baseFolder, day, schedule,
+                name, baseFolder, coursePrefix, day, schedule,
                 students: currentCourseStudents
             };
             showToast('Curso actualizado!');
@@ -1232,6 +1313,7 @@ function saveCourse() {
             id: Date.now().toString(),
             name,
             baseFolder,
+            coursePrefix,
             day,
             schedule,
             students: currentCourseStudents,
@@ -1275,7 +1357,7 @@ function renderCourses() {
                 <div class="class-item">
                     <div class="class-item-info" onclick="showAttendanceModal('${course.id}', '${cls.id}')">
                         <h4>${cls.name}</h4>
-                        <p>📅 ${formatDate(cls.date)} • ✅ ${present}/${total}</p>
+                        <p>📅 ${formatDate(cls.date)} • Código clase: ${cls.blockCode || '----'} • ✅ ${present}/${total}</p>
                     </div>
                     <div class="class-item-actions">
                         <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showEditClassModal('${course.id}','${cls.id}')"><i class='bx bx-edit'></i></button>
@@ -1294,7 +1376,7 @@ function renderCourses() {
                         <i class='bx bxs-graduation' style="font-size:24px;color:var(--secondary-color);"></i>
                         <div>
                             <h3>${course.name}</h3>
-                            <div class="course-card-day">${course.day}</div>
+                            <div class="course-card-day">${course.day} • Prefijo: ${course.coursePrefix || '---'}</div>
                             <div class="course-card-schedule">${course.schedule || ''} • ${course.students.length} alumnos • Carpeta: ${course.baseFolder}</div>
                         </div>
                     </div>
@@ -1351,7 +1433,7 @@ function showEditClassModal(courseId, classId) {
     document.getElementById('class-name').value = cls.name;
     document.getElementById('class-date').value = cls.date;
     document.getElementById('class-tips').value = cls.tips || '';
-    document.getElementById('modal-class-title').textContent = 'Editar Clase';
+    document.getElementById('modal-class-title').textContent = `Editar Clase • ${cls.blockCode || ''}`;
 
     const courseSelect = document.getElementById('class-course-select');
     courseSelect.innerHTML = courses.map(c =>
@@ -1497,9 +1579,12 @@ function saveClass() {
         cls.codeExpiry = codeExpiry;
         showToast('Clase actualizada!');
     } else {
+        const blockCode = generateClassBlockCode();
+
         const attendance = course.students.map(s => ({
             studentId: s.id,
             studentName: s.name,
+            studentCode: s.studentCode,
             present: false,
             code: null,
             shortCode: null,
@@ -1517,13 +1602,14 @@ function saveClass() {
             linkedRecipeId: currentSelectedClassRecipe.id,
             linkedRecipe: JSON.parse(JSON.stringify(currentSelectedClassRecipe)),
             codeExpiry,
+            blockCode,
             attendance,
             codesGenerated: false
         };
 
         if (!course.classes) course.classes = [];
         course.classes.push(newClass);
-        showToast('Clase creada! 🎓');
+        showToast(`Clase creada! Código base: ${blockCode}`);
     }
 
     saveCourses();
@@ -1549,6 +1635,7 @@ function showAttendanceModal(courseId, classId) {
         <div style="text-align:center;margin-bottom:16px;">
             <h4 style="margin:0 0 4px;">${cls.name}</h4>
             <p style="font-size:13px;color:var(--text-muted);margin:0;">📅 ${formatDate(cls.date)} • ${course.name}</p>
+            <p style="font-size:12px;color:var(--secondary-color);font-weight:700;margin:6px 0 0;">Bloque de clase: ${cls.blockCode || '----'}</p>
         </div>`;
 
     renderAttendanceList();
@@ -1557,7 +1644,7 @@ function showAttendanceModal(courseId, classId) {
     if (cls.codesGenerated) {
         document.getElementById('btn-generate-codes').style.display = 'flex';
         codesSection.style.display = 'block';
-        renderGeneratedCodes(cls);
+        renderGeneratedCodes(cls, course);
     } else {
         document.getElementById('btn-generate-codes').style.display = 'flex';
         codesSection.style.display = 'none';
@@ -1600,26 +1687,15 @@ function renderAttendanceList() {
                 <div class="attendance-left">
                     <span class="attendance-status" onclick="toggleAttendance('${a.studentId}')">${statusIcon}</span>
                     <span class="attendance-name">${a.studentName}</span>
+                    <span class="student-code-badge">${a.studentCode || '--'}</span>
                 </div>
                 ${codeStatus}
             </div>`;
     }).join('');
 }
 
-function buildVisibleShortCode(course, cls, studentName, present) {
-    const courseBase = (course.baseFolder || course.name || 'CURSO')
-        .replace(/[^a-zA-Z0-9 ]/g, '')
-        .split(' ')
-        .map(w => w[0] || '')
-        .join('')
-        .toUpperCase()
-        .slice(0, 4);
-
-    const dateCode = cls.date.replace(/-/g, '').slice(2);
-    const initials = studentName.split(' ').map(w => w[0] || '').join('').toUpperCase().slice(0, 3);
-    const type = present ? 'P' : 'A';
-
-    return `MUSH-${courseBase}-${dateCode}-${initials}-${type}`;
+function buildVisibleShortCode(coursePrefix, blockCode, studentCode) {
+    return `${coursePrefix}${blockCode}${studentCode}`;
 }
 
 function generateCodes() {
@@ -1629,13 +1705,18 @@ function generateCodes() {
     if (!cls) return;
 
     currentAttendanceData.forEach(a => {
+        const visibleCode = buildVisibleShortCode(course.coursePrefix || 'CUR', cls.blockCode || 'R75T', a.studentCode || '00');
+
         const codeData = {
+            code: visibleCode,
             className: cls.name,
             courseId: course.id,
             courseName: course.name,
             baseFolder: course.baseFolder,
             classId: cls.id,
+            studentId: a.studentId,
             studentName: a.studentName,
+            studentCode: a.studentCode,
             present: a.present,
             date: cls.date,
             tips: cls.tips,
@@ -1644,8 +1725,10 @@ function generateCodes() {
             expiry: cls.codeExpiry > 0 ? new Date(Date.now() + cls.codeExpiry * 3600000).toISOString() : null
         };
 
+        // Por ahora seguimos copiando JSON codificado como contenido real,
+        // pero el visible ya es el corto lógico
         const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(codeData))));
-        a.shortCode = buildVisibleShortCode(course, cls, a.studentName, a.present);
+        a.shortCode = visibleCode;
         a.code = encoded;
         a.codeData = encoded;
         a.codeUsed = false;
@@ -1656,7 +1739,7 @@ function generateCodes() {
     saveCourses();
 
     document.getElementById('generated-codes-section').style.display = 'block';
-    renderGeneratedCodes(cls);
+    renderGeneratedCodes(cls, course);
     renderAttendanceList();
     showToast('Códigos generados! 📋');
 }
@@ -1672,7 +1755,7 @@ function regenerateCodes() {
     );
 }
 
-function renderGeneratedCodes(cls) {
+function renderGeneratedCodes(cls, course) {
     const list = document.getElementById('generated-codes-list');
     const att = cls.attendance || [];
     const present = att.filter(a => a.present);
@@ -1697,8 +1780,9 @@ function renderCodeItem(a) {
                 <div class="code-item-left">
                     <span class="code-item-status">${a.present ? '✅' : '❌'}</span>
                     <span class="code-item-name">${a.studentName}</span>
+                    <span class="student-code-badge">${a.studentCode || '--'}</span>
                 </div>
-                <div class="code-item-short">${a.shortCode || 'MUSH-CODIGO'}</div>
+                <div class="code-item-short">${a.shortCode || 'CURR75T00'}</div>
                 <div class="code-item-code">Código completo oculto • usar botón copiar</div>
             </div>
             <button class="code-item-copy" onclick="copySingleCode('${a.studentId}')">Copiar</button>
@@ -1910,6 +1994,8 @@ function completeClassImport(decoded) {
         courseName: decoded.courseName,
         baseFolder: decoded.baseFolder || decoded.courseName,
         studentName: decoded.studentName,
+        studentCode: decoded.studentCode || '',
+        visibleCode: decoded.code || '',
         present: decoded.present,
         date: decoded.date,
         tips: decoded.tips || '',
@@ -1990,7 +2076,7 @@ function renderStudentClassesByFolders() {
                     ${classes.map(ic => `
                         <div class="imported-class-card" onclick="viewImportedClass('${ic.id}')">
                             <h3>${ic.className}</h3>
-                            <p>📅 ${formatDate(ic.date)}</p>
+                            <p>📅 ${formatDate(ic.date)} • ${ic.visibleCode || ''}</p>
                             <span class="class-content-badge ${ic.present ? 'present' : 'absent'}">
                                 ${ic.present ? '✅ Clase' : '⚠️ Material de repaso'}
                             </span>
@@ -2018,6 +2104,7 @@ function viewImportedClass(classId) {
     html += `<div class="class-content-header">
         <h2>${ic.className}</h2>
         <p>📅 ${formatDate(ic.date)} • ${ic.courseName}</p>
+        <p style="font-size:12px;color:var(--secondary-color);font-weight:700;margin:6px 0 0;">Código: ${ic.visibleCode || ''}</p>
         <span class="class-content-badge ${ic.present ? 'present' : 'absent'}">
             ${ic.present ? '✅ Asistencia registrada' : '⚠️ Material de repaso - No registra asistencia'}
         </span>
@@ -2077,7 +2164,7 @@ function viewImportedClass(classId) {
 // ========================================
 function exportData() {
     const d = {
-        version: '3.6',
+        version: '3.7',
         exportDate: new Date().toISOString(),
         materials,
         recipes,
@@ -2137,6 +2224,7 @@ function importData(event) {
                     localStorage.setItem('mushu_profit_margin', profitMargin.toString());
 
                     normalizeExistingRecipes();
+                    normalizeExistingCourses();
                     renderMaterials();
                     renderRecipes();
                     updateMaterialSelect();
