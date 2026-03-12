@@ -1,4 +1,4 @@
-// === MushuApp v3.4 - Modales internos para profesor y extras ===
+// === MushuApp v3.5 - Confirmaciones con modal interno ===
 
 // --- CONFIG ---
 const TEACHER_MASTER_PASSWORD = 'amormiomucushu88';
@@ -31,6 +31,9 @@ let currentAttendanceClassId = null;
 let currentAttendanceData = [];
 let currentSelectedClassRecipe = null;
 let pendingImportClassData = null;
+
+// Confirm modal
+let currentConfirmAction = null;
 
 // --- Init ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -100,6 +103,22 @@ function toggleFolderBody(idPrefix, id) {
     if (!body || !chevron) return;
     body.classList.toggle('open');
     chevron.style.transform = body.classList.contains('open') ? 'rotate(0deg)' : 'rotate(-90deg)';
+}
+
+// --- Confirm Modal ---
+function showConfirmModal(title, message, action) {
+    document.getElementById('confirm-title').textContent = title || 'Confirmar acción';
+    document.getElementById('confirm-message').textContent = message || '¿Estás seguro?';
+    currentConfirmAction = action;
+
+    const btn = document.getElementById('confirm-accept-btn');
+    btn.onclick = () => {
+        if (typeof currentConfirmAction === 'function') currentConfirmAction();
+        currentConfirmAction = null;
+        closeModal('modal-confirm');
+    };
+
+    document.getElementById('modal-confirm').classList.add('active');
 }
 
 // --- Modals ---
@@ -336,14 +355,20 @@ function saveMaterial(e) {
 }
 
 function deleteMaterial(id) {
-    if (!confirm("¿Eliminar este material?")) return;
-    materials = materials.filter(m => String(m.id) !== String(id));
-    saveMaterialsToStorage();
-    recalculateAllRecipes();
-    renderMaterials();
-    updateMaterialSelect();
-    updateDecorationSelect();
-    updateExtraSubcategorySelect();
+    showConfirmModal(
+        'Eliminar material',
+        '¿Estás seguro de eliminar este material?',
+        () => {
+            materials = materials.filter(m => String(m.id) !== String(id));
+            saveMaterialsToStorage();
+            recalculateAllRecipes();
+            renderMaterials();
+            updateMaterialSelect();
+            updateDecorationSelect();
+            updateExtraSubcategorySelect();
+            showToast('Material eliminado');
+        }
+    );
 }
 
 function saveMaterialsToStorage() {
@@ -497,15 +522,20 @@ function addExtraSubcategory() {
 }
 
 function deleteExtraSubcategory(sc) {
-    if (!confirm(`¿Eliminar "${sc}"?`)) return;
-    materials = materials.filter(m => !(m.category === 'extra' && m.subcategory === sc));
-    let s = JSON.parse(localStorage.getItem('mushu_extra_subcategories') || '[]');
-    s = s.filter(x => x !== sc);
-    localStorage.setItem('mushu_extra_subcategories', JSON.stringify(s));
-    saveMaterialsToStorage();
-    renderMaterials();
-    updateExtraSubcategorySelect();
-    showToast(`"${sc}" eliminada`);
+    showConfirmModal(
+        'Eliminar subcategoría',
+        `¿Eliminar "${sc}" y todos sus elementos?`,
+        () => {
+            materials = materials.filter(m => !(m.category === 'extra' && m.subcategory === sc));
+            let s = JSON.parse(localStorage.getItem('mushu_extra_subcategories') || '[]');
+            s = s.filter(x => x !== sc);
+            localStorage.setItem('mushu_extra_subcategories', JSON.stringify(s));
+            saveMaterialsToStorage();
+            renderMaterials();
+            updateExtraSubcategorySelect();
+            showToast(`"${sc}" eliminada`);
+        }
+    );
 }
 
 // ========================================
@@ -805,10 +835,16 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
 }
 
 function deleteRecipe(id) {
-    if (!confirm("¿Eliminar receta?")) return;
-    recipes = recipes.filter(r => String(r.id) !== String(id));
-    saveRecipesToStorage();
-    renderRecipes();
+    showConfirmModal(
+        'Eliminar receta',
+        '¿Estás seguro de eliminar esta receta?',
+        () => {
+            recipes = recipes.filter(r => String(r.id) !== String(id));
+            saveRecipesToStorage();
+            renderRecipes();
+            showToast('Receta eliminada');
+        }
+    );
 }
 
 function duplicateCurrentRecipe() {
@@ -1164,11 +1200,16 @@ function saveCourse() {
 }
 
 function deleteCourse(courseId) {
-    if (!confirm('¿Eliminar este curso y todas sus clases?')) return;
-    courses = courses.filter(c => String(c.id) !== String(courseId));
-    saveCourses();
-    renderCourses();
-    showToast('Curso eliminado');
+    showConfirmModal(
+        'Eliminar curso',
+        '¿Eliminar este curso y todas sus clases?',
+        () => {
+            courses = courses.filter(c => String(c.id) !== String(courseId));
+            saveCourses();
+            renderCourses();
+            showToast('Curso eliminado');
+        }
+    );
 }
 
 function renderCourses() {
@@ -1461,13 +1502,18 @@ function saveClass() {
 }
 
 function deleteClass(courseId, classId) {
-    if (!confirm('¿Eliminar esta clase?')) return;
-    const course = courses.find(c => String(c.id) === String(courseId));
-    if (!course) return;
-    course.classes = (course.classes || []).filter(cl => String(cl.id) !== String(classId));
-    saveCourses();
-    renderCourses();
-    showToast('Clase eliminada');
+    showConfirmModal(
+        'Eliminar clase',
+        '¿Eliminar esta clase?',
+        () => {
+            const course = courses.find(c => String(c.id) === String(courseId));
+            if (!course) return;
+            course.classes = (course.classes || []).filter(cl => String(cl.id) !== String(classId));
+            saveCourses();
+            renderCourses();
+            showToast('Clase eliminada');
+        }
+    );
 }
 
 // ========================================
@@ -1592,9 +1638,14 @@ function generateCodes() {
 }
 
 function regenerateCodes() {
-    if (!confirm('¿Regenerar códigos? Los anteriores quedarán obsoletos.')) return;
-    generateCodes();
-    showToast('Códigos regenerados 🔄');
+    showConfirmModal(
+        'Regenerar códigos',
+        '¿Regenerar códigos? Los anteriores quedarán obsoletos.',
+        () => {
+            generateCodes();
+            showToast('Códigos regenerados 🔄');
+        }
+    );
 }
 
 function renderGeneratedCodes(cls) {
@@ -2001,7 +2052,7 @@ function viewImportedClass(classId) {
 // ========================================
 function exportData() {
     const d = {
-        version: '3.4',
+        version: '3.5',
         exportDate: new Date().toISOString(),
         materials,
         recipes,
@@ -2032,40 +2083,45 @@ function importData(event) {
         try {
             const d = JSON.parse(e.target.result);
             if (!d.materials || !d.recipes) { showToast("Archivo inválido", true); return; }
-            if (!confirm(`¿Importar ${d.materials.length} materiales y ${d.recipes.length} recetas?`)) return;
 
-            materials = d.materials;
-            recipes = d.recipes;
-            profitMargin = d.profitMargin || 2;
-            if (d.courses) courses = d.courses;
-            if (d.importedClasses) importedClasses = d.importedClasses;
-            if (d.teacherMode) {
-                teacherMode = d.teacherMode;
-                localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
-            }
-            if (d.studentName) {
-                studentName = d.studentName;
-                localStorage.setItem('mushu_student_name', studentName);
-            }
-            if (d.extraSubcategories) {
-                localStorage.setItem('mushu_extra_subcategories', JSON.stringify(d.extraSubcategories));
-            }
+            showConfirmModal(
+                'Importar datos',
+                `Se importarán ${d.materials.length} materiales y ${d.recipes.length} recetas. ¿Continuar?`,
+                () => {
+                    materials = d.materials;
+                    recipes = d.recipes;
+                    profitMargin = d.profitMargin || 2;
+                    if (d.courses) courses = d.courses;
+                    if (d.importedClasses) importedClasses = d.importedClasses;
+                    if (d.teacherMode) {
+                        teacherMode = d.teacherMode;
+                        localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
+                    }
+                    if (d.studentName) {
+                        studentName = d.studentName;
+                        localStorage.setItem('mushu_student_name', studentName);
+                    }
+                    if (d.extraSubcategories) {
+                        localStorage.setItem('mushu_extra_subcategories', JSON.stringify(d.extraSubcategories));
+                    }
 
-            saveMaterialsToStorage();
-            saveRecipesToStorage();
-            saveCourses();
-            saveImportedClasses();
-            localStorage.setItem('mushu_profit_margin', profitMargin.toString());
+                    saveMaterialsToStorage();
+                    saveRecipesToStorage();
+                    saveCourses();
+                    saveImportedClasses();
+                    localStorage.setItem('mushu_profit_margin', profitMargin.toString());
 
-            normalizeExistingRecipes();
-            renderMaterials();
-            renderRecipes();
-            updateMaterialSelect();
-            updateDecorationSelect();
-            updateExtraSubcategorySelect();
-            updateClassesView();
+                    normalizeExistingRecipes();
+                    renderMaterials();
+                    renderRecipes();
+                    updateMaterialSelect();
+                    updateDecorationSelect();
+                    updateExtraSubcategorySelect();
+                    updateClassesView();
 
-            showToast(`Importado ✅`);
+                    showToast(`Importado ✅`);
+                }
+            );
         } catch (err) {
             showToast("Error", true);
         }
