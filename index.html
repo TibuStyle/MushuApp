@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- MushuApp Version 3.5 -->
+    <!-- MushuApp Version 3.6 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mushu App - Costos de Recetas</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="boxicons.min.css">
-    <link rel="manifest" href="manifest.json?v=3.5">
+    <link rel="manifest" href="manifest.json?v=3.6">
     <meta name="theme-color" content="#ffb6c1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -417,7 +417,7 @@
                 </div>
 
                 <div class="settings-section" style="text-align: center; opacity: 0.5;">
-                    <p style="font-size: 12px;">MushuApp v3.5 • Hecho con ❤️</p>
+                    <p style="font-size: 12px;">MushuApp v3.6 • Hecho con ❤️</p>
                 </div>
             </div>
         </div>
@@ -484,6 +484,25 @@
                     <button class="btn-backup export" id="confirm-accept-btn">Aceptar</button>
                     <button class="btn-backup import" onclick="closeModal('modal-confirm')">Cancelar</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Modal Seleccionar Receta Existente -->
+        <div class="modal-overlay" id="modal-select-recipe" onclick="closeModal('modal-select-recipe')">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>📖 Seleccionar Receta</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-select-recipe')">
+                        <i class='bx bx-x'></i>
+                    </button>
+                </div>
+
+                <div class="search-box" style="margin-bottom:12px;">
+                    <i class='bx bx-search'></i>
+                    <input type="text" id="search-select-recipe" placeholder="Buscar receta..." oninput="filterRecipeSelection()">
+                </div>
+
+                <div id="select-recipe-list" class="list-container"></div>
             </div>
         </div>
 
