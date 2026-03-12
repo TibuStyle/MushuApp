@@ -1558,6 +1558,17 @@ function toggleAttendance(studentId) {
     if (student) {
         student.present = !student.present;
         renderAttendanceList();
+
+        // guardar inmediatamente en el curso/clase real
+        const course = courses.find(c => String(c.id) === String(currentAttendanceCourseId));
+        if (!course) return;
+
+        const cls = (course.classes || []).find(cl => String(cl.id) === String(currentAttendanceClassId));
+        if (!cls) return;
+
+        cls.attendance = JSON.parse(JSON.stringify(currentAttendanceData));
+        saveCourses();
+        renderCourses();
     }
 }
 
