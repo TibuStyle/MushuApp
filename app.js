@@ -1,4 +1,4 @@
-// === MushuApp v3.7 - Prefix + studentCode + blockCode ===
+// === MushuApp v4.0 - Parte 1/2 ===
 
 // --- CONFIG ---
 const TEACHER_MASTER_PASSWORD = 'amormiomucushu88';
@@ -6,6 +6,7 @@ const TEACHER_MASTER_PASSWORD = 'amormiomucushu88';
 // --- Data State ---
 let materials = JSON.parse(localStorage.getItem('mushu_materials')) || [];
 let recipes = JSON.parse(localStorage.getItem('mushu_recipes')) || [];
+let modules = JSON.parse(localStorage.getItem('mushu_modules')) || [];
 let profitMargin = parseFloat(localStorage.getItem('mushu_profit_margin')) || 2;
 let courses = JSON.parse(localStorage.getItem('mushu_courses')) || [];
 let importedClasses = JSON.parse(localStorage.getItem('mushu_imported_classes')) || [];
@@ -21,7 +22,8 @@ let currentMaterialCategory = 'productos';
 let currentMaterialSubcategory = '';
 let showMinSellingPrice = false;
 
-// Classes
+// Modules / Classes
+let currentEditingModuleId = null;
 let currentCourseStudents = [];
 let currentEditingCourseId = null;
 let currentClassPhotos = [];
@@ -89,13 +91,16 @@ function normalizeExistingCourses() {
     let changed = false;
 
     courses.forEach(course => {
-        if (!course.coursePrefix) {
-            course.coursePrefix = '';
+        if (!course.moduleId) {
+            course.moduleId = '';
+            changed = true;
+        }
+        if (!course.moduleName) {
+            course.moduleName = '';
             changed = true;
         }
 
         if (!course.students) course.students = [];
-
         course.students.forEach((student, index) => {
             if (!student.studentCode) {
                 student.studentCode = String(index + 1).padStart(2, '0');
@@ -134,8 +139,9 @@ function switchTab(tabName) {
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     view.classList.add('active');
     nav.classList.add('active');
+
     if (tabName === 'clases') updateClassesView();
-    if (tabName === 'recetas') renderRecipes();
+    if (tabName === 'recetas') updateRecipesView();
 }
 
 // --- Generic toggle folders ---
@@ -163,7 +169,7 @@ function showConfirmModal(title, message, action) {
     document.getElementById('modal-confirm').classList.add('active');
 }
 
-// --- Utilities for new codes ---
+// --- Utilities for codes ---
 function sanitizePrefix(text) {
     return (text || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 3);
 }
@@ -172,12 +178,12 @@ function generateClassBlockCode() {
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     const randomLetter1 = letters[Math.floor(Math.random() * letters.length)];
     const randomLetter2 = letters[Math.floor(Math.random() * letters.length)];
-    const randomNumbers = Math.floor(100 + Math.random() * 900); // 3 digits
+    const randomNumbers = Math.floor(100 + Math.random() * 900);
     return `${randomLetter1}${randomNumbers}${randomLetter2}`;
 }
 
-function buildVisibleShortCode(coursePrefix, blockCode, studentCode) {
-    return `${coursePrefix}${blockCode}${studentCode}`;
+function buildVisibleShortCode(modulePrefix, blockCode, studentCode) {
+    return `${modulePrefix}${blockCode}${studentCode}`;
 }
 
 // --- Modals ---
@@ -235,7 +241,7 @@ function showAddRecipeModal(recipeId = null) {
     const folderGroup = document.getElementById('recipe-folder-group');
     const folderInput = document.getElementById('recipe-folder-input');
 
-    folderGroup.style.display = 'none';
+    folderGroup.style.display = teacherMode.active ? 'block' : 'none';
     folderInput.value = '';
 
     if (recipeId) {
@@ -248,6 +254,9 @@ function showAddRecipeModal(recipeId = null) {
             currentRecipeDecorations = JSON.parse(JSON.stringify(r.decorations || []));
             currentRecipeExtra = r.extraSubcategory || null;
             document.querySelector('#modal-recipe h3').textContent = "Editar Receta";
+            if (teacherMode.active) {
+                document.getElementById('recipe-folder-input').value = r.recipeFolder || '';
+            }
             recalculateIngredientCosts();
             if (btnD) btnD.style.display = 'flex';
         }
@@ -273,6 +282,26 @@ function showAddRecipeModal(recipeId = null) {
     document.getElementById('recipe-add-deco-qty').value = '';
     if (currentRecipeExtra) document.getElementById('recipe-extra-subcat').value = currentRecipeExtra;
     document.getElementById('modal-recipe').classList.add('active');
+}
+
+function showCreateModuleModal(moduleId = null) {
+    currentEditingModuleId = null;
+    document.getElementById('module-name').value = '';
+    document.getElementById('module-prefix').value = '';
+
+    if (moduleId) {
+        const mod = modules.find(m => String(m.id) === String(moduleId));
+        if (mod) {
+            currentEditingModuleId = String(mod.id);
+            document.getElementById('module-name').value = mod.name;
+            document.getElementById('module-prefix').value = mod.prefix;
+            document.querySelector('#modal-module h3').textContent = '✏️ Editar Módulo';
+        }
+    } else {
+        document.querySelector('#modal-module h3').textContent = '📚 Crear Módulo';
+    }
+
+    document.getElementById('modal-module').classList.add('active');
 }
 
 function showSettingsModal() {
@@ -314,6 +343,7 @@ function confirmTeacherModePassword() {
     closeModal('modal-teacher-password');
     showToast('Modo Profesor activado 🎓');
     updateClassesView();
+    updateRecipesView();
 }
 
 function cancelTeacherModeModal() {
@@ -345,7 +375,6 @@ function saveExtraSubcategoryFromModal() {
     showToast(`"${n}" creada!`);
 }
 
-// NUEVO: modal selección receta
 function selectExistingRecipeForClass() {
     if (recipes.length === 0) {
         showToast('No hay recetas aún. Crea una primero.', true);
@@ -405,240 +434,48 @@ function showToast(msg, err = false) {
 }
 
 // ========================================
-// MATERIALS
+// MODULES
 // ========================================
-function saveMaterial(e) {
-    e.preventDefault();
-    const name = document.getElementById('mat-name').value.trim();
-    const price = parseFloat(document.getElementById('mat-price').value);
-    const qty = parseFloat(document.getElementById('mat-qty').value);
-    const unit = document.getElementById('mat-unit').value;
+function saveModules() {
+    localStorage.setItem('mushu_modules', JSON.stringify(modules));
+}
 
-    if (!name || isNaN(price) || isNaN(qty) || qty <= 0) {
-        showToast("Datos inválidos", true);
-        return;
-    }
+function saveModule() {
+    const name = document.getElementById('module-name').value.trim();
+    const prefix = sanitizePrefix(document.getElementById('module-prefix').value.trim());
 
-    let priceHistory = [];
-    if (currentEditingMaterialId) {
-        const idx = materials.findIndex(m => String(m.id) === String(currentEditingMaterialId));
+    if (!name) { showToast('Ingresa nombre del módulo', true); return; }
+    if (!prefix || prefix.length < 2) { showToast('Ingresa prefijo válido', true); return; }
+
+    if (currentEditingModuleId) {
+        const idx = modules.findIndex(m => String(m.id) === String(currentEditingModuleId));
         if (idx !== -1) {
-            priceHistory = [...(materials[idx].priceHistory || [])];
-            if (materials[idx].price !== price) {
-                priceHistory.push({ date: new Date().toISOString().slice(0, 10), price });
-            }
+            modules[idx] = { ...modules[idx], name, prefix };
+            showToast('Módulo actualizado!');
         }
     } else {
-        priceHistory = [{ date: new Date().toISOString().slice(0, 10), price }];
+        modules.push({
+            id: Date.now().toString(),
+            name,
+            prefix
+        });
+        showToast('Módulo creado!');
     }
 
-    const mat = {
-        id: currentEditingMaterialId || Date.now().toString(),
-        name, price, qty, unit,
-        category: currentMaterialCategory,
-        subcategory: currentMaterialSubcategory,
-        priceHistory
-    };
-
-    if (currentEditingMaterialId) {
-        const idx = materials.findIndex(m => String(m.id) === String(currentEditingMaterialId));
-        if (idx !== -1) materials[idx] = mat;
-        recalculateAllRecipes();
-        showToast("Material actualizado!");
-    } else {
-        materials.push(mat);
-        showToast("Material guardado!");
-    }
-
-    currentEditingMaterialId = null;
-    saveMaterialsToStorage();
-    renderMaterials();
-    updateMaterialSelect();
-    updateDecorationSelect();
-    updateExtraSubcategorySelect();
-    closeModal('modal-material');
+    saveModules();
+    renderRecipes();
+    closeModal('modal-module');
 }
 
-function deleteMaterial(id) {
+function deleteModule(moduleId) {
     showConfirmModal(
-        'Eliminar material',
-        '¿Estás seguro de eliminar este material?',
+        'Eliminar módulo',
+        '¿Eliminar este módulo? Las recetas que usen su nombre quedarán como están.',
         () => {
-            materials = materials.filter(m => String(m.id) !== String(id));
-            saveMaterialsToStorage();
-            recalculateAllRecipes();
-            renderMaterials();
-            updateMaterialSelect();
-            updateDecorationSelect();
-            updateExtraSubcategorySelect();
-            showToast('Material eliminado');
-        }
-    );
-}
-
-function saveMaterialsToStorage() {
-    localStorage.setItem('mushu_materials', JSON.stringify(materials));
-}
-
-function getPriceBadgeHTML(mat) {
-    if (!mat.priceHistory || mat.priceHistory.length < 2) return '';
-    const cur = mat.price;
-    const prev = mat.priceHistory[mat.priceHistory.length - 2].price;
-    const diff = cur - prev;
-    const pct = Math.round(Math.abs(diff) / prev * 100);
-    if (diff === 0) return '';
-    if (diff < 0) {
-        return `<div class="price-badge cheaper"><i class='bx bx-trending-down'></i> ${pct}% más barato - Ahorras $${formatCLP(Math.abs(diff))}</div>`;
-    }
-    return `<div class="price-badge expensive"><i class='bx bx-trending-up'></i> ${pct}% más caro - Pagas $${formatCLP(diff)} de más</div>`;
-}
-
-function renderPriceHistory(mat) {
-    const sec = document.getElementById('price-history-section');
-    const list = document.getElementById('price-history-list');
-    if (!mat || !mat.priceHistory || mat.priceHistory.length < 1) {
-        sec.style.display = 'none';
-        return;
-    }
-    sec.style.display = 'block';
-    list.innerHTML = [...mat.priceHistory].reverse().map((e, i, a) => {
-        let ch = '';
-        const pi = i + 1;
-        if (pi < a.length) {
-            const p = a[pi].price;
-            const d = e.price - p;
-            const pc = Math.round(Math.abs(d) / p * 100);
-            if (d > 0) ch = `<span class="price-history-change up">+${pc}%</span>`;
-            else if (d < 0) ch = `<span class="price-history-change down">-${pc}%</span>`;
-        }
-        return `<div class="price-history-item"><span class="price-history-date">${formatDate(e.date)}</span><span class="price-history-value">$${formatCLP(e.price)}</span>${ch}</div>`;
-    }).join('');
-}
-
-function filterMaterials() { renderMaterials(); }
-
-function renderMaterials() {
-    const si = document.getElementById('search-materials');
-    const q = si ? si.value.toLowerCase().trim() : '';
-
-    ['productos', 'decoracion'].forEach(ck => {
-        const list = document.getElementById(`list-${ck}`);
-        const items = materials.filter(m => (m.category || 'productos') === ck);
-        const f = q ? items.filter(m => m.name.toLowerCase().includes(q)) : items;
-        const em = ck === 'productos' ? 'Agrega tu primera materia prima' : 'Agrega elementos de decoración';
-
-        if (f.length === 0) {
-            list.innerHTML = `<div class="empty-state" style="padding:20px;font-size:13px;">${q ? 'Sin resultados' : em}</div>`;
-            return;
-        }
-
-        list.innerHTML = f.sort((a, b) => a.name.localeCompare(b.name)).map(m => `
-            <div class="card" onclick="showAddMaterialModal('${m.id}')" style="cursor:pointer;">
-                <div class="card-info">
-                    <h3>${m.name}</h3>
-                    <p>${m.qty} ${m.unit}</p>
-                    ${getPriceBadgeHTML(m)}
-                </div>
-                <div style="display:flex;align-items:center;gap:15px;" onclick="event.stopPropagation()">
-                    <span class="card-price">$${formatCLP(m.price)}</span>
-                    <button class="btn-icon danger" onclick="deleteMaterial('${m.id}')"><i class='bx bx-trash'></i></button>
-                </div>
-            </div>
-        `).join('');
-    });
-
-    renderExtraMaterials(q);
-}
-
-function renderExtraMaterials(q) {
-    const el = document.getElementById('list-extra');
-    const ei = materials.filter(m => m.category === 'extra');
-    let es = JSON.parse(localStorage.getItem('mushu_extra_subcategories')) || [];
-
-    ei.forEach(m => {
-        if (m.subcategory && !es.includes(m.subcategory)) es.push(m.subcategory);
-    });
-
-    if (es.length === 0) {
-        el.innerHTML = '<div class="empty-state" style="padding:20px;font-size:13px;">Presiona + para crear una subcategoría</div>';
-        return;
-    }
-
-    let h = '';
-    es.forEach(sc => {
-        const items = ei.filter(m => m.subcategory === sc);
-        const f = q ? items.filter(m => m.name.toLowerCase().includes(q)) : items;
-        const tot = items.reduce((s, m) => s + m.price, 0);
-        const sid = sc.replace(/[^a-zA-Z0-9]/g, '_');
-
-        if (q && f.length === 0) return;
-
-        h += `<div class="extra-subcat">
-            <div class="extra-subcat-header" onclick="toggleExtraSubcat('${sid}')">
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <i class='bx bx-chevron-down' id="chevron-extra-${sid}" style="transition:transform 0.3s;"></i>
-                    <i class='bx bx-folder' style="color:var(--secondary-color);"></i>
-                    <span>${sc}</span>
-                </div>
-                <div style="display:flex;align-items:center;gap:10px;" onclick="event.stopPropagation()">
-                    <span class="card-price">$${formatCLP(tot)}</span>
-                    <button class="btn-add-small" onclick="showAddMaterialModal(null,'extra','${sc}')"><i class='bx bx-plus'></i></button>
-                    <button class="btn-icon danger" style="width:26px;height:26px;font-size:14px;" onclick="deleteExtraSubcategory('${sc}')"><i class='bx bx-trash'></i></button>
-                </div>
-            </div>
-            <div class="extra-subcat-body open" id="body-extra-${sid}">
-                ${(q ? f : items).sort((a, b) => a.name.localeCompare(b.name)).map(m => `
-                    <div class="card" onclick="showAddMaterialModal('${m.id}')" style="cursor:pointer;margin-left:8px;">
-                        <div class="card-info">
-                            <h3>${m.name}</h3>
-                            <p>${m.qty} ${m.unit}</p>
-                            ${getPriceBadgeHTML(m)}
-                        </div>
-                        <div style="display:flex;align-items:center;gap:15px;" onclick="event.stopPropagation()">
-                            <span class="card-price">$${formatCLP(m.price)}</span>
-                            <button class="btn-icon danger" onclick="deleteMaterial('${m.id}')"><i class='bx bx-trash'></i></button>
-                        </div>
-                    </div>
-                `).join('') || '<div class="empty-state" style="padding:12px;font-size:12px;">Sin items.</div>'}
-            </div>
-        </div>`;
-    });
-
-    el.innerHTML = h || '<div class="empty-state" style="padding:20px;font-size:13px;">Sin resultados</div>';
-}
-
-function toggleCategory(ck) {
-    const b = document.getElementById(`body-${ck}`);
-    const c = document.getElementById(`chevron-${ck}`);
-    b.classList.toggle('open');
-    c.style.transform = b.classList.contains('open') ? 'rotate(0)' : 'rotate(-90deg)';
-}
-
-function toggleExtraSubcat(sid) {
-    const b = document.getElementById(`body-extra-${sid}`);
-    const c = document.getElementById(`chevron-extra-${sid}`);
-    if (!b) return;
-    b.classList.toggle('open');
-    c.style.transform = b.classList.contains('open') ? 'rotate(0)' : 'rotate(-90deg)';
-}
-
-function addExtraSubcategory() {
-    showAddExtraSubcategoryModal();
-}
-
-function deleteExtraSubcategory(sc) {
-    showConfirmModal(
-        'Eliminar subcategoría',
-        `¿Eliminar "${sc}" y todos sus elementos?`,
-        () => {
-            materials = materials.filter(m => !(m.category === 'extra' && m.subcategory === sc));
-            let s = JSON.parse(localStorage.getItem('mushu_extra_subcategories') || '[]');
-            s = s.filter(x => x !== sc);
-            localStorage.setItem('mushu_extra_subcategories', JSON.stringify(s));
-            saveMaterialsToStorage();
-            renderMaterials();
-            updateExtraSubcategorySelect();
-            showToast(`"${sc}" eliminada`);
+            modules = modules.filter(m => String(m.id) !== String(moduleId));
+            saveModules();
+            renderRecipes();
+            showToast('Módulo eliminado');
         }
     );
 }
@@ -885,7 +722,7 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
     const ec = getExtraCost();
     const tc = ic + dc + ec;
     const po = parseInt(document.getElementById('recipe-portions').value) || 1;
-    const finalFolder = recipeFolder || 'Mis Recetas';
+    const finalFolder = recipeFolder || document.getElementById('recipe-folder-input').value.trim() || 'Mis Recetas';
 
     if (currentEditingRecipeId) {
         const idx = recipes.findIndex(r => String(r.id) === String(currentEditingRecipeId));
@@ -899,7 +736,7 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
                 extraCost: ec,
                 totalCost: tc,
                 portions: po,
-                recipeFolder: recipes[idx].recipeFolder || finalFolder,
+                recipeFolder: finalFolder,
                 recipeSource: recipes[idx].recipeSource || recipeSource,
                 sourceCourseName: recipes[idx].sourceCourseName || sourceCourseName,
                 sourceClassDate: recipes[idx].sourceClassDate || sourceClassDate
@@ -931,7 +768,7 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
     }
 
     saveRecipesToStorage();
-    renderRecipes();
+    updateRecipesView();
     closeModal('modal-recipe');
 
     if (recipeSource === 'class') {
@@ -946,7 +783,7 @@ function deleteRecipe(id) {
         () => {
             recipes = recipes.filter(r => String(r.id) !== String(id));
             saveRecipesToStorage();
-            renderRecipes();
+            updateRecipesView();
             showToast('Receta eliminada');
         }
     );
@@ -963,7 +800,7 @@ function duplicateCurrentRecipe() {
     };
     recipes.push(nr);
     saveRecipesToStorage();
-    renderRecipes();
+    updateRecipesView();
     closeModal('modal-recipe');
     showToast(`"${nr.name}" duplicada!`);
 }
@@ -973,8 +810,24 @@ function saveRecipesToStorage() {
 }
 
 function toggleSellingPrice() {
-    showMinSellingPrice = document.getElementById('toggle-selling-price').checked;
-    renderRecipes();
+    showMinSellingPrice = document.querySelector('#toggle-selling-price, #toggle-selling-price-student, #toggle-selling-price-default')?.checked || false;
+    updateRecipesView();
+}
+
+function toggleSellingPriceStudentMirror() {
+    const checked = document.getElementById('toggle-selling-price-student').checked;
+    showMinSellingPrice = checked;
+    const d = document.getElementById('toggle-selling-price-default');
+    if (d) d.checked = checked;
+    updateRecipesView();
+}
+
+function toggleSellingPriceDefaultMirror() {
+    const checked = document.getElementById('toggle-selling-price-default').checked;
+    showMinSellingPrice = checked;
+    const s = document.getElementById('toggle-selling-price-student');
+    if (s) s.checked = checked;
+    updateRecipesView();
 }
 
 function toggleRecipeDetail(rid) {
@@ -1000,19 +853,72 @@ function generateRecipeTip(r) {
 }
 
 // ========================================
-// RECIPES RENDER BY FOLDERS
+// RECIPES VIEWS
 // ========================================
-function renderRecipes() {
-    const list = document.getElementById('recipe-folders-list');
-    if (recipes.length === 0) {
-        list.innerHTML = '<div class="empty-state">No hay recetas todavía. Crea tu primera receta.</div>';
+function updateRecipesView() {
+    const teacherView = document.getElementById('teacher-recipes-view');
+    const studentView = document.getElementById('student-recipes-view');
+    const defaultView = document.getElementById('default-recipes-view');
+
+    if (teacherMode.active) {
+        teacherView.style.display = 'block';
+        studentView.style.display = 'none';
+        defaultView.style.display = 'none';
+        renderTeacherRecipes();
+    } else if (studentName) {
+        teacherView.style.display = 'none';
+        studentView.style.display = 'block';
+        defaultView.style.display = 'none';
+        renderStudentRecipes();
+    } else {
+        teacherView.style.display = 'none';
+        studentView.style.display = 'none';
+        defaultView.style.display = 'block';
+        renderDefaultRecipes();
+    }
+}
+
+function renderTeacherRecipes() {
+    const list = document.getElementById('teacher-recipe-groups-list');
+
+    const ownRecipes = recipes.filter(r => (r.recipeSource || 'personal') === 'personal');
+    const moduleFolders = {};
+
+    modules.forEach(mod => {
+        moduleFolders[mod.name] = recipes.filter(r => (r.recipeFolder || '') === mod.name);
+    });
+
+    let html = '';
+
+    // Mis recetas
+    html += renderRecipeGroupFolder('Mis Recetas', 'mis_recetas', ownRecipes, true);
+
+    // Módulos
+    modules.sort((a, b) => a.name.localeCompare(b.name)).forEach(mod => {
+        html += renderModuleFolder(mod, moduleFolders[mod.name] || []);
+    });
+
+    list.innerHTML = html || '<div class="empty-state">No hay recetas todavía.</div>';
+}
+
+function renderStudentRecipes() {
+    const list = document.getElementById('student-recipe-groups-list');
+    renderRecipeFoldersInto(list, recipes);
+}
+
+function renderDefaultRecipes() {
+    const list = document.getElementById('default-recipe-groups-list');
+    renderRecipeFoldersInto(list, recipes);
+}
+
+function renderRecipeFoldersInto(container, recipeList) {
+    if (!recipeList.length) {
+        container.innerHTML = '<div class="empty-state">No hay recetas todavía. Crea tu primera receta.</div>';
         return;
     }
 
-    const priceColor = showMinSellingPrice ? 'var(--secondary-color)' : 'var(--primary-color)';
     const folders = {};
-
-    recipes.forEach(r => {
+    recipeList.forEach(r => {
         const folder = r.recipeFolder || 'Mis Recetas';
         if (!folders[folder]) folders[folder] = [];
         folders[folder].push(r);
@@ -1024,27 +930,67 @@ function renderRecipes() {
         return a.localeCompare(b);
     });
 
-    list.innerHTML = folderNames.map((folderName, idx) => {
+    container.innerHTML = folderNames.map((folderName, idx) => {
         const folderId = folderName.replace(/[^a-zA-Z0-9]/g, '_');
         const folderRecipes = folders[folderName].sort((a, b) => a.name.localeCompare(b.name));
-        return `
-            <div class="recipe-folder">
-                <div class="recipe-folder-header" onclick="toggleFolderBody('recipe-folder','${folderId}')">
-                    <div class="recipe-folder-header-left">
-                        <i class='bx bx-folder-open' style="font-size:22px;color:var(--secondary-color);"></i>
-                        <div>
-                            <h3>${folderName}</h3>
-                            <div class="recipe-folder-count">${folderRecipes.length} receta${folderRecipes.length !== 1 ? 's' : ''}</div>
-                        </div>
+        return renderRecipeGroupFolder(folderName, folderId, folderRecipes, idx === 0);
+    }).join('');
+}
+
+function renderRecipeGroupFolder(folderName, folderId, folderRecipes, openFirst = false) {
+    const priceColor = showMinSellingPrice ? 'var(--secondary-color)' : 'var(--primary-color)';
+    return `
+        <div class="recipe-folder">
+            <div class="recipe-folder-header" onclick="toggleFolderBody('recipe-folder','${folderId}')">
+                <div class="recipe-folder-header-left">
+                    <i class='bx bx-folder-open' style="font-size:22px;color:var(--secondary-color);"></i>
+                    <div>
+                        <h3>${folderName}</h3>
+                        <div class="recipe-folder-count">${folderRecipes.length} receta${folderRecipes.length !== 1 ? 's' : ''}</div>
                     </div>
-                    <i class='bx bx-chevron-down recipe-folder-chevron' id="recipe-folder-chevron-${folderId}" style="transform:${idx === 0 ? 'rotate(0deg)' : 'rotate(-90deg)'};"></i>
                 </div>
-                <div class="recipe-folder-body ${idx === 0 ? 'open' : ''}" id="recipe-folder-body-${folderId}">
-                    ${folderRecipes.map(r => renderRecipeCard(r, priceColor)).join('')}
+                <i class='bx bx-chevron-down recipe-folder-chevron' id="recipe-folder-chevron-${folderId}" style="transform:${openFirst ? 'rotate(0deg)' : 'rotate(-90deg)'};"></i>
+            </div>
+            <div class="recipe-folder-body ${openFirst ? 'open' : ''}" id="recipe-folder-body-${folderId}">
+                ${folderRecipes.map(r => renderRecipeCard(r, priceColor)).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderModuleFolder(mod, recipesInModule) {
+    const moduleId = mod.id;
+    const priceColor = showMinSellingPrice ? 'var(--secondary-color)' : 'var(--primary-color)';
+    return `
+        <div class="recipe-folder">
+            <div class="recipe-folder-header" onclick="toggleFolderBody('module-folder','${moduleId}')">
+                <div class="recipe-folder-header-left">
+                    <i class='bx bx-book' style="font-size:22px;color:var(--secondary-color);"></i>
+                    <div>
+                        <h3>${mod.name}</h3>
+                        <div class="recipe-folder-count">Prefijo: ${mod.prefix} • ${recipesInModule.length} receta${recipesInModule.length !== 1 ? 's' : ''}</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:6px;" onclick="event.stopPropagation()">
+                    <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showCreateModuleModal('${mod.id}')"><i class='bx bx-edit'></i></button>
+                    <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteModule('${mod.id}')"><i class='bx bx-trash'></i></button>
                 </div>
             </div>
-        `;
-    }).join('');
+            <div class="recipe-folder-body" id="module-folder-body-${moduleId}">
+                <div class="module-info-box">
+                    <strong>${mod.name}</strong>
+                    <p>Prefijo del módulo: ${mod.prefix}</p>
+                </div>
+                ${recipesInModule.length
+                    ? recipesInModule.sort((a,b)=>a.name.localeCompare(b.name)).map(r => renderRecipeCard(r, priceColor)).join('')
+                    : '<div class="empty-state" style="padding:20px;font-size:13px;margin-top:10px;">Este módulo no tiene recetas aún. Crea una receta y guárdala dentro de este módulo.</div>'}
+            </div>
+        </div>
+    `;
+}
+
+function renderRecipes() {
+    updateRecipesView();
 }
 
 function renderRecipeCard(r, priceColor) {
@@ -1099,7 +1045,7 @@ function renderRecipeCard(r, priceColor) {
     const tipH = tip ? `<div class="recipe-tip"><strong>💡 Consejo</strong>${tip}</div>` : '';
 
     const sourceBadge = r.recipeSource === 'class'
-        ? `<div style="font-size:11px;color:var(--secondary-color);font-weight:600;margin-top:4px;">📚 Importada de clase</div>`
+        ? `<div class="module-badge"><i class='bx bx-book'></i> Receta de módulo</div>`
         : '';
 
     return `
@@ -1134,43 +1080,6 @@ function renderRecipeCard(r, priceColor) {
     `;
 }
 
-// ========================================
-// SETTINGS
-// ========================================
-function saveProfitMargin() {
-    const v = parseFloat(document.getElementById('profit-margin').value);
-    if (isNaN(v) || v < 1) { showToast("Mínimo 1", true); return; }
-    profitMargin = v;
-    localStorage.setItem('mushu_profit_margin', profitMargin.toString());
-    renderRecipes();
-    showToast(`Margen x${profitMargin}`);
-}
-
-function toggleTeacherMode() {
-    const checked = document.getElementById('toggle-teacher-mode').checked;
-    const studentSection = document.getElementById('student-name-section');
-
-    if (checked) {
-        showTeacherPasswordModal();
-        return;
-    } else {
-        teacherMode.active = false;
-        localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
-        if (studentSection) studentSection.style.display = 'block';
-        showToast('Modo Profesor desactivado');
-    }
-
-    updateClassesView();
-}
-
-function saveStudentName() {
-    const name = document.getElementById('student-name-input').value.trim();
-    if (!name) { showToast('Ingresa tu nombre', true); return; }
-    studentName = name;
-    localStorage.setItem('mushu_student_name', studentName);
-    showToast(`Nombre guardado: ${studentName}`);
-    updateClassesView();
-}
 
 // ========================================
 // COURSES / CLASSES VIEW
@@ -1212,21 +1121,27 @@ function showCreateCourseModal(courseId = null) {
     currentCourseStudents = [];
     currentEditingCourseId = null;
     document.getElementById('course-name').value = '';
-    document.getElementById('course-base-folder').value = '';
-    document.getElementById('course-prefix').value = '';
     document.getElementById('course-day').value = 'Lunes';
     document.getElementById('course-schedule').value = '';
     document.getElementById('modal-course-title').textContent = 'Crear Curso';
+
+    const moduleSelect = document.getElementById('course-module-select');
+    if (!modules.length) {
+        moduleSelect.innerHTML = '<option value="">No hay módulos</option>';
+    } else {
+        moduleSelect.innerHTML = modules.map(m =>
+            `<option value="${m.id}">${m.name} (${m.prefix})</option>`
+        ).join('');
+    }
 
     if (courseId) {
         const course = courses.find(c => String(c.id) === String(courseId));
         if (course) {
             currentEditingCourseId = String(course.id);
             document.getElementById('course-name').value = course.name;
-            document.getElementById('course-base-folder').value = course.baseFolder || '';
-            document.getElementById('course-prefix').value = course.coursePrefix || '';
             document.getElementById('course-day').value = course.day;
             document.getElementById('course-schedule').value = course.schedule || '';
+            if (moduleSelect) moduleSelect.value = course.moduleId || '';
             currentCourseStudents = [...(course.students || [])];
             document.getElementById('modal-course-title').textContent = 'Editar Curso';
         }
@@ -1259,13 +1174,10 @@ function addStudentToCourse() {
 
 function removeStudentFromCourse(studentId) {
     currentCourseStudents = currentCourseStudents.filter(s => String(s.id) !== String(studentId));
-
-    // Reassign codes in order
     currentCourseStudents = currentCourseStudents.map((s, index) => ({
         ...s,
         studentCode: String(index + 1).padStart(2, '0')
     }));
-
     renderCourseStudents();
 }
 
@@ -1288,14 +1200,14 @@ function renderCourseStudents() {
 
 function saveCourse() {
     const name = document.getElementById('course-name').value.trim();
-    const baseFolder = document.getElementById('course-base-folder').value.trim();
-    const coursePrefix = sanitizePrefix(document.getElementById('course-prefix').value.trim());
+    const moduleId = document.getElementById('course-module-select').value;
     const day = document.getElementById('course-day').value;
     const schedule = document.getElementById('course-schedule').value.trim();
 
+    const mod = modules.find(m => String(m.id) === String(moduleId));
+
     if (!name) { showToast('Ingresa nombre del curso', true); return; }
-    if (!baseFolder) { showToast('Ingresa carpeta base', true); return; }
-    if (!coursePrefix || coursePrefix.length < 2) { showToast('Ingresa un prefijo válido', true); return; }
+    if (!moduleId || !mod) { showToast('Selecciona un módulo', true); return; }
     if (currentCourseStudents.length === 0) { showToast('Agrega al menos un alumno', true); return; }
 
     if (currentEditingCourseId) {
@@ -1303,7 +1215,11 @@ function saveCourse() {
         if (idx !== -1) {
             courses[idx] = {
                 ...courses[idx],
-                name, baseFolder, coursePrefix, day, schedule,
+                name,
+                moduleId: mod.id,
+                moduleName: mod.name,
+                day,
+                schedule,
                 students: currentCourseStudents
             };
             showToast('Curso actualizado!');
@@ -1312,8 +1228,8 @@ function saveCourse() {
         courses.push({
             id: Date.now().toString(),
             name,
-            baseFolder,
-            coursePrefix,
+            moduleId: mod.id,
+            moduleName: mod.name,
             day,
             schedule,
             students: currentCourseStudents,
@@ -1349,6 +1265,9 @@ function renderCourses() {
 
     list.innerHTML = courses.map((course, idx) => {
         const bodyOpen = idx === 0 ? 'open' : '';
+        const moduleData = modules.find(m => String(m.id) === String(course.moduleId));
+        const modulePrefix = moduleData ? moduleData.prefix : '---';
+
         const classesHTML = (course.classes || []).sort((a, b) => new Date(b.date) - new Date(a.date)).map(cls => {
             const att = cls.attendance || [];
             const present = att.filter(a => a.present).length;
@@ -1376,8 +1295,8 @@ function renderCourses() {
                         <i class='bx bxs-graduation' style="font-size:24px;color:var(--secondary-color);"></i>
                         <div>
                             <h3>${course.name}</h3>
-                            <div class="course-card-day">${course.day} • Prefijo: ${course.coursePrefix || '---'}</div>
-                            <div class="course-card-schedule">${course.schedule || ''} • ${course.students.length} alumnos • Carpeta: ${course.baseFolder}</div>
+                            <div class="course-card-day">${course.day} • Módulo: ${course.moduleName} (${modulePrefix})</div>
+                            <div class="course-card-schedule">${course.schedule || ''} • ${course.students.length} alumnos</div>
                         </div>
                     </div>
                     <div class="course-card-actions" onclick="event.stopPropagation()">
@@ -1444,34 +1363,6 @@ function showEditClassModal(courseId, classId) {
     renderSelectedClassRecipeBox();
 
     document.getElementById('modal-create-class').classList.add('active');
-}
-
-function createNewRecipeForClass() {
-    const courseId = document.getElementById('class-course-select').value;
-    const course = courses.find(c => String(c.id) === String(courseId));
-    if (!course) { showToast('Selecciona un curso', true); return; }
-
-    currentEditingRecipeId = null;
-    document.getElementById('recipe-name').value = '';
-    document.getElementById('recipe-portions').value = '';
-    currentRecipeIngredients = [];
-    currentRecipeDecorations = [];
-    currentRecipeExtra = null;
-
-    document.querySelector('#modal-recipe h3').textContent = "Crear Receta para Clase";
-    document.getElementById('recipe-folder-group').style.display = 'block';
-    document.getElementById('recipe-folder-input').value = course.baseFolder || course.name;
-
-    renderCurrentRecipeIngredients();
-    renderCurrentRecipeDecorations();
-    updateMaterialSelect();
-    updateDecorationSelect();
-    updateExtraSubcategorySelect();
-    renderExtraInRecipe();
-    updateRecipeTotal();
-
-    closeModal('modal-create-class');
-    document.getElementById('modal-recipe').classList.add('active');
 }
 
 function renderSelectedClassRecipeBox() {
@@ -1561,7 +1452,7 @@ function saveClass() {
 
     if (!name) { showToast('Ingresa nombre de clase', true); return; }
     if (!date) { showToast('Selecciona fecha', true); return; }
-    if (!currentSelectedClassRecipe) { showToast('Debes seleccionar o crear una receta', true); return; }
+    if (!currentSelectedClassRecipe) { showToast('Debes seleccionar una receta del módulo', true); return; }
 
     const course = courses.find(c => String(c.id) === String(courseId));
     if (!course) { showToast('Selecciona un curso', true); return; }
@@ -1579,6 +1470,8 @@ function saveClass() {
         cls.codeExpiry = codeExpiry;
         showToast('Clase actualizada!');
     } else {
+        const mod = modules.find(m => String(m.id) === String(course.moduleId));
+        const modulePrefix = mod ? mod.prefix : 'MOD';
         const blockCode = generateClassBlockCode();
 
         const attendance = course.students.map(s => ({
@@ -1587,7 +1480,7 @@ function saveClass() {
             studentCode: s.studentCode,
             present: false,
             code: null,
-            shortCode: null,
+            shortCode: buildVisibleShortCode(modulePrefix, blockCode, s.studentCode),
             codeData: null,
             codeUsed: false,
             activatedAt: null
@@ -1617,6 +1510,21 @@ function saveClass() {
     closeModal('modal-create-class');
 }
 
+function deleteClass(courseId, classId) {
+    showConfirmModal(
+        'Eliminar clase',
+        '¿Eliminar esta clase?',
+        () => {
+            const course = courses.find(c => String(c.id) === String(courseId));
+            if (!course) return;
+            course.classes = (course.classes || []).filter(cl => String(cl.id) !== String(classId));
+            saveCourses();
+            renderCourses();
+            showToast('Clase eliminada');
+        }
+    );
+}
+
 // ========================================
 // ATTENDANCE + CODES
 // ========================================
@@ -1631,11 +1539,14 @@ function showAttendanceModal(courseId, classId) {
 
     currentAttendanceData = JSON.parse(JSON.stringify(cls.attendance || []));
 
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    const modulePrefix = mod ? mod.prefix : '---';
+
     document.getElementById('attendance-class-info').innerHTML = `
         <div style="text-align:center;margin-bottom:16px;">
             <h4 style="margin:0 0 4px;">${cls.name}</h4>
             <p style="font-size:13px;color:var(--text-muted);margin:0;">📅 ${formatDate(cls.date)} • ${course.name}</p>
-            <p style="font-size:12px;color:var(--secondary-color);font-weight:700;margin:6px 0 0;">Bloque de clase: ${cls.blockCode || '----'}</p>
+            <p style="font-size:12px;color:var(--secondary-color);font-weight:700;margin:6px 0 0;">Prefijo: ${modulePrefix} • Bloque: ${cls.blockCode || '----'}</p>
         </div>`;
 
     renderAttendanceList();
@@ -1694,25 +1605,25 @@ function renderAttendanceList() {
     }).join('');
 }
 
-function buildVisibleShortCode(coursePrefix, blockCode, studentCode) {
-    return `${coursePrefix}${blockCode}${studentCode}`;
-}
-
 function generateCodes() {
     const course = courses.find(c => String(c.id) === String(currentAttendanceCourseId));
     if (!course) return;
     const cls = (course.classes || []).find(cl => String(cl.id) === String(currentAttendanceClassId));
     if (!cls) return;
 
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    const modulePrefix = mod ? mod.prefix : 'MOD';
+
     currentAttendanceData.forEach(a => {
-        const visibleCode = buildVisibleShortCode(course.coursePrefix || 'CUR', cls.blockCode || 'R75T', a.studentCode || '00');
+        const visibleCode = buildVisibleShortCode(modulePrefix, cls.blockCode || 'R75T', a.studentCode || '00');
 
         const codeData = {
             code: visibleCode,
             className: cls.name,
             courseId: course.id,
             courseName: course.name,
-            baseFolder: course.baseFolder,
+            moduleId: course.moduleId,
+            moduleName: course.moduleName,
             classId: cls.id,
             studentId: a.studentId,
             studentName: a.studentName,
@@ -1725,8 +1636,6 @@ function generateCodes() {
             expiry: cls.codeExpiry > 0 ? new Date(Date.now() + cls.codeExpiry * 3600000).toISOString() : null
         };
 
-        // Por ahora seguimos copiando JSON codificado como contenido real,
-        // pero el visible ya es el corto lógico
         const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(codeData))));
         a.shortCode = visibleCode;
         a.code = encoded;
@@ -1782,7 +1691,7 @@ function renderCodeItem(a) {
                     <span class="code-item-name">${a.studentName}</span>
                     <span class="student-code-badge">${a.studentCode || '--'}</span>
                 </div>
-                <div class="code-item-short">${a.shortCode || 'CURR75T00'}</div>
+                <div class="code-item-short">${a.shortCode || 'MODR75T00'}</div>
                 <div class="code-item-code">Código completo oculto • usar botón copiar</div>
             </div>
             <button class="code-item-copy" onclick="copySingleCode('${a.studentId}')">Copiar</button>
@@ -1992,7 +1901,7 @@ function completeClassImport(decoded) {
         classId: decoded.classId,
         className: decoded.className,
         courseName: decoded.courseName,
-        baseFolder: decoded.baseFolder || decoded.courseName,
+        moduleName: decoded.moduleName || '',
         studentName: decoded.studentName,
         studentCode: decoded.studentCode || '',
         visibleCode: decoded.code || '',
@@ -2027,7 +1936,7 @@ function completeClassImport(decoded) {
 
     renderImportedClasses();
     renderStudentClassesByFolders();
-    renderRecipes();
+    updateRecipesView();
     closeModal('modal-import-class');
 
     if (decoded.present) {
@@ -2164,10 +2073,11 @@ function viewImportedClass(classId) {
 // ========================================
 function exportData() {
     const d = {
-        version: '3.7',
+        version: '4.0',
         exportDate: new Date().toISOString(),
         materials,
         recipes,
+        modules,
         courses,
         importedClasses,
         extraSubcategories: JSON.parse(localStorage.getItem('mushu_extra_subcategories') || '[]'),
@@ -2202,6 +2112,7 @@ function importData(event) {
                 () => {
                     materials = d.materials;
                     recipes = d.recipes;
+                    if (d.modules) modules = d.modules;
                     profitMargin = d.profitMargin || 2;
                     if (d.courses) courses = d.courses;
                     if (d.importedClasses) importedClasses = d.importedClasses;
@@ -2219,6 +2130,7 @@ function importData(event) {
 
                     saveMaterialsToStorage();
                     saveRecipesToStorage();
+                    saveModules();
                     saveCourses();
                     saveImportedClasses();
                     localStorage.setItem('mushu_profit_margin', profitMargin.toString());
@@ -2226,7 +2138,7 @@ function importData(event) {
                     normalizeExistingRecipes();
                     normalizeExistingCourses();
                     renderMaterials();
-                    renderRecipes();
+                    updateRecipesView();
                     updateMaterialSelect();
                     updateDecorationSelect();
                     updateExtraSubcategorySelect();
