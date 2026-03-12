@@ -2123,3 +2123,154 @@ function formatDate(ds) {
     const d = new Date(ds + 'T00:00:00');
     return `${d.getDate()} ${ms[d.getMonth()]} ${d.getFullYear()}`;
 }
+
+// ========================================
+// MODALS BÁSICOS FALTANTES
+// ========================================
+function showSettingsModal() {
+    const mi = document.getElementById('profit-margin');
+    if (mi) mi.value = profitMargin;
+
+    const tt = document.getElementById('toggle-teacher-mode');
+    if (tt) tt.checked = teacherMode.active;
+
+    const sns = document.getElementById('student-name-section');
+    if (sns) sns.style.display = teacherMode.active ? 'none' : 'block';
+
+    const sni = document.getElementById('student-name-input');
+    if (sni) sni.value = studentName;
+
+    document.getElementById('modal-settings').classList.add('active');
+}
+
+function showAddMaterialModal(materialId = null, category = 'productos', subcategory = '') {
+    document.getElementById('form-material').reset();
+
+    const placeholders = {
+        productos: { name: 'Ej: Harina', price: '990' },
+        decoracion: { name: 'Ej: Chispas de chocolate', price: '1500' },
+        extra: { name: 'Ej: Caja para torta', price: '2000' }
+    };
+
+    const unitSelect = document.getElementById('mat-unit');
+
+    if (materialId) {
+        const mat = materials.find(m => String(m.id) === String(materialId));
+        if (mat) {
+            currentEditingMaterialId = String(mat.id);
+            currentMaterialCategory = mat.category || 'productos';
+            currentMaterialSubcategory = mat.subcategory || '';
+            document.getElementById('mat-name').value = mat.name;
+            document.getElementById('mat-price').value = mat.price;
+            document.getElementById('mat-qty').value = mat.qty;
+            document.querySelector('#modal-material h3').textContent = "Editar Material";
+            renderPriceHistory(mat);
+        }
+    } else {
+        currentEditingMaterialId = null;
+        currentMaterialCategory = category;
+        currentMaterialSubcategory = subcategory;
+        document.querySelector('#modal-material h3').textContent = "Agregar Material";
+        document.getElementById('price-history-section').style.display = 'none';
+    }
+
+    if (currentMaterialCategory === 'extra') {
+        unitSelect.innerHTML = `
+            <option value="u">Unidad</option>
+            <option value="cm">Centímetros</option>
+            <option value="m">Metros</option>
+        `;
+    } else {
+        unitSelect.innerHTML = `
+            <option value="kg">Kilos (kg)</option>
+            <option value="g">Gramos (g)</option>
+            <option value="l">Litros (L)</option>
+            <option value="cm3">mL</option>
+            <option value="u">Unidad</option>
+        `;
+    }
+
+    if (materialId) {
+        const mat = materials.find(m => String(m.id) === String(materialId));
+        if (mat) unitSelect.value = mat.unit;
+    }
+
+    const ph = placeholders[currentMaterialCategory] || placeholders.productos;
+    document.getElementById('mat-name').placeholder = ph.name;
+    document.getElementById('mat-price').placeholder = ph.price;
+
+    document.getElementById('modal-material').classList.add('active');
+}
+
+function showAddRecipeModal(recipeId = null) {
+    const btnD = document.getElementById('btn-duplicate-recipe');
+    const folderGroup = document.getElementById('recipe-folder-group');
+    const folderInput = document.getElementById('recipe-folder-input');
+
+    folderGroup.style.display = teacherMode.active ? 'block' : 'none';
+    folderInput.value = '';
+
+    if (recipeId) {
+        const r = recipes.find(r => String(r.id) === String(recipeId));
+        if (r) {
+            currentEditingRecipeId = String(r.id);
+            document.getElementById('recipe-name').value = r.name;
+            document.getElementById('recipe-portions').value = r.portions || '';
+            currentRecipeIngredients = JSON.parse(JSON.stringify(r.ingredients || []));
+            currentRecipeDecorations = JSON.parse(JSON.stringify(r.decorations || []));
+            currentRecipeExtra = r.extraSubcategory || null;
+            document.querySelector('#modal-recipe h3').textContent = "Editar Receta";
+            if (teacherMode.active) {
+                document.getElementById('recipe-folder-input').value = r.recipeFolder || '';
+            }
+            recalculateIngredientCosts();
+            if (btnD) btnD.style.display = 'flex';
+        }
+    } else {
+        currentEditingRecipeId = null;
+        document.getElementById('recipe-name').value = '';
+        document.getElementById('recipe-portions').value = '';
+        currentRecipeIngredients = [];
+        currentRecipeDecorations = [];
+        currentRecipeExtra = null;
+        document.querySelector('#modal-recipe h3').textContent = "Crear Receta";
+        if (btnD) btnD.style.display = 'none';
+    }
+
+    renderCurrentRecipeIngredients();
+    renderCurrentRecipeDecorations();
+    updateMaterialSelect();
+    updateDecorationSelect();
+    updateExtraSubcategorySelect();
+    renderExtraInRecipe();
+    updateRecipeTotal();
+
+    document.getElementById('recipe-add-qty').value = '';
+    document.getElementById('recipe-add-deco-qty').value = '';
+
+    if (currentRecipeExtra) {
+        document.getElementById('recipe-extra-subcat').value = currentRecipeExtra;
+    }
+
+    document.getElementById('modal-recipe').classList.add('active');
+}
+
+function showCreateModuleModal(moduleId = null) {
+    currentEditingModuleId = null;
+    document.getElementById('module-name').value = '';
+    document.getElementById('module-prefix').value = '';
+
+    if (moduleId) {
+        const mod = modules.find(m => String(m.id) === String(moduleId));
+        if (mod) {
+            currentEditingModuleId = String(mod.id);
+            document.getElementById('module-name').value = mod.name;
+            document.getElementById('module-prefix').value = mod.prefix;
+            document.querySelector('#modal-module h3').textContent = '✏️ Editar Módulo';
+        }
+    } else {
+        document.querySelector('#modal-module h3').textContent = '📚 Crear Módulo';
+    }
+
+    document.getElementById('modal-module').classList.add('active');
+}
