@@ -681,6 +681,7 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
         showToast("Ingresa nombre", true);
         return;
     }
+
     if (currentRecipeIngredients.length === 0 && currentRecipeDecorations.length === 0) {
         showToast("Agrega ingredientes", true);
         return;
@@ -691,7 +692,11 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
     const ec = getExtraCost();
     const tc = ic + dc + ec;
     const po = parseInt(document.getElementById('recipe-portions').value) || 1;
-    const finalFolder = recipeFolder || document.getElementById('recipe-folder-input').value.trim() || 'Mis Recetas';
+
+    const folderSelect = document.getElementById('recipe-folder-input');
+    const finalFolder = recipeFolder || (folderSelect ? folderSelect.value : '') || 'Mis Recetas';
+
+    const finalSource = window.currentModuleRecipeMode ? 'module' : recipeSource;
 
     if (currentEditingRecipeId) {
         const idx = recipes.findIndex(r => String(r.id) === String(currentEditingRecipeId));
@@ -706,7 +711,7 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
                 totalCost: tc,
                 portions: po,
                 recipeFolder: finalFolder,
-                recipeSource: recipes[idx].recipeSource || recipeSource,
+                recipeSource: finalSource,
                 sourceCourseName: recipes[idx].sourceCourseName || sourceCourseName,
                 sourceClassDate: recipes[idx].sourceClassDate || sourceClassDate
             };
@@ -723,13 +728,15 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
             totalCost: tc,
             portions: po,
             recipeFolder: finalFolder,
-            recipeSource: recipeSource,
+            recipeSource: finalSource,
             sourceCourseName: sourceCourseName,
             sourceClassDate: sourceClassDate
         };
+
         recipes.push(newRecipe);
         showToast("Receta guardada!");
-        if (recipeSource === 'class') {
+
+        if (finalSource === 'class' || finalSource === 'module') {
             currentSelectedClassRecipe = JSON.parse(JSON.stringify(newRecipe));
             renderSelectedClassRecipeBox();
         }
@@ -739,7 +746,10 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
     updateRecipesView();
     closeModal('modal-recipe');
 
-    if (recipeSource === 'class') {
+    // limpiar modo módulo después de guardar
+    window.currentModuleRecipeMode = false;
+
+    if (finalSource === 'class') {
         document.getElementById('modal-create-class').classList.add('active');
     }
 }
