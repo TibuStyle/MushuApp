@@ -188,6 +188,27 @@ function buildVisibleShortCode(modulePrefix, blockCode, studentCode) {
     return `${modulePrefix}${blockCode}${studentCode}`;
 }
 
+// --- Basic save helpers ---
+function saveMaterialsToStorage() {
+    localStorage.setItem('mushu_materials', JSON.stringify(materials));
+}
+
+function saveRecipesToStorage() {
+    localStorage.setItem('mushu_recipes', JSON.stringify(recipes));
+}
+
+function saveModules() {
+    localStorage.setItem('mushu_modules', JSON.stringify(modules));
+}
+
+function saveCourses() {
+    localStorage.setItem('mushu_courses', JSON.stringify(courses));
+}
+
+function saveImportedClasses() {
+    localStorage.setItem('mushu_imported_classes', JSON.stringify(importedClasses));
+}
+
 // --- Basic modals ---
 function closeModal(id) {
     document.getElementById(id).classList.remove('active');
@@ -204,10 +225,6 @@ function showToast(msg, err = false) {
 // ========================================
 // MATERIALS
 // ========================================
-function saveMaterialsToStorage() {
-    localStorage.setItem('mushu_materials', JSON.stringify(materials));
-}
-
 function getPriceBadgeHTML(mat) {
     if (!mat.priceHistory || mat.priceHistory.length < 2) return '';
     const cur = mat.price;
@@ -375,80 +392,50 @@ function deleteExtraSubcategory(sc) {
 
 
 // ========================================
-// MODULES
-// ========================================
-function saveModules() {
-    localStorage.setItem('mushu_modules', JSON.stringify(modules));
-}
-
-function saveModule() {
-    const name = document.getElementById('module-name').value.trim();
-    const prefix = sanitizePrefix(document.getElementById('module-prefix').value.trim());
-
-    if (!name) { showToast('Ingresa nombre del módulo', true); return; }
-    if (!prefix || prefix.length < 2) { showToast('Ingresa prefijo válido', true); return; }
-
-    if (currentEditingModuleId) {
-        const idx = modules.findIndex(m => String(m.id) === String(currentEditingModuleId));
-        if (idx !== -1) {
-            modules[idx] = { ...modules[idx], name, prefix };
-            showToast('Módulo actualizado!');
-        }
-    } else {
-        modules.push({
-            id: Date.now().toString(),
-            name,
-            prefix
-        });
-        showToast('Módulo creado!');
-    }
-
-    saveModules();
-    updateRecipesView();
-    closeModal('modal-module');
-}
-
-function deleteModule(moduleId) {
-    showConfirmModal(
-        'Eliminar módulo',
-        '¿Eliminar este módulo? Las recetas que usen su nombre quedarán como están.',
-        () => {
-            modules = modules.filter(m => String(m.id) !== String(moduleId));
-            saveModules();
-            updateRecipesView();
-            showToast('Módulo eliminado');
-        }
-    );
-}
-
-// ========================================
 // RECIPE SELECTS + COSTS
 // ========================================
 function updateMaterialSelect() {
     const s = document.getElementById('recipe-add-mat');
     const m = materials.filter(m => (m.category || 'productos') === 'productos');
-    if (m.length === 0) { s.innerHTML = '<option value="">No hay productos</option>'; return; }
-    s.innerHTML = '<option value="">Selecciona...</option>' + m.sort((a, b) => a.name.localeCompare(b.name)).map(m =>
-        `<option value="${m.id}">${m.name} ($${formatCLP(m.price)} x ${m.qty}${m.unit})</option>`).join('');
+    if (m.length === 0) {
+        s.innerHTML = '<option value="">No hay productos</option>';
+        return;
+    }
+    s.innerHTML =
+        '<option value="">Selecciona...</option>' +
+        m.sort((a, b) => a.name.localeCompare(b.name))
+            .map(m => `<option value="${m.id}">${m.name} ($${formatCLP(m.price)} x ${m.qty}${m.unit})</option>`)
+            .join('');
 }
 
 function updateDecorationSelect() {
     const s = document.getElementById('recipe-add-deco-mat');
     const m = materials.filter(m => m.category === 'decoracion');
-    if (m.length === 0) { s.innerHTML = '<option value="">No hay decoraciones</option>'; return; }
-    s.innerHTML = '<option value="">Selecciona...</option>' + m.sort((a, b) => a.name.localeCompare(b.name)).map(m =>
-        `<option value="${m.id}">${m.name} ($${formatCLP(m.price)} x ${m.qty}${m.unit})</option>`).join('');
+    if (m.length === 0) {
+        s.innerHTML = '<option value="">No hay decoraciones</option>';
+        return;
+    }
+    s.innerHTML =
+        '<option value="">Selecciona...</option>' +
+        m.sort((a, b) => a.name.localeCompare(b.name))
+            .map(m => `<option value="${m.id}">${m.name} ($${formatCLP(m.price)} x ${m.qty}${m.unit})</option>`)
+            .join('');
 }
 
 function updateExtraSubcategorySelect() {
     const s = document.getElementById('recipe-extra-subcat');
     const ei = materials.filter(m => m.category === 'extra');
     const sc = [...new Set(ei.map(m => m.subcategory).filter(Boolean))];
-    if (sc.length === 0) { s.innerHTML = '<option value="">No hay extras</option>'; return; }
-    s.innerHTML = '<option value="">Sin extra</option>' + sc.map(sub => {
-        const t = ei.filter(m => m.subcategory === sub).reduce((s, m) => s + m.price, 0);
-        return `<option value="${sub}">${sub} ($${formatCLP(t)})</option>`;
-    }).join('');
+    if (sc.length === 0) {
+        s.innerHTML = '<option value="">No hay extras</option>';
+        return;
+    }
+    s.innerHTML =
+        '<option value="">Sin extra</option>' +
+        sc.map(sub => {
+            const t = ei.filter(m => m.subcategory === sub).reduce((s, m) => s + m.price, 0);
+            return `<option value="${sub}">${sub} ($${formatCLP(t)})</option>`;
+        }).join('');
 }
 
 function calculateIngredientCost(mat, rq, ru) {
@@ -484,41 +471,65 @@ function recalculateAllRecipes() {
     let ch = false;
     recipes.forEach(r => {
         let c = false;
+
         (r.ingredients || []).forEach(i => {
             const m = materials.find(x => String(x.id) === String(i.matId));
             if (m) {
                 const nc = calculateIngredientCost(m, i.qty, i.unit);
-                if (nc !== i.cost) { i.cost = nc; c = true; }
+                if (nc !== i.cost) {
+                    i.cost = nc;
+                    c = true;
+                }
             }
         });
+
         (r.decorations || []).forEach(d => {
             const m = materials.find(x => String(x.id) === String(d.matId));
             if (m) {
                 const nc = calculateIngredientCost(m, d.qty, d.unit);
-                if (nc !== d.cost) { d.cost = nc; c = true; }
+                if (nc !== d.cost) {
+                    d.cost = nc;
+                    c = true;
+                }
             }
         });
+
         if (r.extraSubcategory) {
-            const ne = materials.filter(m => m.category === 'extra' && m.subcategory === r.extraSubcategory).reduce((s, m) => s + m.price, 0);
-            if (ne !== r.extraCost) { r.extraCost = ne; c = true; }
+            const ne = materials
+                .filter(m => m.category === 'extra' && m.subcategory === r.extraSubcategory)
+                .reduce((s, m) => s + m.price, 0);
+            if (ne !== r.extraCost) {
+                r.extraCost = ne;
+                c = true;
+            }
         }
+
         if (c) {
-            r.totalCost = (r.ingredients || []).reduce((s, i) => s + i.cost, 0) +
-                          (r.decorations || []).reduce((s, d) => s + d.cost, 0) +
-                          (r.extraCost || 0);
+            r.totalCost =
+                (r.ingredients || []).reduce((s, i) => s + i.cost, 0) +
+                (r.decorations || []).reduce((s, d) => s + d.cost, 0) +
+                (r.extraCost || 0);
             ch = true;
         }
     });
-    if (ch) { saveRecipesToStorage(); updateRecipesView(); }
+
+    if (ch) {
+        saveRecipesToStorage();
+        updateRecipesView();
+    }
 }
 
 function addIngredientToRecipeForm() {
     const mi = document.getElementById('recipe-add-mat').value;
     const q = parseFloat(document.getElementById('recipe-add-qty').value);
     const u = document.getElementById('recipe-add-unit').value;
-    if (!mi || isNaN(q) || q <= 0) { showToast("Completa datos", true); return; }
+    if (!mi || isNaN(q) || q <= 0) {
+        showToast("Completa datos", true);
+        return;
+    }
     const m = materials.find(x => String(x.id) === String(mi));
     if (!m) return;
+
     currentRecipeIngredients.push({
         id: Date.now().toString(),
         matId: String(m.id),
@@ -527,6 +538,7 @@ function addIngredientToRecipeForm() {
         unit: u,
         cost: calculateIngredientCost(m, q, u)
     });
+
     document.getElementById('recipe-add-mat').value = '';
     document.getElementById('recipe-add-qty').value = '';
     renderCurrentRecipeIngredients();
@@ -565,9 +577,13 @@ function addDecorationToRecipeForm() {
     const mi = document.getElementById('recipe-add-deco-mat').value;
     const q = parseFloat(document.getElementById('recipe-add-deco-qty').value);
     const u = document.getElementById('recipe-add-deco-unit').value;
-    if (!mi || isNaN(q) || q <= 0) { showToast("Completa datos", true); return; }
+    if (!mi || isNaN(q) || q <= 0) {
+        showToast("Completa datos", true);
+        return;
+    }
     const m = materials.find(x => String(x.id) === String(mi));
     if (!m) return;
+
     currentRecipeDecorations.push({
         id: Date.now().toString(),
         matId: String(m.id),
@@ -576,6 +592,7 @@ function addDecorationToRecipeForm() {
         unit: u,
         cost: calculateIngredientCost(m, q, u)
     });
+
     document.getElementById('recipe-add-deco-mat').value = '';
     document.getElementById('recipe-add-deco-qty').value = '';
     renderCurrentRecipeDecorations();
@@ -618,9 +635,15 @@ function onExtraSubcategoryChange() {
 
 function renderExtraInRecipe() {
     const c = document.getElementById('recipe-extra-details');
-    if (!currentRecipeExtra) { c.innerHTML = ''; return; }
+    if (!currentRecipeExtra) {
+        c.innerHTML = '';
+        return;
+    }
     const items = materials.filter(m => m.category === 'extra' && m.subcategory === currentRecipeExtra);
-    if (items.length === 0) { c.innerHTML = ''; return; }
+    if (items.length === 0) {
+        c.innerHTML = '';
+        return;
+    }
     const t = items.reduce((s, m) => s + m.price, 0);
     c.innerHTML = `<div style="margin-top:10px;font-size:13px;color:var(--text-muted);">
         ${items.map(m => `<div style="display:flex;justify-content:space-between;padding:4px 0;"><span>${m.name}</span><span>$${formatCLP(m.price)}</span></div>`).join('')}
@@ -641,6 +664,7 @@ function updateRecipeTotal() {
     const ec = getExtraCost();
     const t = ic + dc + ec;
     document.getElementById('recipe-total-cost').textContent = `$${formatCLP(t)} CLP`;
+
     const p = parseInt(document.getElementById('recipe-portions').value);
     const pd = document.getElementById('recipe-portion-cost');
     if (!isNaN(p) && p > 1) {
@@ -653,9 +677,13 @@ function updateRecipeTotal() {
 
 function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourseName = '', sourceClassDate = '') {
     const n = document.getElementById('recipe-name').value.trim();
-    if (!n) { showToast("Ingresa nombre", true); return; }
+    if (!n) {
+        showToast("Ingresa nombre", true);
+        return;
+    }
     if (currentRecipeIngredients.length === 0 && currentRecipeDecorations.length === 0) {
-        showToast("Agrega ingredientes", true); return;
+        showToast("Agrega ingredientes", true);
+        return;
     }
 
     const ic = currentRecipeIngredients.reduce((s, i) => s + i.cost, 0);
@@ -701,7 +729,6 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
         };
         recipes.push(newRecipe);
         showToast("Receta guardada!");
-
         if (recipeSource === 'class') {
             currentSelectedClassRecipe = JSON.parse(JSON.stringify(newRecipe));
             renderSelectedClassRecipeBox();
@@ -744,10 +771,6 @@ function duplicateCurrentRecipe() {
     updateRecipesView();
     closeModal('modal-recipe');
     showToast(`"${nr.name}" duplicada!`);
-}
-
-function saveRecipesToStorage() {
-    localStorage.setItem('mushu_recipes', JSON.stringify(recipes));
 }
 
 function toggleSellingPrice() {
