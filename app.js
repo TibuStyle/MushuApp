@@ -1053,3 +1053,85 @@ function formatDate(ds) {
     const d = new Date(ds + 'T00:00:00');
     return `${d.getDate()} ${ms[d.getMonth()]} ${d.getFullYear()}`;
 }
+
+// ========================================
+// COURSES / CLASSES VIEW
+// ========================================
+function updateClassesView() {
+    const teacherView = document.getElementById('teacher-classes-view');
+    const studentView = document.getElementById('student-classes-view');
+    const noModeView = document.getElementById('no-mode-classes-view');
+
+    if (teacherMode.active) {
+        if (teacherView) teacherView.style.display = 'block';
+        if (studentView) studentView.style.display = 'none';
+        if (noModeView) noModeView.style.display = 'none';
+        renderCourses();
+    } else if (studentName) {
+        if (teacherView) teacherView.style.display = 'none';
+        if (studentView) studentView.style.display = 'block';
+        if (noModeView) noModeView.style.display = 'none';
+        renderStudentClassesByFolders();
+    } else {
+        if (teacherView) teacherView.style.display = 'none';
+        if (studentView) studentView.style.display = 'none';
+        if (noModeView) noModeView.style.display = 'block';
+    }
+}
+
+function showCreateCourseModal(courseId = null) {
+    currentCourseStudents = [];
+    currentEditingCourseId = null;
+    document.getElementById('course-name').value = '';
+    document.getElementById('course-day').value = 'Lunes';
+    document.getElementById('course-schedule').value = '';
+    document.getElementById('modal-course-title').textContent = 'Crear Curso';
+
+    const moduleSelect = document.getElementById('course-module-select');
+    if (!modules.length) {
+        moduleSelect.innerHTML = '<option value="">No hay módulos</option>';
+    } else {
+        moduleSelect.innerHTML = modules.map(m =>
+            `<option value="${m.id}">${m.name} (${m.prefix})</option>`
+        ).join('');
+    }
+
+    if (courseId) {
+        const course = courses.find(c => String(c.id) === String(courseId));
+        if (course) {
+            currentEditingCourseId = String(course.id);
+            document.getElementById('course-name').value = course.name;
+            document.getElementById('course-day').value = course.day;
+            document.getElementById('course-schedule').value = course.schedule || '';
+            moduleSelect.value = course.moduleId || '';
+            currentCourseStudents = [...(course.students || [])];
+            document.getElementById('modal-course-title').textContent = 'Editar Curso';
+        }
+    }
+
+    renderCourseStudents();
+    document.getElementById('modal-course').classList.add('active');
+}
+
+function addStudentToCourse() {
+    const input = document.getElementById('course-add-student');
+    const name = input.value.trim();
+    if (!name) { showToast('Ingresa un nombre', true); return; }
+    if (currentCourseStudents.find(s => s.name.toLowerCase() === name.toLowerCase())) {
+        showToast('Alumno ya existe', true);
+        return;
+    }
+
+    const studentCode = String(currentCourseStudents.length + 1).padStart(2, '0');
+    currentCourseStudents.push({
+        id: Date.now().toString(),
+        name,
+        studentCode
+    });
+
+    input.value = '';
+    renderCourseStudents();
+}
+
+function removeStudentFromCourse(studentId) {
+    currentCourseStudents = 
