@@ -1134,4 +1134,992 @@ function addStudentToCourse() {
 }
 
 function removeStudentFromCourse(studentId) {
-    currentCourseStudents = 
+    currentCourseStudents = currentCourseStudents.filter(s => String(s.id) !== String(studentId));
+    currentCourseStudents = currentCourseStudents.map((s, index) => ({
+        ...s,
+        studentCode: String(index + 1).padStart(2, '0')
+    }));
+    renderCourseStudents();
+}
+
+function renderCourseStudents() {
+    const list = document.getElementById('course-students-list');
+    if (!currentCourseStudents.length) {
+        list.innerHTML = '<div style="padding:10px;font-size:13px;color:var(--text-muted);text-align:center;">Sin alumnos aún</div>';
+        return;
+    }
+
+    list.innerHTML = currentCourseStudents.map(s => `
+        <div class="course-student-item">
+            <span>👤 ${s.name}</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span class="student-code-badge">${s.studentCode || '--'}</span>
+                <button onclick="removeStudentFromCourse('${s.id}')"><i class='bx bx-x'></i></button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function saveCourse() {
+    const name = document.getElementById('course-name').value.trim();
+    const moduleId = document.getElementById('course-module-select').value;
+    const day = document.getElementById('course-day').value;
+    const schedule = document.getElementById('course-schedule').value.trim();
+
+    const mod = modules.find(m => String(m.id) === String(moduleId));
+
+    if (!name) { showToast('Ingresa nombre del curso', true); return; }
+    if (!moduleId || !mod) { showToast('Selecciona un módulo', true); return; }
+    if (!currentCourseStudents.length) { showToast('Agrega al menos un alumno', true); return; }
+
+    if (currentEditingCourseId) {
+        const idx = courses.findIndex(c => String(c.id) === String(currentEditingCourseId));
+        if (idx !== -1) {
+            courses[idx] = {
+                ...courses[idx],
+                name,
+                moduleId: mod.id,
+                moduleName: mod.name,
+                day,
+                schedule,
+                students: currentCourseStudents
+            };
+            showToast('Curso actualizado!');
+        }
+    } else {
+        courses.push({
+            id: Date.now().toString(),
+            name,
+            moduleId: mod.id,
+            moduleName: mod.name,
+            day,
+            schedule,
+            students: currentCourseStudents,
+            classes: []
+        });
+        showToast('Curso creado!');
+    }
+
+    saveCourses();
+    renderCourses();
+    closeModal('modal-course');
+}
+
+function deleteCourse(courseId) {
+    showConfirmModal(
+        'Eliminar curso',
+        '¿Eliminar este curso y todas sus clases?',
+        () => {
+            courses = courses.filter(c => String(c.id) !== String(courseId));
+            saveCourses();
+            renderCourses();
+            showToast('Curso eliminado');
+        }
+    );
+}
+
+function renderCourses() {
+    const list = document.getElementById('courses-list');
+    if (!courses.length) {
+        list.innerHTML = '<div class="empty-state">No hay cursos. Crea tu primer curso.</div>';
+        return;
+    }
+
+    list.innerHTML = courses.map((course, idx) => {
+        const bodyOpen = idx === 0 ? 'open' : '';
+        const moduleData = modules.find(m => String(m.id) === String(course.moduleId));
+        const modulePrefix = moduleData ? moduleData.prefix : '---';
+
+        const classesHTML = (course.classes || []).sort((a, b) => new Date(b.date) - new Date(a.date)).map(cls => {
+            const att = cls.attendance || [];
+            const present = att.filter(a => a.present).length;
+            const total = att.length;
+            return `
+                <div class="class-item">
+                    <div class="class-item-info" onclick="showAttendanceModal('${course.id}', '${cls.id}')">
+                        <h4>${cls.name}</h4>
+                        <p>📅 ${formatDate(cls.date)} • Código clase: ${cls.blockCode || '----'} • ✅ ${present}/${total}</p>
+                    </div>
+                    <div class="class-item-actions">
+                        <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showEditClassModal('${course.id}','${cls.id}')"><i class='bx bx-edit'></i></button>
+                        <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showAttendanceModal('${course.id}','${cls.id}')"><i class='bx bx-clipboard'></i></button>
+                        <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteClass('${course.id}','${cls.id}')"><i class='bx bx-trash'></i></button>
+                    </div>
+                </div>`;
+        }).join('');
+
+        const folderId = course.id;
+
+        return `
+            <div class="course-card">
+                <div class="course-card-header" onclick="toggleFolderBody('course-folder','${folderId}')">
+                    <div class="course-card-header-left">
+                        <i class='bx bxs-graduation' style="font-size:24px;color:var(--secondary-color);"></i>
+                        <div>
+                            <h3>${course.name}</h3>
+                            <div class="course-card-day">${course.day} • Módulo: ${course.moduleName} (${modulePrefix})</div>
+                            <div class="course-card-schedule">${course.schedule || ''} • ${course.students.length} alumnos</div>
+                        </div>
+                    </div>
+                    <div class="course-card-actions" onclick="event.stopPropagation()">
+                        <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showCreateCourseModal('${course.id}')"><i class='bx bx-edit'></i></button>
+                        <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteCourse('${course.id}')"><i class='bx bx-trash'></i></button>
+                    </div>
+                </div>
+                <div class="course-card-body ${bodyOpen}" id="course-folder-body-${folderId}">
+                    ${classesHTML}
+                    <button class="btn-add-class" onclick="showCreateClassModal('${course.id}')">
+                        <i class='bx bx-plus'></i> Nueva Clase
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function showCreateClassModal(courseId) {
+    currentEditingClassId = null;
+    currentClassPhotos = [];
+    currentSelectedClassRecipe = null;
+
+    document.getElementById('class-name').value = '';
+    document.getElementById('class-date').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('class-tips').value = '';
+    document.getElementById('class-photos-preview').innerHTML = '';
+    document.getElementById('selected-class-recipe-box').style.display = 'none';
+    document.getElementById('selected-class-recipe-box').innerHTML = '';
+    document.getElementById('modal-class-title').textContent = 'Crear Clase';
+
+    const courseSelect = document.getElementById('class-course-select');
+    courseSelect.innerHTML = courses.map(c =>
+        `<option value="${c.id}" ${String(c.id) === String(courseId) ? 'selected' : ''}>${c.name}</option>`
+    ).join('');
+
+    document.getElementById('modal-create-class').classList.add('active');
+}
+
+function showEditClassModal(courseId, classId) {
+    const course = courses.find(c => String(c.id) === String(courseId));
+    if (!course) return;
+    const cls = (course.classes || []).find(cl => String(cl.id) === String(classId));
+    if (!cls) return;
+
+    currentEditingClassId = classId;
+    currentClassPhotos = [...(cls.photos || [])];
+    currentSelectedClassRecipe = cls.linkedRecipe ? JSON.parse(JSON.stringify(cls.linkedRecipe)) : null;
+
+    document.getElementById('class-name').value = cls.name;
+    document.getElementById('class-date').value = cls.date;
+    document.getElementById('class-tips').value = cls.tips || '';
+    document.getElementById('modal-class-title').textContent = `Editar Clase • ${cls.blockCode || ''}`;
+
+    const courseSelect = document.getElementById('class-course-select');
+    courseSelect.innerHTML = courses.map(c =>
+        `<option value="${c.id}" ${String(c.id) === String(courseId) ? 'selected' : ''}>${c.name}</option>`
+    ).join('');
+
+    renderClassPhotosPreview();
+    renderSelectedClassRecipeBox();
+
+    document.getElementById('modal-create-class').classList.add('active');
+}
+
+function renderSelectedClassRecipeBox() {
+    const box = document.getElementById('selected-class-recipe-box');
+    if (!currentSelectedClassRecipe) {
+        box.style.display = 'none';
+        box.innerHTML = '';
+        return;
+    }
+
+    box.style.display = 'block';
+    box.className = 'selected-class-recipe-box';
+    box.innerHTML = `
+        <strong>📖 ${currentSelectedClassRecipe.name}</strong>
+        <p>Costo: $${formatCLP(currentSelectedClassRecipe.totalCost)} • ${currentSelectedClassRecipe.portions > 1 ? currentSelectedClassRecipe.portions + ' porciones' : 'Entera'}</p>
+        <div class="selected-class-recipe-actions">
+            <button class="change" onclick="selectExistingRecipeForClass()">Cambiar</button>
+            <button class="clear" onclick="clearSelectedClassRecipe()">Quitar</button>
+        </div>
+    `;
+}
+
+function clearSelectedClassRecipe() {
+    currentSelectedClassRecipe = null;
+    renderSelectedClassRecipeBox();
+}
+
+function handleClassPhotos(event) {
+    const files = Array.from(event.target.files);
+    if (currentClassPhotos.length + files.length > 5) {
+        showToast('Máximo 5 fotos', true);
+        return;
+    }
+
+    files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const img = new Image();
+            img.onload = function () {
+                const canvas = document.createElement('canvas');
+                const maxW = 800;
+                let w = img.width, h = img.height;
+                if (w > maxW) {
+                    h = Math.round(h * maxW / w);
+                    w = maxW;
+                }
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const compressed = canvas.toDataURL('image/jpeg', 0.7);
+                currentClassPhotos.push(compressed);
+                renderClassPhotosPreview();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    event.target.value = '';
+}
+
+function removeClassPhoto(index) {
+    currentClassPhotos.splice(index, 1);
+    renderClassPhotosPreview();
+}
+
+function renderClassPhotosPreview() {
+    const preview = document.getElementById('class-photos-preview');
+    if (!currentClassPhotos.length) {
+        preview.innerHTML = '';
+        return;
+    }
+
+    preview.innerHTML = currentClassPhotos.map((photo, i) => `
+        <div class="class-photo-container">
+            <img src="${photo}" class="class-photo-thumb">
+            <button class="class-photo-remove" onclick="removeClassPhoto(${i})"><i class='bx bx-x'></i></button>
+        </div>
+    `).join('');
+}
+
+function onClassCourseChange() {}
+
+function saveClass() {
+    const courseId = document.getElementById('class-course-select').value;
+    const name = document.getElementById('class-name').value.trim();
+    const date = document.getElementById('class-date').value;
+    const tips = document.getElementById('class-tips').value.trim();
+    const codeExpiry = parseInt(document.getElementById('class-code-expiry').value);
+
+    if (!name) { showToast('Ingresa nombre de clase', true); return; }
+    if (!date) { showToast('Selecciona fecha', true); return; }
+    if (!currentSelectedClassRecipe) { showToast('Debes seleccionar una receta del módulo', true); return; }
+
+    const course = courses.find(c => String(c.id) === String(courseId));
+    if (!course) { showToast('Selecciona un curso', true); return; }
+
+    if (currentEditingClassId) {
+        const cls = (course.classes || []).find(cl => String(cl.id) === String(currentEditingClassId));
+        if (!cls) return;
+
+        cls.name = name;
+        cls.date = date;
+        cls.tips = tips;
+        cls.photos = [...currentClassPhotos];
+        cls.linkedRecipe = JSON.parse(JSON.stringify(currentSelectedClassRecipe));
+        cls.linkedRecipeId = currentSelectedClassRecipe.id;
+        cls.codeExpiry = codeExpiry;
+        showToast('Clase actualizada!');
+    } else {
+        const mod = modules.find(m => String(m.id) === String(course.moduleId));
+        const modulePrefix = mod ? mod.prefix : 'MOD';
+        const blockCode = generateClassBlockCode();
+
+        const attendance = course.students.map(s => ({
+            studentId: s.id,
+            studentName: s.name,
+            studentCode: s.studentCode,
+            present: false,
+            code: null,
+            shortCode: buildVisibleShortCode(modulePrefix, blockCode, s.studentCode),
+            codeData: null,
+            codeUsed: false,
+            activatedAt: null
+        }));
+
+        const newClass = {
+            id: Date.now().toString(),
+            name,
+            date,
+            tips,
+            photos: [...currentClassPhotos],
+            linkedRecipeId: currentSelectedClassRecipe.id,
+            linkedRecipe: JSON.parse(JSON.stringify(currentSelectedClassRecipe)),
+            codeExpiry,
+            blockCode,
+            attendance,
+            codesGenerated: false
+        };
+
+        if (!course.classes) course.classes = [];
+        course.classes.push(newClass);
+        showToast(`Clase creada! Código base: ${blockCode}`);
+    }
+
+    saveCourses();
+    renderCourses();
+    closeModal('modal-create-class');
+}
+
+function deleteClass(courseId, classId) {
+    showConfirmModal(
+        'Eliminar clase',
+        '¿Eliminar esta clase?',
+        () => {
+            const course = courses.find(c => String(c.id) === String(courseId));
+            if (!course) return;
+            course.classes = (course.classes || []).filter(cl => String(cl.id) !== String(classId));
+            saveCourses();
+            renderCourses();
+            showToast('Clase eliminada');
+        }
+    );
+}
+
+function showAttendanceModal(courseId, classId) {
+    currentAttendanceCourseId = courseId;
+    currentAttendanceClassId = classId;
+
+    const course = courses.find(c => String(c.id) === String(courseId));
+    if (!course) return;
+    const cls = (course.classes || []).find(cl => String(cl.id) === String(classId));
+    if (!cls) return;
+
+    currentAttendanceData = JSON.parse(JSON.stringify(cls.attendance || []));
+
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    const modulePrefix = mod ? mod.prefix : '---';
+
+    document.getElementById('attendance-class-info').innerHTML = `
+        <div style="text-align:center;margin-bottom:16px;">
+            <h4 style="margin:0 0 4px;">${cls.name}</h4>
+            <p style="font-size:13px;color:var(--text-muted);margin:0;">📅 ${formatDate(cls.date)} • ${course.name}</p>
+            <p style="font-size:12px;color:var(--secondary-color);font-weight:700;margin:6px 0 0;">Prefijo: ${modulePrefix} • Bloque: ${cls.blockCode || '----'}</p>
+        </div>`;
+
+    renderAttendanceList();
+
+    const codesSection = document.getElementById('generated-codes-section');
+    if (cls.codesGenerated) {
+        document.getElementById('btn-generate-codes').style.display = 'flex';
+        codesSection.style.display = 'block';
+        renderGeneratedCodes(cls, course);
+    } else {
+        document.getElementById('btn-generate-codes').style.display = 'flex';
+        codesSection.style.display = 'none';
+    }
+
+    document.getElementById('modal-attendance').classList.add('active');
+}
+
+function toggleAttendance(studentId) {
+    const student = currentAttendanceData.find(a => String(a.studentId) === String(studentId));
+    if (student) {
+        student.present = !student.present;
+        renderAttendanceList();
+    }
+}
+
+function saveAttendanceOnly() {
+    const course = courses.find(c => String(c.id) === String(currentAttendanceCourseId));
+    if (!course) return;
+    const cls = (course.classes || []).find(cl => String(cl.id) === String(currentAttendanceClassId));
+    if (!cls) return;
+    cls.attendance = JSON.parse(JSON.stringify(currentAttendanceData));
+    saveCourses();
+    renderAttendanceList();
+    showToast('Asistencia guardada');
+}
+
+function renderAttendanceList() {
+    const list = document.getElementById('attendance-list');
+    list.innerHTML = currentAttendanceData.map(a => {
+        const statusIcon = a.present ? '✅' : '❌';
+        let codeStatus = '';
+        if (a.code) {
+            codeStatus = a.codeUsed
+                ? `<span class="attendance-code-status sent">📋 enviado</span>`
+                : `<span class="attendance-code-status pending">⚠️ pendiente</span>`;
+        }
+        return `
+            <div class="attendance-item">
+                <div class="attendance-left">
+                    <span class="attendance-status" onclick="toggleAttendance('${a.studentId}')">${statusIcon}</span>
+                    <span class="attendance-name">${a.studentName}</span>
+                    <span class="student-code-badge">${a.studentCode || '--'}</span>
+                </div>
+                ${codeStatus}
+            </div>`;
+    }).join('');
+}
+
+function generateCodes() {
+    const course = courses.find(c => String(c.id) === String(currentAttendanceCourseId));
+    if (!course) return;
+    const cls = (course.classes || []).find(cl => String(cl.id) === String(currentAttendanceClassId));
+    if (!cls) return;
+
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    const modulePrefix = mod ? mod.prefix : 'MOD';
+
+    currentAttendanceData.forEach(a => {
+        const visibleCode = buildVisibleShortCode(modulePrefix, cls.blockCode || 'R75T', a.studentCode || '00');
+
+        const codeData = {
+            code: visibleCode,
+            className: cls.name,
+            courseId: course.id,
+            courseName: course.name,
+            moduleId: course.moduleId,
+            moduleName: course.moduleName,
+            classId: cls.id,
+            studentId: a.studentId,
+            studentName: a.studentName,
+            studentCode: a.studentCode,
+            present: a.present,
+            date: cls.date,
+            tips: cls.tips,
+            photos: cls.photos,
+            linkedRecipe: cls.linkedRecipe,
+            expiry: cls.codeExpiry > 0 ? new Date(Date.now() + cls.codeExpiry * 3600000).toISOString() : null
+        };
+
+        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(codeData))));
+        a.shortCode = visibleCode;
+        a.code = encoded;
+        a.codeData = encoded;
+        a.codeUsed = false;
+    });
+
+    cls.attendance = JSON.parse(JSON.stringify(currentAttendanceData));
+    cls.codesGenerated = true;
+    saveCourses();
+
+    document.getElementById('generated-codes-section').style.display = 'block';
+    renderGeneratedCodes(cls, course);
+    renderAttendanceList();
+    showToast('Códigos generados! 📋');
+}
+
+function regenerateCodes() {
+    showConfirmModal(
+        'Regenerar códigos',
+        '¿Regenerar códigos? Los anteriores quedarán obsoletos.',
+        () => {
+            generateCodes();
+            showToast('Códigos regenerados 🔄');
+        }
+    );
+}
+
+function renderGeneratedCodes(cls, course) {
+    const list = document.getElementById('generated-codes-list');
+    const att = cls.attendance || [];
+    const present = att.filter(a => a.present);
+    const absent = att.filter(a => !a.present);
+
+    let html = '';
+    if (present.length > 0) {
+        html += `<div style="font-size:13px;font-weight:600;color:var(--success-color);margin:8px 0;">✅ Presentes (${present.length})</div>`;
+        html += present.map(a => renderCodeItem(a)).join('');
+    }
+    if (absent.length > 0) {
+        html += `<div style="font-size:13px;font-weight:600;color:var(--warning-color);margin:8px 0;">❌ Ausentes (${absent.length})</div>`;
+        html += absent.map(a => renderCodeItem(a)).join('');
+    }
+    list.innerHTML = html;
+}
+
+function renderCodeItem(a) {
+    return `
+        <div class="code-item">
+            <div>
+                <div class="code-item-left">
+                    <span class="code-item-status">${a.present ? '✅' : '❌'}</span>
+                    <span class="code-item-name">${a.studentName}</span>
+                    <span class="student-code-badge">${a.studentCode || '--'}</span>
+                </div>
+                <div class="code-item-short">${a.shortCode || 'MODR75T00'}</div>
+                <div class="code-item-code">Código completo oculto • usar botón copiar</div>
+            </div>
+            <button class="code-item-copy" onclick="copySingleCode('${a.studentId}')">Copiar</button>
+        </div>`;
+}
+
+function copySingleCode(studentId) {
+    const a = currentAttendanceData.find(x => String(x.studentId) === String(studentId));
+    if (!a || !a.codeData) return;
+
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(a.codeData).then(() => {
+            a.codeUsed = true;
+            saveAttendanceOnly();
+            renderAttendanceList();
+            showToast(`Código de ${a.studentName} copiado!`);
+        });
+    } else {
+        const ta = document.createElement('textarea');
+        ta.value = a.codeData;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        a.codeUsed = true;
+        saveAttendanceOnly();
+        renderAttendanceList();
+        showToast(`Código de ${a.studentName} copiado!`);
+    }
+}
+
+function copyAllCodes() {
+    const allCodes = currentAttendanceData
+        .filter(a => a.codeData)
+        .map(a => `${a.studentName} - ${a.shortCode || ''}\n${a.codeData}`)
+        .join('\n\n');
+
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(allCodes).then(() => {
+            currentAttendanceData.forEach(a => { if (a.code) a.codeUsed = true; });
+            saveAttendanceOnly();
+            renderAttendanceList();
+            showToast('Todos los códigos copiados!');
+        });
+    } else {
+        const ta = document.createElement('textarea');
+        ta.value = allCodes;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        currentAttendanceData.forEach(a => { if (a.code) a.codeUsed = true; });
+        saveAttendanceOnly();
+        renderAttendanceList();
+        showToast('Todos los códigos copiados!');
+    }
+}
+
+function renderStudentClassesByFolders() {
+    const list = document.getElementById('student-class-folders-list');
+    if (!importedClasses.length) {
+        list.innerHTML = '<div class="empty-state">No hay clases importadas todavía.</div>';
+        return;
+    }
+
+    const folders = {};
+    importedClasses.forEach(ic => {
+        const folder = ic.courseName;
+        if (!folders[folder]) folders[folder] = [];
+        folders[folder].push(ic);
+    });
+
+    const names = Object.keys(folders).sort((a, b) => a.localeCompare(b));
+
+    list.innerHTML = names.map((folderName, idx) => {
+        const folderId = folderName.replace(/[^a-zA-Z0-9]/g, '_');
+        const classes = folders[folderName].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        return `
+            <div class="folder-card">
+                <div class="folder-card-header" onclick="toggleFolderBody('student-class-folder','${folderId}')">
+                    <div class="folder-card-left">
+                        <i class='bx bxs-graduation' style="font-size:22px;color:var(--secondary-color);"></i>
+                        <div>
+                            <h3>${folderName}</h3>
+                            <p>${classes.length} clase${classes.length !== 1 ? 's' : ''}</p>
+                        </div>
+                    </div>
+                    <i class='bx bx-chevron-down folder-card-chevron' id="student-class-folder-chevron-${folderId}" style="transform:${idx === 0 ? 'rotate(0deg)' : 'rotate(-90deg)'};"></i>
+                </div>
+                <div class="folder-card-body ${idx === 0 ? 'open' : ''}" id="student-class-folder-body-${folderId}">
+                    ${classes.map(ic => `
+                        <div class="imported-class-card" onclick="viewImportedClass('${ic.id}')">
+                            <h3>${ic.className}</h3>
+                            <p>📅 ${formatDate(ic.date)} • ${ic.visibleCode || ''}</p>
+                            <span class="class-content-badge ${ic.present ? 'present' : 'absent'}">
+                                ${ic.present ? '✅ Clase' : '⚠️ Material de repaso'}
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderImportedClasses() {
+    renderStudentClassesByFolders();
+}
+
+function viewImportedClass(classId) {
+    const ic = importedClasses.find(x => String(x.id) === String(classId));
+    if (!ic) return;
+
+    const watermarkName = studentName || ic.studentName || 'Alumno';
+    document.getElementById('view-class-title').textContent = ic.className;
+
+    let html = '';
+
+    html += `<div class="class-content-header">
+        <h2>${ic.className}</h2>
+        <p>📅 ${formatDate(ic.date)} • ${ic.courseName}</p>
+        <p style="font-size:12px;color:var(--secondary-color);font-weight:700;margin:6px 0 0;">Código: ${ic.visibleCode || ''}</p>
+        <span class="class-content-badge ${ic.present ? 'present' : 'absent'}">
+            ${ic.present ? '✅ Asistencia registrada' : '⚠️ Material de repaso - No registra asistencia'}
+        </span>
+    </div>`;
+
+    if (ic.photos && ic.photos.length > 0) {
+        html += `<div class="class-content-section">
+            <h4><i class='bx bx-camera'></i> Fotos</h4>
+            <div class="class-content-photos">
+                ${ic.photos.map(p => `
+                    <div class="class-content-photo">
+                        <img src="${p}" alt="Foto de clase">
+                        <div class="watermark-photo">${watermarkName}</div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>`;
+    }
+
+    if (ic.tips) {
+        html += `<div class="class-content-section">
+            <h4><i class='bx bx-bulb'></i> Tips de la Profe</h4>
+            <div class="class-content-tips">
+                <div class="watermark">${watermarkName}</div>
+                ${ic.tips.replace(/\n/g, '<br>')}
+            </div>
+        </div>`;
+    }
+
+    if (ic.linkedRecipe) {
+        const r = ic.linkedRecipe;
+        const ic2 = (r.ingredients || []).reduce((s, i) => s + i.cost, 0);
+        const dc2 = (r.decorations || []).reduce((s, i) => s + i.cost, 0);
+        const ec2 = r.extraCost || 0;
+
+        html += `<div class="class-content-section">
+            <h4><i class='bx bx-calculator'></i> Receta y Costos</h4>
+            <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;position:relative;overflow:hidden;">
+                <div class="watermark">${watermarkName}</div>
+                <div style="font-weight:700;font-size:16px;margin-bottom:8px;">${r.name}</div>
+                <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;"><span>Ingredientes:</span><span>$${formatCLP(ic2)}</span></div>
+                <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;"><span>Decoración:</span><span>$${formatCLP(dc2)}</span></div>
+                ${ec2 > 0 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;"><span>Extra:</span><span>$${formatCLP(ec2)}</span></div>` : ''}
+                <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:2px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:700;font-size:16px;"><span>COSTO TOTAL</span><span>$${formatCLP(r.totalCost)}</span></div>
+                <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:var(--secondary-color);font-weight:600;"><span>💰 Venta sugerida (x${profitMargin}):</span><span>$${formatCLP(Math.floor((r.totalCost * profitMargin) / 500) * 500)}</span></div>
+                ${r.portions > 1 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:var(--text-muted);"><span>🍰 Por porción (${r.portions}x):</span><span>$${formatCLP(Math.round(Math.floor((r.totalCost * profitMargin) / 500) * 500 / r.portions))} c/u</span></div>` : ''}
+            </div>
+        </div>`;
+    }
+
+    document.getElementById('view-class-content').innerHTML = html;
+    document.getElementById('modal-view-class').classList.add('active');
+}
+
+function showImportClassModal() {
+    document.getElementById('import-class-code').value = '';
+    document.getElementById('modal-import-class').classList.add('active');
+}
+
+function normalizeName(str) {
+    return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+function getMissingMaterialsForRecipe(recipe) {
+    const needed = [];
+    const all = [...(recipe.ingredients || []), ...(recipe.decorations || [])];
+
+    all.forEach(item => {
+        const exists = materials.some(m => normalizeName(m.name) === normalizeName(item.name));
+        if (!exists && !needed.find(n => normalizeName(n.name) === normalizeName(item.name))) {
+            needed.push({
+                name: item.name,
+                category: (recipe.decorations || []).some(d => normalizeName(d.name) === normalizeName(item.name)) ? 'decoracion' : 'productos'
+            });
+        }
+    });
+
+    return needed;
+}
+
+function importClassFromCode() {
+    const codeInput = document.getElementById('import-class-code').value.trim();
+    if (!codeInput) { showToast('Pega un código', true); return; }
+
+    try {
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(codeInput))));
+
+        if (!decoded.className || !decoded.linkedRecipe) {
+            showToast('Código inválido', true);
+            return;
+        }
+
+        if (decoded.expiry && new Date(decoded.expiry) < new Date()) {
+            showToast('Este código ha expirado ⏰', true);
+            return;
+        }
+
+        const existing = importedClasses.find(ic =>
+            ic.classId === decoded.classId && ic.studentName === decoded.studentName
+        );
+        if (existing) {
+            showToast('Ya importaste esta clase', true);
+            return;
+        }
+
+        const missing = getMissingMaterialsForRecipe(decoded.linkedRecipe);
+        if (missing.length > 0) {
+            pendingImportClassData = decoded;
+            showMissingMaterialsModal(missing);
+            closeModal('modal-import-class');
+            return;
+        }
+
+        completeClassImport(decoded);
+
+    } catch (err) {
+        console.error(err);
+        showToast('Código inválido o corrupto', true);
+    }
+}
+
+function showMissingMaterialsModal(missing) {
+    const list = document.getElementById('missing-materials-list');
+    list.innerHTML = missing.map((m, i) => `
+        <div class="missing-material-item">
+            <h4><i class='bx bx-error-circle'></i> ${m.name}</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Precio (CLP)</label>
+                    <input type="number" id="missing-price-${i}" placeholder="990" min="0">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Cantidad Base</label>
+                    <input type="number" id="missing-qty-${i}" placeholder="1" min="0.01" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Unidad</label>
+                    <select id="missing-unit-${i}">
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="l">L</option>
+                        <option value="cm3">mL</option>
+                        <option value="u">u</option>
+                    </select>
+                </div>
+            </div>
+            <input type="hidden" id="missing-name-${i}" value="${m.name}">
+            <input type="hidden" id="missing-category-${i}" value="${m.category}">
+        </div>
+    `).join('');
+    document.getElementById('modal-missing-materials').classList.add('active');
+}
+
+function saveMissingMaterialsAndContinue() {
+    const items = document.querySelectorAll('[id^="missing-name-"]');
+
+    for (let i = 0; i < items.length; i++) {
+        const name = document.getElementById(`missing-name-${i}`).value;
+        const category = document.getElementById(`missing-category-${i}`).value;
+        const price = parseFloat(document.getElementById(`missing-price-${i}`).value);
+        const qty = parseFloat(document.getElementById(`missing-qty-${i}`).value);
+        const unit = document.getElementById(`missing-unit-${i}`).value;
+
+        if (!name || isNaN(price) || isNaN(qty) || qty <= 0) {
+            showToast('Completa todos los materiales faltantes', true);
+            return;
+        }
+
+        materials.push({
+            id: Date.now().toString() + '-' + i,
+            name,
+            price,
+            qty,
+            unit,
+            category,
+            subcategory: '',
+            priceHistory: [{ date: new Date().toISOString().slice(0, 10), price }]
+        });
+    }
+
+    saveMaterialsToStorage();
+    renderMaterials();
+    updateMaterialSelect();
+    updateDecorationSelect();
+    updateExtraSubcategorySelect();
+
+    closeModal('modal-missing-materials');
+
+    if (pendingImportClassData) {
+        completeClassImport(pendingImportClassData);
+        pendingImportClassData = null;
+    }
+}
+
+function completeClassImport(decoded) {
+    const importedClass = {
+        id: Date.now().toString(),
+        classId: decoded.classId,
+        className: decoded.className,
+        courseName: decoded.courseName,
+        moduleName: decoded.moduleName || '',
+        studentName: decoded.studentName,
+        studentCode: decoded.studentCode || '',
+        visibleCode: decoded.code || '',
+        present: decoded.present,
+        date: decoded.date,
+        tips: decoded.tips || '',
+        photos: decoded.photos || [],
+        linkedRecipe: decoded.linkedRecipe,
+        importedAt: new Date().toISOString()
+    };
+
+    importedClasses.push(importedClass);
+    saveImportedClasses();
+
+    const recipeCopy = JSON.parse(JSON.stringify(decoded.linkedRecipe));
+    recipeCopy.id = Date.now().toString() + '-class';
+    recipeCopy.recipeFolder = decoded.courseName;
+    recipeCopy.recipeSource = 'class';
+    recipeCopy.sourceCourseName = decoded.courseName;
+    recipeCopy.sourceClassDate = decoded.date;
+
+    const alreadyExists = recipes.find(r =>
+        r.name === recipeCopy.name &&
+        r.recipeFolder === recipeCopy.recipeFolder &&
+        r.sourceClassDate === recipeCopy.sourceClassDate
+    );
+
+    if (!alreadyExists) {
+        recipes.push(recipeCopy);
+        saveRecipesToStorage();
+    }
+
+    renderImportedClasses();
+    renderStudentClassesByFolders();
+    updateRecipesView();
+    closeModal('modal-import-class');
+
+    if (decoded.present) {
+        showToast('Clase importada! 🎓');
+    } else {
+        showToast('Material de repaso importado 📖');
+    }
+}
+
+function exportData() {
+    const d = {
+        version: '4.0',
+        exportDate: new Date().toISOString(),
+        materials,
+        recipes,
+        modules,
+        courses,
+        importedClasses,
+        extraSubcategories: JSON.parse(localStorage.getItem('mushu_extra_subcategories') || '[]'),
+        profitMargin,
+        teacherMode,
+        studentName
+    };
+
+    const b = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+    const u = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href = u;
+    a.download = `mushuapp_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(u);
+    showToast("Exportado! 📦");
+}
+
+function importData(event) {
+    const f = event.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+
+    r.onload = function (e) {
+        try {
+            const d = JSON.parse(e.target.result);
+            if (!d.materials || !d.recipes) {
+                showToast("Archivo inválido", true);
+                return;
+            }
+
+            showConfirmModal(
+                'Importar datos',
+                `Se importarán ${d.materials.length} materiales y ${d.recipes.length} recetas. ¿Continuar?`,
+                () => {
+                    materials = d.materials;
+                    recipes = d.recipes;
+                    if (d.modules) modules = d.modules;
+                    profitMargin = d.profitMargin || 2;
+                    if (d.courses) courses = d.courses;
+                    if (d.importedClasses) importedClasses = d.importedClasses;
+                    if (d.teacherMode) {
+                        teacherMode = d.teacherMode;
+                        localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
+                    }
+                    if (d.studentName) {
+                        studentName = d.studentName;
+                        localStorage.setItem('mushu_student_name', studentName);
+                    }
+                    if (d.extraSubcategories) {
+                        localStorage.setItem('mushu_extra_subcategories', JSON.stringify(d.extraSubcategories));
+                    }
+
+                    saveMaterialsToStorage();
+                    saveRecipesToStorage();
+                    saveModules();
+                    saveCourses();
+                    saveImportedClasses();
+                    localStorage.setItem('mushu_profit_margin', profitMargin.toString());
+
+                    normalizeExistingRecipes();
+                    normalizeExistingCourses();
+                    renderMaterials();
+                    updateRecipesView();
+                    updateMaterialSelect();
+                    updateDecorationSelect();
+                    updateExtraSubcategorySelect();
+                    updateClassesView();
+
+                    showToast(`Importado ✅`);
+                }
+            );
+        } catch (err) {
+            showToast("Error", true);
+        }
+    };
+
+    r.readAsText(f);
+    event.target.value = '';
+}
+
+// ========================================
+// UTILS
+// ========================================
+function formatCLP(n) {
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function formatDate(ds) {
+    const ms = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const d = new Date(ds + 'T00:00:00');
+    return `${d.getDate()} ${ms[d.getMonth()]} ${d.getFullYear()}`;
+}
