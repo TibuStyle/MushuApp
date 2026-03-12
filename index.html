@@ -2,13 +2,13 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <!-- MushuApp Version 3.6 -->
+    <!-- MushuApp Version 3.7 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Mushu App - Costos de Recetas</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="boxicons.min.css">
-    <link rel="manifest" href="manifest.json?v=3.6">
+    <link rel="manifest" href="manifest.json?v=3.7">
     <meta name="theme-color" content="#ffb6c1">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -417,7 +417,7 @@
                 </div>
 
                 <div class="settings-section" style="text-align: center; opacity: 0.5;">
-                    <p style="font-size: 12px;">MushuApp v3.6 • Hecho con ❤️</p>
+                    <p style="font-size: 12px;">MushuApp v3.7 • Hecho con ❤️</p>
                 </div>
             </div>
         </div>
@@ -552,6 +552,15 @@
                 <div class="form-group">
                     <label>Carpeta Base de Recetas (solo profe)</label>
                     <input type="text" id="course-base-folder" placeholder="Ej: Pastelería 1 Básica">
+                </div>
+
+                <!-- NUEVO -->
+                <div class="form-group">
+                    <label>Prefijo del Curso para Códigos</label>
+                    <input type="text" id="course-prefix" placeholder="Ej: PA1" maxlength="3">
+                    <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">
+                        Ejemplo de código final: PA1R75T01
+                    </p>
                 </div>
 
                 <div class="form-row">
@@ -709,7 +718,7 @@
 
                 <div class="form-group">
                     <label>Pega tu código de clase</label>
-                    <textarea id="import-class-code" rows="4" placeholder="Pega aquí el código que te dio tu profe..." class="class-textarea"></textarea>
+                    <textarea id="import-class-code" rows="4" placeholder="Ej: PA1R75T01" class="class-textarea"></textarea>
                 </div>
 
                 <button class="btn-submit" onclick="importClassFromCode()">
