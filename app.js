@@ -2642,31 +2642,6 @@ function selectRecipeForClass(recipeId) {
     showToast(`Receta "${currentSelectedClassRecipe.name}" seleccionada`);
 }
 
-function renderSelectedClassRecipeBox() {
-    const box = document.getElementById('selected-class-recipe-box');
-    if (!currentSelectedClassRecipe) {
-        box.style.display = 'none';
-        box.innerHTML = '';
-        return;
-    }
-
-    box.style.display = 'block';
-    box.className = 'selected-class-recipe-box';
-    box.innerHTML = `
-        <strong>📖 ${currentSelectedClassRecipe.name}</strong>
-        <p>Costo: $${formatCLP(currentSelectedClassRecipe.totalCost)} • ${currentSelectedClassRecipe.portions > 1 ? currentSelectedClassRecipe.portions + ' porciones' : 'Entera'}</p>
-        <div class="selected-class-recipe-actions">
-            <button class="change" onclick="selectExistingRecipeForClass()">Cambiar</button>
-            <button class="clear" onclick="clearSelectedClassRecipe()">Quitar</button>
-        </div>
-    `;
-}
-
-function clearSelectedClassRecipe() {
-    currentSelectedClassRecipe = null;
-    renderSelectedClassRecipeBox();
-}
-
 // === FUNCIONES FALTANTES ===
 
 function saveStudentName() {
