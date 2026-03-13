@@ -766,9 +766,7 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
 
     const folderSelect = document.getElementById('recipe-folder-input');
     const finalFolder = recipeFolder || (folderSelect ? folderSelect.value : '') || 'Mis Recetas';
-        console.log('=== DEBUG SAVE RECIPE ===');
-    console.log('finalFolder:', finalFolder);
-    console.log('folderSelect value:', folderSelect ? folderSelect.value : 'NO SELECT');
+
     let finalSource = recipeSource;
     if (window.currentModuleRecipeMode) {
         finalSource = 'module';
@@ -780,10 +778,7 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
     } else if (finalFolder === 'Mis Recetas') {
         finalSource = 'personal';
     }
-
-    console.log('finalSource:', finalSource);
-    console.log('recipeSource original:', recipeSource);
-    
+ 
     if (currentEditingRecipeId) {
         const idx = recipes.findIndex(r => String(r.id) === String(currentEditingRecipeId));
         if (idx !== -1) {
