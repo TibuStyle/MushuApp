@@ -1612,7 +1612,8 @@ function showEditClassModal(courseId, classId) {
 
     document.getElementById('class-name').value = cls.name;
     document.getElementById('class-date').value = cls.date;
-    document.getElementById('class-tips').value = cls.tips || '';
+    const tipsField = document.getElementById('class-tips');
+    if (tipsField) tipsField.value = cls.tips || '';
     document.getElementById('modal-class-title').textContent = `Editar Clase • ${cls.blockCode || ''}`;
 
     const courseSelect = document.getElementById('class-course-select');
@@ -1620,7 +1621,7 @@ function showEditClassModal(courseId, classId) {
         `<option value="${c.id}" ${String(c.id) === String(courseId) ? 'selected' : ''}>${c.name}</option>`
     ).join('');
 
-    renderClassPhotosPreview();
+    if (typeof renderClassPhotosPreview === 'function') renderClassPhotosPreview();
     renderSelectedClassRecipeBox();
 
     document.getElementById('modal-create-class').classList.add('active');
@@ -1711,7 +1712,8 @@ function saveClass() {
     const courseId = document.getElementById('class-course-select').value;
     const name = document.getElementById('class-name').value.trim();
     const date = document.getElementById('class-date').value;
-    const tips = document.getElementById('class-tips').value.trim();
+    const tipsEl = document.getElementById('class-tips');
+    const tips = tipsEl ? tipsEl.value.trim() : '';
     const codeExpiry = parseInt(document.getElementById('class-code-expiry').value);
 
     if (!name) { showToast('Ingresa nombre de clase', true); return; }
@@ -1728,7 +1730,7 @@ function saveClass() {
         cls.name = name;
         cls.date = date;
         cls.tips = tips;
-        cls.photos = [...currentClassPhotos];
+        cls.photos = currentClassPhotos ? [...currentClassPhotos] : [];
         cls.linkedRecipe = JSON.parse(JSON.stringify(currentSelectedClassRecipe));
         cls.linkedRecipeId = currentSelectedClassRecipe.id;
         cls.codeExpiry = codeExpiry;
