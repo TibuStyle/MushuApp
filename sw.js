@@ -7,7 +7,8 @@ const ASSETS = [
   './manifest.json',
   './mushu_logo.png',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './boxicons.min.css'
 ];
 
 const EXTERNAL_ASSETS = [
