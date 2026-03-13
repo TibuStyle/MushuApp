@@ -197,6 +197,8 @@ function buildVisibleShortCode(modulePrefix, blockCode, studentCode) {
 // === MATERIALES PENDIENTES - VARIABLES ===
 let pendingMaterialData = null;
 let pendingMaterialCallback = null;
+let newMaterialNameCallback = null;
+let newMaterialNameCategory = 'productos';
 
 function createPendingMaterial(name, category = 'productos', subcategory = '') {
     const exists = materials.find(m => 
