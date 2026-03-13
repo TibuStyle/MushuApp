@@ -2084,57 +2084,70 @@ function viewImportedClass(classId) {
     let html = '';
 
     html += `<div class="class-content-header">
-        <h2>${ic.className}</h2>
-        <p>📅 ${formatDate(ic.date)} • ${ic.courseName}</p>
+        <h2>${sanitizeHTML(ic.className)}</h2>
+        <p>📅 ${formatDate(ic.date)} • ${sanitizeHTML(ic.courseName)}</p>
         <p style="font-size:12px;color:var(--secondary-color);font-weight:700;margin:6px 0 0;">Código: ${ic.visibleCode || ''}</p>
         <span class="class-content-badge ${ic.present ? 'present' : 'absent'}">
             ${ic.present ? '✅ Asistencia registrada' : '⚠️ Material de repaso - No registra asistencia'}
         </span>
     </div>`;
 
+    // Foto de la receta con marca de agua
+    if (ic.linkedRecipe && ic.linkedRecipe.recipePhoto) {
+        html += `<div class="class-content-section">
+            <h4><i class='bx bx-camera'></i> Foto de la Receta</h4>
+            <div class="class-content-photo">
+                <img src="${ic.linkedRecipe.recipePhoto}" alt="Foto de receta">
+                <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
+            </div>
+        </div>`;
+    }
+
+    // Fotos de la clase (si las hay)
     if (ic.photos && ic.photos.length > 0) {
         html += `<div class="class-content-section">
-            <h4><i class='bx bx-camera'></i> Fotos</h4>
+            <h4><i class='bx bx-camera'></i> Fotos de Clase</h4>
             <div class="class-content-photos">
                 ${ic.photos.map(p => `
                     <div class="class-content-photo">
                         <img src="${p}" alt="Foto de clase">
-                        <div class="watermark-photo">${watermarkName}</div>
+                        <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
                     </div>
                 `).join('')}
             </div>
         </div>`;
     }
 
-    if (ic.tips) {
-        html += `<div class="class-content-section">
-            <h4><i class='bx bx-bulb'></i> Tips de la Profe</h4>
-            <div class="class-content-tips">
-                <div class="watermark">${watermarkName}</div>
-                ${ic.tips.replace(/\n/g, '<br>')}
-            </div>
-        </div>`;
-    }
-
+    // Botón Abrir Receta
     if (ic.linkedRecipe) {
-        const r = ic.linkedRecipe;
-        const ic2 = (r.ingredients || []).reduce((s, i) => s + i.cost, 0);
-        const dc2 = (r.decorations || []).reduce((s, i) => s + i.cost, 0);
-        const ec2 = r.extraCost || 0;
+        const linkedRecipeId = findRecipeByName(ic.linkedRecipe.name);
+        if (linkedRecipeId) {
+            html += `<div class="class-content-section">
+                <button class="btn-submit" style="margin-top:0; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" onclick="closeModal('modal-view-class'); openRecipeFromClass('${linkedRecipeId}')">
+                    <i class='bx bx-book-open'></i> Abrir Receta: ${sanitizeHTML(ic.linkedRecipe.name)}
+                </button>
+            </div>`;
+        } else {
+            // Si no encuentra la receta local, mostrar resumen
+            const r = ic.linkedRecipe;
+            const ic2 = (r.ingredients || []).reduce((s, i) => s + i.cost, 0);
+            const dc2 = (r.decorations || []).reduce((s, i) => s + i.cost, 0);
+            const ec2 = r.extraCost || 0;
 
-        html += `<div class="class-content-section">
-            <h4><i class='bx bx-calculator'></i> Receta y Costos</h4>
-            <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;position:relative;overflow:hidden;">
-                <div class="watermark">${watermarkName}</div>
-                <div style="font-weight:700;font-size:16px;margin-bottom:8px;">${r.name}</div>
-                <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;"><span>Ingredientes:</span><span>$${formatCLP(ic2)}</span></div>
-                <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;"><span>Decoración:</span><span>$${formatCLP(dc2)}</span></div>
-                ${ec2 > 0 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;"><span>Extra:</span><span>$${formatCLP(ec2)}</span></div>` : ''}
-                <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:2px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:700;font-size:16px;"><span>COSTO TOTAL</span><span>$${formatCLP(r.totalCost)}</span></div>
-                <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:var(--secondary-color);font-weight:600;"><span>💰 Venta sugerida (x${profitMargin}):</span><span>$${formatCLP(Math.floor((r.totalCost * profitMargin) / 500) * 500)}</span></div>
-                ${r.portions > 1 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:var(--text-muted);"><span>🍰 Por porción (${r.portions}x):</span><span>$${formatCLP(Math.round(Math.floor((r.totalCost * profitMargin) / 500) * 500 / r.portions))} c/u</span></div>` : ''}
-            </div>
-        </div>`;
+            html += `<div class="class-content-section">
+                <h4><i class='bx bx-calculator'></i> Receta y Costos</h4>
+                <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;position:relative;overflow:hidden;">
+                    <div class="watermark">${sanitizeHTML(watermarkName)}</div>
+                    <div style="font-weight:700;font-size:16px;margin-bottom:8px;">${sanitizeHTML(r.name)}</div>
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;"><span>Ingredientes:</span><span>$${formatCLP(ic2)}</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;"><span>Decoración:</span><span>$${formatCLP(dc2)}</span></div>
+                    ${ec2 > 0 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;"><span>Extra:</span><span>$${formatCLP(ec2)}</span></div>` : ''}
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:2px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:700;font-size:16px;"><span>COSTO TOTAL</span><span>$${formatCLP(r.totalCost)}</span></div>
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:var(--secondary-color);font-weight:600;"><span>💰 Venta sugerida (x${profitMargin}):</span><span>$${formatCLP(Math.floor((r.totalCost * profitMargin) / 500) * 500)}</span></div>
+                    ${r.portions > 1 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:var(--text-muted);"><span>🍰 Por porción (${r.portions}x):</span><span>$${formatCLP(Math.round(Math.floor((r.totalCost * profitMargin) / 500) * 500 / r.portions))} c/u</span></div>` : ''}
+                </div>
+            </div>`;
+        }
     }
 
     document.getElementById('view-class-content').innerHTML = html;
@@ -2942,6 +2955,32 @@ function selectRecipeForClass(recipeId) {
     renderSelectedClassRecipeBox();
     closeModal('modal-select-recipe');
     showToast(`Receta "${currentSelectedClassRecipe.name}" seleccionada`);
+}
+
+// === ABRIR RECETA DESDE CLASE ===
+function findRecipeByName(recipeName) {
+    const r = recipes.find(x =>
+        x.name.toLowerCase().trim() === recipeName.toLowerCase().trim()
+    );
+    return r ? r.id : null;
+}
+
+function openRecipeFromClass(recipeId) {
+    switchTab('recetas');
+
+    setTimeout(() => {
+        const detail = document.getElementById('recipe-detail-' + recipeId);
+        const toggle = document.getElementById('recipe-toggle-' + recipeId);
+        if (detail && !detail.classList.contains('open')) {
+            detail.classList.add('open');
+            if (toggle) toggle.classList.add('open');
+        }
+
+        const card = document.querySelector('.recipe-card-header[onclick*="' + recipeId + '"]');
+        if (card) {
+            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 300);
 }
 
 // === FOTO Y TIPS DE RECETA ===
