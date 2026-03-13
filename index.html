@@ -824,7 +824,32 @@
         </div>
 
     </div>
+        <!-- Modal Material Pendiente -->
+        <div class="modal-overlay" id="modal-pending-material" onclick="closeModal('modal-pending-material')">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width:420px;">
+                <div class="modal-header">
+                    <h3>⚠️ Material no existe</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-pending-material')">
+                        <i class='bx bx-x'></i>
+                    </button>
+                </div>
 
+                <div style="text-align:center; padding:10px 0 20px;">
+                    <p style="font-size:15px; font-weight:600; margin:0 0 4px;" id="pending-mat-name-display"></p>
+                    <p style="font-size:13px; color:var(--text-muted); margin:0;">Este material no está en tu lista</p>
+                </div>
+
+                <div class="backup-buttons" style="flex-direction:column; gap:10px;">
+                    <button class="btn-backup export" onclick="addPendingMaterialNow()" style="width:100%;">
+                        <i class='bx bx-plus'></i> Agregar ahora
+                    </button>
+                    <button class="btn-backup import" onclick="addPendingMaterialLater()" style="width:100%;">
+                        <i class='bx bx-time'></i> Dejar pendiente
+                    </button>
+                </div>
+            </div>
+        </div>
+    
     <!-- Toast -->
     <div id="toast" class="toast">Mensaje</div>
 
