@@ -3137,7 +3137,104 @@ function showSyncStatus(text) {
 }
 
 function syncModuleUpload() {
-    showToast('Próximamente...', true);
+    const mod = modules.find(m => String(m.id) === String(currentSyncModuleId));
+    if (!mod) return;
+
+    // Juntar recetas del módulo
+    const moduleRecipes = recipes.filter(r =>
+        (r.recipeFolder || '') === mod.name &&
+        (r.recipeSource === 'module' || r.recipeSource === 'class')
+    );
+
+    // Juntar cursos del módulo
+    const moduleCourses = courses.filter(c =>
+        String(c.moduleId) === String(mod.id)
+    );
+
+    // Juntar clases con todo su contenido
+    const moduleClasses = [];
+    moduleCourses.forEach(course => {
+        (course.classes || []).forEach(cls => {
+            moduleClasses.push({
+                classId: cls.id,
+                className: cls.name,
+                courseId: course.id,
+                courseName: course.name,
+                date: cls.date,
+                tips: cls.tips || '',
+                photos: cls.photos || [],
+                linkedRecipe: cls.linkedRecipe || null,
+                blockCode: cls.blockCode || '',
+                codeExpiry: cls.codeExpiry || 0,
+                attendance: (cls.attendance || []).map(a => ({
+                    studentId: a.studentId,
+                    studentName: a.studentName,
+                    studentCode: a.studentCode,
+                    present: a.present,
+                    shortCode: a.shortCode || ''
+                }))
+            });
+        });
+    });
+
+    // Crear JSON del módulo
+    const moduleData = {
+        version: '4.1',
+        type: 'module',
+        exportDate: new Date().toISOString(),
+        module: {
+            id: mod.id,
+            name: mod.name,
+            prefix: mod.prefix
+        },
+        recipes: moduleRecipes.map(r => ({
+            name: r.name,
+            ingredients: r.ingredients || [],
+            decorations: r.decorations || [],
+            extraSubcategory: r.extraSubcategory || null,
+            extraCost: r.extraCost || 0,
+            totalCost: r.totalCost,
+            portions: r.portions || 1
+        })),
+        courses: moduleCourses.map(c => ({
+            id: c.id,
+            name: c.name,
+            day: c.day,
+            schedule: c.schedule || '',
+            students: (c.students || []).map(s => ({
+                id: s.id,
+                name: s.name,
+                studentCode: s.studentCode
+            }))
+        })),
+        classes: moduleClasses
+    };
+
+    // Nombre del archivo
+    const fileName = mod.prefix.toLowerCase() + '-module.json';
+    const jsonString = JSON.stringify(moduleData, null, 2);
+
+    // Descargar archivo
+    if (window.AndroidShare) {
+        window.AndroidShare.shareFile(jsonString, fileName);
+    } else {
+        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonString);
+        const a = document.createElement('a');
+        a.href = dataUri;
+        a.download = fileName;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    // Abrir GitHub en la carpeta modules
+    setTimeout(() => {
+        window.open('https://github.com/TibuStyle/MushuApp/tree/main/modules', '_blank');
+    }, 1000);
+
+    showSyncStatus('✅ Archivo descargado. Súbelo a GitHub en la carpeta modules.');
+    showToast('Módulo exportado! 📦');
 }
 
 function syncModuleDownload() {
