@@ -836,6 +836,28 @@
         </div>
 
     </div>
+
+            <!-- Modal Nuevo Material Nombre -->
+        <div class="modal-overlay" id="modal-new-material-name" onclick="closeModal('modal-new-material-name')">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width:420px;">
+                <div class="modal-header">
+                    <h3>➕ Nuevo Material</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-new-material-name')">
+                        <i class='bx bx-x'></i>
+                    </button>
+                </div>
+
+                <div class="form-group">
+                    <label id="new-mat-name-label">Nombre del material</label>
+                    <input type="text" id="new-mat-name-input" placeholder="Ej: Ron blanco">
+                </div>
+
+                <button type="button" class="btn-submit" onclick="confirmNewMaterialName()">
+                    <i class='bx bx-check'></i> Continuar
+                </button>
+            </div>
+        </div>
+    
         <!-- Modal Material Pendiente -->
         <div class="modal-overlay" id="modal-pending-material" onclick="closeModal('modal-pending-material')">
             <div class="modal-content" onclick="event.stopPropagation()" style="max-width:420px;">
