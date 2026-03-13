@@ -118,22 +118,12 @@
             <section id="view-recetas" class="view">
                 <!-- Vista Profesor -->
                 <div id="teacher-recipes-view" style="display:none;">
-                    <div class="section-header">
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <h2>Recetas</h2>
-                            <div class="selling-price-toggle">
-                                <label class="switch">
-                                    <input type="checkbox" id="toggle-selling-price" onchange="toggleSellingPrice()">
-                                    <span class="slider round"></span>
-                                </label>
-                                <span>Precio de venta mín.</span>
-                            </div>
-                        </div>
-                        <div style="display:flex; gap:8px;">
+                    <div class="section-header-recipes">
+                        <h2>Recetas</h2>
+                        <div class="recipe-header-buttons">
                             <button class="btn-primary" onclick="showCreateModuleModal()">
                                 <i class='bx bx-folder-plus'></i> Módulo
                             </button>
-                        <div class="recipe-header-buttons">
                             <button class="btn-primary" onclick="showAddRecipeModal()">
                                 <i class='bx bx-plus'></i> Nueva
                             </button>
@@ -141,8 +131,15 @@
                                 <i class='bx bx-import'></i> Cargar
                             </button>
                         </div>
+                        <div class="price-toggle-bar">
+                            <span class="price-toggle-label cost-label active-label">Precio Costo</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-selling-price" onchange="toggleSellingPrice()">
+                                <span class="slider round"></span>
+                            </label>
+                            <span class="price-toggle-label sale-label">Precio de Venta</span>
                         </div>
-
+                    </div>
                     <div id="teacher-recipe-groups-list" class="list-container">
                         <div class="empty-state">No hay recetas todavía.</div>
                     </div>
@@ -150,17 +147,8 @@
 
                 <!-- Vista Alumno -->
                 <div id="student-recipes-view" style="display:none;">
-                    <div class="section-header">
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <h2>Recetas</h2>
-                            <div class="selling-price-toggle">
-                                <label class="switch">
-                                    <input type="checkbox" id="toggle-selling-price-student" onchange="toggleSellingPriceStudentMirror()">
-                                    <span class="slider round"></span>
-                                </label>
-                                <span>Precio de venta mín.</span>
-                            </div>
-                        </div
+                    <div class="section-header-recipes">
+                        <h2>Recetas</h2>
                         <div class="recipe-header-buttons">
                             <button class="btn-primary" onclick="showAddRecipeModal()">
                                 <i class='bx bx-plus'></i> Nueva
@@ -169,8 +157,15 @@
                                 <i class='bx bx-import'></i> Cargar
                             </button>
                         </div>
+                        <div class="price-toggle-bar">
+                            <span class="price-toggle-label cost-label active-label">Precio Costo</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-selling-price-student" onchange="toggleSellingPriceStudentMirror()">
+                                <span class="slider round"></span>
+                            </label>
+                            <span class="price-toggle-label sale-label">Precio de Venta</span>
+                        </div>
                     </div>
-
                     <div id="student-recipe-groups-list" class="list-container">
                         <div class="empty-state">No hay recetas todavía.</div>
                     </div>
@@ -178,17 +173,8 @@
 
                 <!-- Vista sin modo -->
                 <div id="default-recipes-view">
-                    <div class="section-header">
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <h2>Recetas</h2>
-                            <div class="selling-price-toggle">
-                                <label class="switch">
-                                    <input type="checkbox" id="toggle-selling-price-default" onchange="toggleSellingPriceDefaultMirror()">
-                                    <span class="slider round"></span>
-                                </label>
-                                <span>Precio de venta mín.</span>
-                            </div>
-                        </div>
+                    <div class="section-header-recipes">
+                        <h2>Recetas</h2>
                         <div class="recipe-header-buttons">
                             <button class="btn-primary" onclick="showAddRecipeModal()">
                                 <i class='bx bx-plus'></i> Nueva
@@ -197,8 +183,15 @@
                                 <i class='bx bx-import'></i> Cargar
                             </button>
                         </div>
+                        <div class="price-toggle-bar">
+                            <span class="price-toggle-label cost-label active-label">Precio Costo</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-selling-price-default" onchange="toggleSellingPriceDefaultMirror()">
+                                <span class="slider round"></span>
+                            </label>
+                            <span class="price-toggle-label sale-label">Precio de Venta</span>
+                        </div>
                     </div>
-
                     <div id="default-recipe-groups-list" class="list-container">
                         <div class="empty-state">No hay recetas todavía.</div>
                     </div>
