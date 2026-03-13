@@ -516,6 +516,10 @@ function recalculateAllRecipes() {
         (r.ingredients || []).forEach(i => {
             const m = materials.find(x => String(x.id) === String(i.matId));
             if (m) {
+                if (!m.pending && i.pending) {
+                    i.pending = false;
+                    c = true;
+                }
                 const nc = calculateIngredientCost(m, i.qty, i.unit);
                 if (nc !== i.cost) {
                     i.cost = nc;
@@ -527,6 +531,10 @@ function recalculateAllRecipes() {
         (r.decorations || []).forEach(d => {
             const m = materials.find(x => String(x.id) === String(d.matId));
             if (m) {
+                if (!m.pending && d.pending) {
+                    d.pending = false;
+                    c = true;
+                }
                 const nc = calculateIngredientCost(m, d.qty, d.unit);
                 if (nc !== d.cost) {
                     d.cost = nc;
@@ -1059,6 +1067,15 @@ function renderRecipeCard(r, priceColor) {
     const dc = (r.decorations || []).reduce((s, i) => s + i.cost, 0);
     const ec = r.extraCost || 0;
     const ti = (r.ingredients || []).length + (r.decorations || []).length;
+    
+        // Contar materiales pendientes
+    const pendingIngredients = (r.ingredients || []).filter(i => i.pending === true);
+    const pendingDecorations = (r.decorations || []).filter(i => i.pending === true);
+    const totalPending = pendingIngredients.length + pendingDecorations.length;
+    const pendingWarning = totalPending > 0 
+        ? `<div class="pending-alert"><i class='bx bx-error-circle'></i> ${totalPending} material${totalPending > 1 ? 'es' : ''} pendiente${totalPending > 1 ? 's' : ''}</div>` 
+        : '';
+    
     const se = Math.floor((r.totalCost * profitMargin) / 500) * 500;
 
     const pb = r.portions > 1
@@ -1086,6 +1103,14 @@ function renderRecipeCard(r, priceColor) {
         </div>`;
     }
     bd += `<div class="recipe-breakdown-total"><span>COSTO TOTAL</span><span>$${formatCLP(r.totalCost)}</span></div>`;
+        if (totalPending > 0) {
+        bd += `<div style="background:rgba(245,158,11,0.1);border-left:3px solid var(--warning-color);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:12px 14px;margin-top:12px;">
+            <strong style="color:var(--warning-color);font-size:13px;display:block;margin-bottom:6px;">⚠️ Materiales pendientes por completar:</strong>
+            ${pendingIngredients.map(i => `<div style="font-size:13px;color:var(--text-muted);padding:2px 0;">• ${sanitizeHTML(i.name)} (${i.qty} ${i.unit})</div>`).join('')}
+            ${pendingDecorations.map(i => `<div style="font-size:13px;color:var(--text-muted);padding:2px 0;">• ${sanitizeHTML(i.name)} (${i.qty} ${i.unit})</div>`).join('')}
+            <p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">Ve a Materiales y completa los datos para calcular el costo real.</p>
+        </div>`;
+    }
 
     let sl = `<div class="recipe-selling-section"><div class="recipe-selling-row highlight"><span>💰 Venta entera:</span><span>$${formatCLP(se)}</span></div>`;
     if (r.portions > 1) {
@@ -1109,6 +1134,7 @@ function renderRecipeCard(r, priceColor) {
                     <h3>${sanitizeHTML(r.name)}</h3>
                     <p>${ti} Items${r.extraSubcategory ? ' + Extra' : ''}</p>
                     ${sourceBadge}
+                    ${pendingWarning}
                     ${pb}
                 </div>
                 <div class="recipe-card-price">
