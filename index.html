@@ -408,6 +408,11 @@
                         <div id="recipe-extra-details"></div>
                     </div>
 
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>¿Dividir en Porciones?</label>
+                        <input type="number" id="recipe-portions" placeholder="Ej: 15" min="1" step="1" oninput="updateRecipeTotal()">
+                    </div>
+                    
                     <div id="module-recipe-extras" style="display:none;">
                         <div class="recipe-ingredients-section">
                             <h4><i class='bx bx-camera'></i> Foto de la Receta (Módulo)</h4>
@@ -424,11 +429,6 @@
                         </div>
                     </div>
                     
-                    <div class="form-group" style="margin-bottom: 20px;">
-                        <label>¿Dividir en Porciones?</label>
-                        <input type="number" id="recipe-portions" placeholder="Ej: 15" min="1" step="1" oninput="updateRecipeTotal()">
-                    </div>
-
                     <div class="recipe-summary">
                         <span>Costo Total:</span>
                         <div style="text-align: right;">
@@ -738,20 +738,6 @@
                     </div>
 
                     <div id="selected-class-recipe-box" style="margin-top:12px; display:none;"></div>
-                </div>
-
-                <div class="form-group">
-                    <label>📷 Fotos (máx 5)</label>
-                    <input type="file" id="class-photos-input" accept="image/*" multiple onchange="handleClassPhotos(event)" style="display:none;">
-                    <button type="button" class="btn-backup import" style="width:100%;" onclick="document.getElementById('class-photos-input').click()">
-                        <i class='bx bx-camera'></i> Agregar Fotos
-                    </button>
-                    <div id="class-photos-preview" class="class-photos-preview"></div>
-                </div>
-
-                <div class="form-group">
-                    <label>💡 Tips de la Profe (opcional)</label>
-                    <textarea id="class-tips" rows="4" placeholder="Ej: Cuidado con la temperatura del chocolate..." class="class-textarea"></textarea>
                 </div>
 
                 <div class="form-group">
