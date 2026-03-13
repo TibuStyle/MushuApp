@@ -837,6 +837,46 @@
 
     </div>
 
+        <!-- Modal Sincronizar Módulo -->
+        <div class="modal-overlay" id="modal-sync-module" onclick="closeModal('modal-sync-module')">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width:420px;">
+                <div class="modal-header">
+                    <h3>☁️ Sincronizar Módulo</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-sync-module')">
+                        <i class='bx bx-x'></i>
+                    </button>
+                </div>
+
+                <div style="text-align:center; padding:10px 0;">
+                    <p style="font-size:16px; font-weight:600; margin:0 0 4px;" id="sync-module-name"></p>
+                    <p style="font-size:13px; color:var(--text-muted); margin:0;" id="sync-module-prefix"></p>
+                </div>
+
+                <div class="backup-buttons" style="flex-direction:column; gap:10px; margin-top:16px;">
+                    <button class="btn-backup export" onclick="syncModuleUpload()" style="width:100%; padding:16px;">
+                        <i class='bx bx-upload' style="font-size:20px;"></i>
+                        <div style="text-align:left;">
+                            <strong>Subir</strong>
+                            <p style="font-size:11px; margin:2px 0 0; opacity:0.8;">Exporta el módulo y abre GitHub para publicarlo</p>
+                        </div>
+                    </button>
+                    <button class="btn-backup import" onclick="syncModuleDownload()" style="width:100%; padding:16px;">
+                        <i class='bx bx-download' style="font-size:20px;"></i>
+                        <div style="text-align:left;">
+                            <strong>Cargar</strong>
+                            <p style="font-size:11px; margin:2px 0 0; opacity:0.8;">Descarga lo último publicado en GitHub</p>
+                        </div>
+                    </button>
+                </div>
+
+                <div id="sync-status" style="margin-top:16px; display:none;">
+                    <div style="text-align:center; padding:12px; background:var(--surface-hover); border-radius:var(--radius-sm);">
+                        <p id="sync-status-text" style="font-size:13px; color:var(--text-muted); margin:0;"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
             <!-- Modal Nuevo Material Nombre -->
         <div class="modal-overlay" id="modal-new-material-name" onclick="closeModal('modal-new-material-name')">
             <div class="modal-content" onclick="event.stopPropagation()" style="max-width:420px;">
