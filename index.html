@@ -203,12 +203,15 @@
 
             <!-- SECTION: CLASES -->
             <section id="view-clases" class="view">
-            <div id="teacher-classes-view" style="display:none;">
+                    <div id="teacher-classes-view" style="display:none;">
                     <div class="section-header-recipes">
                         <h2>🎓 Clases</h2>
                         <div class="recipe-header-buttons">
                             <button class="btn-primary" onclick="showCreateCourseModal()">
                                 <i class='bx bx-plus'></i> Curso
+                            </button>
+                            <button class="btn-primary" onclick="showLoadModuleClassesModal()" style="background:var(--secondary-color);">
+                                <i class='bx bx-download'></i> Cargar Módulo
                             </button>
                         </div>
                     </div>
@@ -861,6 +864,64 @@
                     </button>
                     <button class="btn-backup import" onclick="closeModal('modal-sync-missing')" style="width:100%;">
                         <i class='bx bx-time'></i> Dejar todos pendientes
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Cargar Módulo en Clases -->
+        <div class="modal-overlay" id="modal-load-module-classes" onclick="closeModal('modal-load-module-classes')">
+            <div class="modal-content large-modal" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>📥 Cargar Módulo</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-load-module-classes')">
+                        <i class='bx bx-x'></i>
+                    </button>
+                </div>
+
+                <!-- Paso 1: Ingresar prefijo -->
+                <div id="load-module-step1">
+                    <div class="form-group">
+                        <label>Prefijo del módulo</label>
+                        <input type="text" id="load-module-prefix-input" placeholder="Ej: PA1" maxlength="5" style="text-transform:uppercase;">
+                    </div>
+
+                    <div id="load-module-status" style="display:none; margin-bottom:16px;">
+                        <div style="text-align:center; padding:12px; background:var(--surface-hover); border-radius:var(--radius-sm);">
+                            <p id="load-module-status-text" style="font-size:13px; color:var(--text-muted); margin:0;"></p>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-submit" onclick="searchModuleInGitHub()">
+                        <i class='bx bx-search'></i> Buscar Módulo
+                    </button>
+                </div>
+
+                <!-- Paso 2: Seleccionar cursos -->
+                <div id="load-module-step2" style="display:none;">
+                    <div style="text-align:center; padding:10px 0; margin-bottom:16px;">
+                        <p style="font-size:16px; font-weight:600; margin:0 0 4px;" id="load-module-found-name"></p>
+                        <p style="font-size:13px; color:var(--text-muted); margin:0;" id="load-module-found-prefix"></p>
+                    </div>
+
+                    <h4 style="font-size:14px; color:var(--text-muted); margin-bottom:12px;">
+                        <i class='bx bxs-graduation' style="color:var(--secondary-color);"></i> Selecciona los cursos a importar:
+                    </h4>
+
+                    <div id="load-module-courses-list" class="list-container"></div>
+
+                    <div style="margin-top:16px;">
+                        <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">
+                            Las recetas y clases del módulo se importarán automáticamente.
+                        </p>
+                    </div>
+
+                    <button type="button" class="btn-submit" onclick="importSelectedCourses()">
+                        <i class='bx bx-import'></i> Importar Seleccionados
+                    </button>
+
+                    <button type="button" class="btn-submit" onclick="goBackToStep1()" style="margin-top:8px; background:var(--surface-hover); color:var(--text-main);">
+                        <i class='bx bx-arrow-back'></i> Volver
                     </button>
                 </div>
             </div>
