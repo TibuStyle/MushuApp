@@ -2153,19 +2153,6 @@ function importData(event) {
 }
 
 // ========================================
-// UTILS
-// ========================================
-function formatCLP(n) {
-    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-}
-
-function formatDate(ds) {
-    const ms = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    const d = new Date(ds + 'T00:00:00');
-    return `${d.getDate()} ${ms[d.getMonth()]} ${d.getFullYear()}`;
-}
-
-// ========================================
 // MODALS BÁSICOS FALTANTES
 // ========================================
 function showSettingsModal() {
