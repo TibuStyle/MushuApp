@@ -331,7 +331,7 @@ list.innerHTML = f.sort((a, b) => a.name.localeCompare(b.name)).map(m => {
             const pendingBadge = isPending ? '<div class="pending-badge"><i class="bx bx-error-circle"></i> Pendiente por completar</div>' : '';
             const priceDisplay = isPending ? '<span class="card-price" style="color:var(--warning-color);">⚠️ Sin precio</span>' : `<span class="card-price">$${formatCLP(m.price)}</span>`;
 
-            return `
+              return `
             <div class="card${pendingClass}" onclick="showAddMaterialModal('${m.id}')" style="cursor:pointer;">
                 <div class="card-info">
                     <h3>${sanitizeHTML(m.name)}</h3>
@@ -339,9 +339,9 @@ list.innerHTML = f.sort((a, b) => a.name.localeCompare(b.name)).map(m => {
                     ${pendingBadge}
                     ${isPending ? '' : getPriceBadgeHTML(m)}
                 </div>
-                <div style="display:flex;align-items:center;gap:15px;" onclick="event.stopPropagation()">
+                <div style="display:flex;align-items:center;gap:15px;">
                     ${priceDisplay}
-                    <button class="btn-icon danger" onclick="deleteMaterial('${m.id}')"><i class='bx bx-trash'></i></button>
+                    <button class="btn-icon danger" onclick="event.stopPropagation(); deleteMaterial('${m.id}')"><i class='bx bx-trash'></i></button>
                 </div>
             </div>
         `;
