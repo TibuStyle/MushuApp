@@ -1546,19 +1546,18 @@ function showAttendanceModal(courseId, classId) {
 
     renderAttendanceList();
 
-    const codesSection = document.getElementById('generated-codes-section');
-    if (cls.codesGenerated) {
-        document.getElementById('btn-generate-codes').style.display = 'flex';
-        codesSection.style.display = 'block';
-        renderGeneratedCodes(cls, course);
-    } else {
-        document.getElementById('btn-generate-codes').style.display = 'flex';
-        codesSection.style.display = 'none';
+    // Auto-generar códigos si no se han generado
+    if (!cls.codesGenerated) {
+        generateCodes();
     }
 
-    document.getElementById('modal-attendance').classList.add('active');
-}
+    // Siempre mostrar la sección de códigos
+    const codesSection = document.getElementById('generated-codes-section');
+    codesSection.style.display = 'block';
+    renderGeneratedCodes(cls, course);
 
+    document.getElementById('modal-attendance').classList.add('active');
+    
 function toggleAttendance(studentId) {
     const student = currentAttendanceData.find(a => String(a.studentId) === String(studentId));
     if (student) {
