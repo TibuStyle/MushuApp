@@ -1411,3 +1411,14 @@ input:checked + .slider:before { transform: translateX(16px); }
 #modal-new-material-name {
     z-index: 440;
 }
+
+/* === SYNC MODULE === */
+#modal-sync-module {
+    z-index: 440;
+}
+#modal-sync-module .btn-backup {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+}
