@@ -46,8 +46,8 @@
         <main class="content-area">
             
             <!-- SECTION: MATERIALES -->
-            <section id="view-materials" class="view active">
-                <div class="section-header">
+                <section id="view-materials" class="view active">
+                <div class="section-header-recipes">
                     <h2>Materiales</h2>
                 </div>
 
@@ -200,18 +200,20 @@
 
             <!-- SECTION: CLASES -->
             <section id="view-clases" class="view">
-                <div id="teacher-classes-view" style="display:none;">
-                    <div class="section-header">
+            <div id="teacher-classes-view" style="display:none;">
+                    <div class="section-header-recipes">
                         <h2>🎓 Clases</h2>
-                        <button class="btn-primary" onclick="showCreateCourseModal()">
-                            <i class='bx bx-plus'></i> Curso
-                        </button>
+                        <div class="recipe-header-buttons">
+                            <button class="btn-primary" onclick="showCreateCourseModal()">
+                                <i class='bx bx-plus'></i> Curso
+                            </button>
+                        </div>
                     </div>
                     <div id="courses-list" class="list-container"></div>
                 </div>
 
-                <div id="student-classes-view" style="display:none;">
-                    <div class="section-header">
+             <div id="student-classes-view" style="display:none;">
+                    <div class="section-header-recipes">
                         <h2>🎓 Mis Clases</h2>
                     </div>
 
@@ -229,7 +231,7 @@
                 </div>
 
                 <div id="no-mode-classes-view">
-                    <div class="section-header">
+                    <div class="section-header-recipes">
                         <h2>🎓 Clases</h2>
                     </div>
                     <div class="empty-state">
