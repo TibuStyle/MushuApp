@@ -1426,3 +1426,52 @@ input:checked + .slider:before { transform: translateX(16px); }
 #modal-sync-missing {
     z-index: 460;
 }
+
+/* === LOAD MODULE === */
+#modal-load-module-classes {
+    z-index: 440;
+}
+.load-course-item {
+    background: var(--surface-hover);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    border: 1px solid rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.load-course-item:hover {
+    border-color: var(--secondary-color);
+}
+.load-course-item.selected {
+    border-color: var(--secondary-color);
+    background: rgba(255,182,193,0.1);
+}
+.load-course-checkbox {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 2px solid rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+.load-course-item.selected .load-course-checkbox {
+    background: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: white;
+}
+.load-course-info h4 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 2px;
+}
+.load-course-info p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0;
+}
