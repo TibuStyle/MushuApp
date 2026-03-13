@@ -1422,3 +1422,7 @@ input:checked + .slider:before { transform: translateX(16px); }
     gap: 12px;
     text-align: left;
 }
+
+#modal-sync-missing {
+    z-index: 460;
+}
