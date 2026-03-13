@@ -1293,3 +1293,33 @@ input:checked + .slider:before { transform: translateX(16px); }
 #modal-extra-subcategory {
     z-index: 430;
 }
+
+/* === MATERIALES PENDIENTES === */
+.card.pending {
+    border: 1px dashed var(--warning-color);
+    background: rgba(245, 158, 11, 0.05);
+}
+.card.pending:hover {
+    border-color: var(--warning-color);
+}
+.pending-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 50px;
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+    margin-top: 4px;
+}
+.pending-alert {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--warning-color);
+    margin-top: 4px;
+}
