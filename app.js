@@ -606,20 +606,27 @@ function renderCurrentRecipeIngredients() {
         l.innerHTML = '<div class="empty-state" style="padding:15px;font-size:13px;">Sin ingredientes.</div>';
         return;
     }
-    l.innerHTML = currentRecipeIngredients.map(i => `
-        <div class="ingredient-item">
+    l.innerHTML = currentRecipeIngredients.map(i => {
+        const isPending = i.pending === true;
+        const costDisplay = isPending 
+            ? '<span class="ingredient-cost" style="color:var(--warning-color);">⚠️ Pendiente</span>' 
+            : `<span class="ingredient-cost">$${formatCLP(i.cost)}</span>`;
+
+        return `
+        <div class="ingredient-item" style="${isPending ? 'border:1px dashed var(--warning-color);' : ''}">
             <div class="ingredient-details">
                 <span><strong>${sanitizeHTML(i.name)}</strong></span>
                 <span style="font-size:12px;color:var(--text-muted);">${i.qty} ${i.unit}</span>
             </div>
             <div style="display:flex;align-items:center;gap:10px;">
-                <span class="ingredient-cost">$${formatCLP(i.cost)}</span>
+                ${costDisplay}
                 <button class="btn-icon danger" onclick="removeIngredientFromRecipe('${i.id}')" style="width:28px;height:28px;font-size:16px;">
                     <i class='bx bx-trash'></i>
                 </button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function addDecorationToRecipeForm() {
@@ -660,20 +667,27 @@ function renderCurrentRecipeDecorations() {
         l.innerHTML = '<div class="empty-state" style="padding:15px;font-size:13px;">Sin decoración.</div>';
         return;
     }
-    l.innerHTML = currentRecipeDecorations.map(i => `
-        <div class="ingredient-item">
+    l.innerHTML = currentRecipeDecorations.map(i => {
+        const isPending = i.pending === true;
+        const costDisplay = isPending 
+            ? '<span class="ingredient-cost" style="color:var(--warning-color);">⚠️ Pendiente</span>' 
+            : `<span class="ingredient-cost">$${formatCLP(i.cost)}</span>`;
+
+        return `
+        <div class="ingredient-item" style="${isPending ? 'border:1px dashed var(--warning-color);' : ''}">
             <div class="ingredient-details">
                 <span><strong>${sanitizeHTML(i.name)}</strong></span>
                 <span style="font-size:12px;color:var(--text-muted);">${i.qty} ${i.unit}</span>
             </div>
             <div style="display:flex;align-items:center;gap:10px;">
-                <span class="ingredient-cost">$${formatCLP(i.cost)}</span>
+                ${costDisplay}
                 <button class="btn-icon danger" onclick="removeDecorationFromRecipe('${i.id}')" style="width:28px;height:28px;font-size:16px;">
                     <i class='bx bx-trash'></i>
                 </button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 function onExtraSubcategoryChange() {
@@ -2688,6 +2702,35 @@ function selectRecipeForClass(recipeId) {
     renderSelectedClassRecipeBox();
     closeModal('modal-select-recipe');
     showToast(`Receta "${currentSelectedClassRecipe.name}" seleccionada`);
+}
+
+// === MODAL MATERIAL PENDIENTE ===
+function showPendingMaterialModal(name, category, callback) {
+    pendingMaterialData = { name, category };
+    pendingMaterialCallback = callback;
+    document.getElementById('pending-mat-name-display').textContent = name;
+    document.getElementById('modal-pending-material').classList.add('active');
+}
+
+function addPendingMaterialNow() {
+    closeModal('modal-pending-material');
+    if (pendingMaterialData) {
+        showAddMaterialModal(null, pendingMaterialData.category, '');
+        document.getElementById('mat-name').value = pendingMaterialData.name;
+    }
+}
+
+function addPendingMaterialLater() {
+    if (pendingMaterialData) {
+        const mat = createPendingMaterial(pendingMaterialData.name, pendingMaterialData.category);
+        if (pendingMaterialCallback) {
+            pendingMaterialCallback(mat);
+        }
+        renderMaterials();
+        updateMaterialSelect();
+        updateDecorationSelect();
+    }
+    closeModal('modal-pending-material');
 }
 
 // === FUNCIONES FALTANTES ===
