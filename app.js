@@ -564,26 +564,34 @@ function addIngredientToRecipeForm() {
     const mi = document.getElementById('recipe-add-mat').value;
     const q = parseFloat(document.getElementById('recipe-add-qty').value);
     const u = document.getElementById('recipe-add-unit').value;
+
+    // Si seleccionó del dropdown
+    if (mi && !isNaN(q) && q > 0) {
+        const m = materials.find(x => String(x.id) === String(mi));
+        if (!m) return;
+
+        currentRecipeIngredients.push({
+            id: Date.now().toString(),
+            matId: String(m.id),
+            name: m.name,
+            qty: q,
+            unit: u,
+            cost: m.pending ? 0 : calculateIngredientCost(m, q, u),
+            pending: m.pending || false
+        });
+
+        document.getElementById('recipe-add-mat').value = '';
+        document.getElementById('recipe-add-qty').value = '';
+        renderCurrentRecipeIngredients();
+        updateRecipeTotal();
+        return;
+    }
+
+    // Si no seleccionó nada
     if (!mi || isNaN(q) || q <= 0) {
         showToast("Completa datos", true);
         return;
     }
-    const m = materials.find(x => String(x.id) === String(mi));
-    if (!m) return;
-
-    currentRecipeIngredients.push({
-        id: Date.now().toString(),
-        matId: String(m.id),
-        name: m.name,
-        qty: q,
-        unit: u,
-        cost: calculateIngredientCost(m, q, u)
-    });
-
-    document.getElementById('recipe-add-mat').value = '';
-    document.getElementById('recipe-add-qty').value = '';
-    renderCurrentRecipeIngredients();
-    updateRecipeTotal();
 }
 
 function removeIngredientFromRecipe(id) {
