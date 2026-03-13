@@ -2800,40 +2800,58 @@ function shareRecipe(recipeId) {
         .replace(/^-|-$/g, '') + '.json';
 
     const jsonString = JSON.stringify(shareData, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const file = new File([blob], fileName, { type: 'application/json' });
 
-    // Intentar usar Web Share API (funciona en celulares)
-    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const file = new File([blob], fileName, { type: 'application/json' });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({
+                title: r.name + ' - MushuApp',
+                files: [file]
+            }).then(() => {
+                showToast('Receta compartida! 📤');
+            }).catch((err) => {
+                if (err.name !== 'AbortError') {
+                    shareRecipeAsText(r.name, jsonString, fileName);
+                }
+            });
+            return;
+        }
+    } catch(e) {
+        // File sharing no soportado
+    }
+
+    shareRecipeAsText(r.name, jsonString, fileName);
+}
+
+function shareRecipeAsText(recipeName, jsonString, fileName) {
+    if (navigator.share) {
         navigator.share({
-            title: r.name,
-            text: 'Receta de ' + r.name + ' - MushuApp',
-            files: [file]
+            title: recipeName + ' - MushuApp',
+            text: jsonString
         }).then(() => {
             showToast('Receta compartida! 📤');
-        }).catch(err => {
-            // Si canceló el share, no mostrar error
+        }).catch((err) => {
             if (err.name !== 'AbortError') {
-                downloadRecipeFile(jsonString, fileName, r.name);
+                downloadRecipeFile(jsonString, fileName, recipeName);
             }
         });
     } else {
-        // Si no tiene Web Share, descargar archivo
-        downloadRecipeFile(jsonString, fileName, r.name);
+        downloadRecipeFile(jsonString, fileName, recipeName);
     }
 }
 
 function downloadRecipeFile(jsonString, fileName, recipeName) {
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonString);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = dataUri;
     a.download = fileName;
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast(`"${recipeName}" descargada! 📥`);
+    showToast('"' + recipeName + '" descargada! 📥');
 }
 
 function importRecipeFromFile(event) {
