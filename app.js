@@ -308,19 +308,27 @@ function renderMaterials() {
             return;
         }
 
-        list.innerHTML = f.sort((a, b) => a.name.localeCompare(b.name)).map(m => `
-            <div class="card" onclick="showAddMaterialModal('${m.id}')" style="cursor:pointer;">
+list.innerHTML = f.sort((a, b) => a.name.localeCompare(b.name)).map(m => {
+            const isPending = m.pending === true;
+            const pendingClass = isPending ? ' pending' : '';
+            const pendingBadge = isPending ? '<div class="pending-badge"><i class="bx bx-error-circle"></i> Pendiente por completar</div>' : '';
+            const priceDisplay = isPending ? '<span class="card-price" style="color:var(--warning-color);">⚠️ Sin precio</span>' : `<span class="card-price">$${formatCLP(m.price)}</span>`;
+
+            return `
+            <div class="card${pendingClass}" onclick="showAddMaterialModal('${m.id}')" style="cursor:pointer;">
                 <div class="card-info">
                     <h3>${sanitizeHTML(m.name)}</h3>
-                    <p>${m.qty} ${m.unit}</p>
-                    ${getPriceBadgeHTML(m)}
+                    <p>${isPending ? 'Sin datos' : m.qty + ' ' + m.unit}</p>
+                    ${pendingBadge}
+                    ${isPending ? '' : getPriceBadgeHTML(m)}
                 </div>
                 <div style="display:flex;align-items:center;gap:15px;" onclick="event.stopPropagation()">
-                    <span class="card-price">$${formatCLP(m.price)}</span>
+                    ${priceDisplay}
                     <button class="btn-icon danger" onclick="deleteMaterial('${m.id}')"><i class='bx bx-trash'></i></button>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     });
 
     renderExtraMaterials(q);
