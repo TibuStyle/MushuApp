@@ -1,7 +1,7 @@
 {
   "version": "4.1",
   "type": "module",
-  "exportDate": "2026-03-13T19:51:07.437Z",
+  "exportDate": "2026-03-13T22:20:24.801Z",
   "module": {
     "id": "1773302164616",
     "name": "Pasteleria 1",
@@ -12,164 +12,64 @@
       "name": "torta de durazno manjar",
       "ingredients": [
         {
-          "id": "1773264193882",
+          "id": "1773433134208-n4nhz",
           "matId": "1773263837930",
           "name": "azucar",
           "qty": 150,
           "unit": "g",
-          "cost": 135
+          "cost": 135,
+          "pending": false
         },
         {
-          "id": "1773264204153",
+          "id": "1773433134208-861ze",
           "matId": "1773263948701",
           "name": "durazno",
           "qty": 380,
           "unit": "g",
-          "cost": 1390
+          "cost": 1390,
+          "pending": false
         },
         {
-          "id": "1773264211528",
+          "id": "1773433134208-0je89",
           "matId": "1773263777308",
           "name": "harina",
           "qty": 150,
           "unit": "g",
-          "cost": 131
+          "cost": 131,
+          "pending": false
         },
         {
-          "id": "1773264219476",
+          "id": "1773433134208-tshjn",
           "matId": "1773263818769",
           "name": "huevos",
           "qty": 5,
           "unit": "u",
-          "cost": 833
+          "cost": 833,
+          "pending": false
         },
         {
-          "id": "1773264232927",
+          "id": "1773433134208-3hx0d",
           "matId": "1773263962609",
           "name": "manjar",
           "qty": 350,
           "unit": "g",
-          "cost": 872
+          "cost": 872,
+          "pending": false
         },
         {
-          "id": "1773264408190",
+          "id": "1773433134208-hwtze",
           "matId": "1773264388524",
           "name": "crema chantilly",
           "qty": 500,
           "unit": "cm3",
-          "cost": 2250
+          "cost": 2250,
+          "pending": false
         }
       ],
       "decorations": [],
       "extraSubcategory": "torta 10 personas",
       "extraCost": 1000,
       "totalCost": 6611,
-      "portions": 10
-    },
-    {
-      "name": "torta trufa",
-      "ingredients": [
-        {
-          "id": "1773273829334",
-          "matId": "1773263777308",
-          "name": "harina",
-          "qty": 270,
-          "unit": "g",
-          "cost": 235
-        },
-        {
-          "id": "1773273837290",
-          "matId": "1773273619405",
-          "name": "cacao amargo",
-          "qty": 90,
-          "unit": "g",
-          "cost": 834
-        },
-        {
-          "id": "1773273846738",
-          "matId": "1773263998675",
-          "name": "leche",
-          "qty": 240,
-          "unit": "cm3",
-          "cost": 240
-        },
-        {
-          "id": "1773273864360",
-          "matId": "1773273653417",
-          "name": "agua hirviendo",
-          "qty": 180,
-          "unit": "cm3",
-          "cost": 0
-        },
-        {
-          "id": "1773273888727",
-          "matId": "1773263837930",
-          "name": "azucar",
-          "qty": 420,
-          "unit": "g",
-          "cost": 378
-        },
-        {
-          "id": "1773273900996",
-          "matId": "1773273687098",
-          "name": "polvos de hornear",
-          "qty": 15,
-          "unit": "g",
-          "cost": 68
-        },
-        {
-          "id": "1773273907103",
-          "matId": "1773263818769",
-          "name": "huevos",
-          "qty": 3,
-          "unit": "u",
-          "cost": 500
-        },
-        {
-          "id": "1773273974623",
-          "matId": "1773273960551",
-          "name": "aceite",
-          "qty": 150,
-          "unit": "cm3",
-          "cost": 299
-        },
-        {
-          "id": "1773273996020",
-          "matId": "1773263858101",
-          "name": "Chocolate",
-          "qty": 500,
-          "unit": "g",
-          "cost": 3500
-        },
-        {
-          "id": "1773274100893",
-          "matId": "1773274049248",
-          "name": "crema animal",
-          "qty": 250,
-          "unit": "cm3",
-          "cost": 2500
-        },
-        {
-          "id": "1773274120241",
-          "matId": "1773263837930",
-          "name": "azucar",
-          "qty": 200,
-          "unit": "g",
-          "cost": 180
-        },
-        {
-          "id": "1773274135609",
-          "matId": "1773273779461",
-          "name": "agua",
-          "qty": 400,
-          "unit": "cm3",
-          "cost": 0
-        }
-      ],
-      "decorations": [],
-      "extraSubcategory": "torta 10 personas",
-      "extraCost": 1000,
-      "totalCost": 9734,
       "portions": 10
     }
   ],
@@ -193,137 +93,5 @@
       ]
     }
   ],
-  "classes": [
-    {
-      "classId": "1773430597512",
-      "className": "Torta Trufa",
-      "courseId": "1773273394940",
-      "courseName": "Pasteleria 1 Lunes",
-      "date": "2026-03-13",
-      "tips": "horno 180 grados celsius",
-      "photos": [],
-      "linkedRecipe": {
-        "id": "1773273921697",
-        "name": "torta trufa",
-        "ingredients": [
-          {
-            "id": "1773273829334",
-            "matId": "1773263777308",
-            "name": "harina",
-            "qty": 270,
-            "unit": "g",
-            "cost": 235
-          },
-          {
-            "id": "1773273837290",
-            "matId": "1773273619405",
-            "name": "cacao amargo",
-            "qty": 90,
-            "unit": "g",
-            "cost": 834
-          },
-          {
-            "id": "1773273846738",
-            "matId": "1773263998675",
-            "name": "leche",
-            "qty": 240,
-            "unit": "cm3",
-            "cost": 240
-          },
-          {
-            "id": "1773273864360",
-            "matId": "1773273653417",
-            "name": "agua hirviendo",
-            "qty": 180,
-            "unit": "cm3",
-            "cost": 0
-          },
-          {
-            "id": "1773273888727",
-            "matId": "1773263837930",
-            "name": "azucar",
-            "qty": 420,
-            "unit": "g",
-            "cost": 378
-          },
-          {
-            "id": "1773273900996",
-            "matId": "1773273687098",
-            "name": "polvos de hornear",
-            "qty": 15,
-            "unit": "g",
-            "cost": 68
-          },
-          {
-            "id": "1773273907103",
-            "matId": "1773263818769",
-            "name": "huevos",
-            "qty": 3,
-            "unit": "u",
-            "cost": 500
-          },
-          {
-            "id": "1773273974623",
-            "matId": "1773273960551",
-            "name": "aceite",
-            "qty": 150,
-            "unit": "cm3",
-            "cost": 299
-          },
-          {
-            "id": "1773273996020",
-            "matId": "1773263858101",
-            "name": "Chocolate",
-            "qty": 500,
-            "unit": "g",
-            "cost": 3500
-          },
-          {
-            "id": "1773274100893",
-            "matId": "1773274049248",
-            "name": "crema animal",
-            "qty": 250,
-            "unit": "cm3",
-            "cost": 2500
-          },
-          {
-            "id": "1773274120241",
-            "matId": "1773263837930",
-            "name": "azucar",
-            "qty": 200,
-            "unit": "g",
-            "cost": 180
-          },
-          {
-            "id": "1773274135609",
-            "matId": "1773273779461",
-            "name": "agua",
-            "qty": 400,
-            "unit": "cm3",
-            "cost": 0
-          }
-        ],
-        "decorations": [],
-        "extraSubcategory": "torta 10 personas",
-        "extraCost": 1000,
-        "totalCost": 9734,
-        "portions": 10,
-        "recipeFolder": "Pasteleria 1",
-        "recipeSource": "module",
-        "sourceCourseName": "",
-        "sourceClassDate": ""
-      },
-      "blockCode": "A526Q",
-      "codeExpiry": 24,
-      "attendance": [
-        {
-          "studentId": "1773273393854",
-          "studentName": "Diego maureira",
-          "studentCode": "01",
-          "present": true,
-          "shortCode": "PA1A526Q301"
-        }
-      ]
-    }
-  ]
+  "classes": []
 }
