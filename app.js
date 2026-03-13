@@ -2741,6 +2741,69 @@ function selectRecipeForClass(recipeId) {
     showToast(`Receta "${currentSelectedClassRecipe.name}" seleccionada`);
 }
 
+// === COMPARTIR RECETAS ===
+function shareRecipe(recipeId) {
+    const r = recipes.find(x => String(x.id) === String(recipeId));
+    if (!r) return;
+
+    const shareData = {
+        version: '4.1',
+        type: 'recipe',
+        exportDate: new Date().toISOString(),
+        recipe: {
+            name: r.name,
+            ingredients: r.ingredients || [],
+            decorations: r.decorations || [],
+            extraSubcategory: r.extraSubcategory || null,
+            extraCost: r.extraCost || 0,
+            totalCost: r.totalCost,
+            portions: r.portions || 1
+        }
+    };
+
+    const fileName = r.name.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '') + '.json';
+
+    const jsonString = JSON.stringify(shareData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const file = new File([blob], fileName, { type: 'application/json' });
+
+    // Intentar usar Web Share API (funciona en celulares)
+    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({
+            title: r.name,
+            text: 'Receta de ' + r.name + ' - MushuApp',
+            files: [file]
+        }).then(() => {
+            showToast('Receta compartida! 📤');
+        }).catch(err => {
+            // Si canceló el share, no mostrar error
+            if (err.name !== 'AbortError') {
+                downloadRecipeFile(jsonString, fileName, r.name);
+            }
+        });
+    } else {
+        // Si no tiene Web Share, descargar archivo
+        downloadRecipeFile(jsonString, fileName, r.name);
+    }
+}
+
+function downloadRecipeFile(jsonString, fileName, recipeName) {
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`"${recipeName}" descargada! 📥`);
+}
+
 // === MODAL MATERIAL PENDIENTE ===
 function showPendingMaterialModal(name, category, callback) {
     pendingMaterialData = { name, category };
