@@ -190,8 +190,19 @@ function generateClassBlockCode() {
     return `${l1}${n}${l2}`;
 }
 
-function buildVisibleShortCode(modulePrefix, blockCode, studentCode) {
-    return `${modulePrefix}${blockCode}${studentCode}`;
+function buildVisibleShortCode(modulePrefix, blockCode, studentCode, present) {
+    const oddDigits = [1, 3, 5, 7, 9];
+    const evenDigits = [0, 2, 4, 6, 8];
+    const attendanceDigit = present
+        ? oddDigits[Math.floor(Math.random() * oddDigits.length)]
+        : evenDigits[Math.floor(Math.random() * evenDigits.length)];
+    return `${modulePrefix}${blockCode}${attendanceDigit}${studentCode}`;
+}
+
+function readAttendanceFromCode(code, modulePrefix, blockCode) {
+    const after = code.replace(modulePrefix, '').replace(blockCode, '');
+    const attendanceDigit = parseInt(after.charAt(0));
+    return attendanceDigit % 2 !== 0;
 }
 
 // === MATERIALES PENDIENTES - VARIABLES ===
@@ -1698,7 +1709,7 @@ function saveClass() {
             studentCode: s.studentCode,
             present: false,
             code: null,
-            shortCode: buildVisibleShortCode(modulePrefix, blockCode, s.studentCode),
+            shortCode: '',
             codeData: null,
             codeUsed: false,
             activatedAt: null
@@ -1766,15 +1777,14 @@ function showAttendanceModal(courseId, classId) {
 
     renderAttendanceList();
 
-    // Auto-generar códigos si no se han generado
-    if (!cls.codesGenerated) {
-        generateCodes();
-    }
-
-    // Siempre mostrar la sección de códigos
+    // Mostrar códigos solo si ya se generaron
     const codesSection = document.getElementById('generated-codes-section');
-    codesSection.style.display = 'block';
-    renderGeneratedCodes(cls, course);
+    if (cls.codesGenerated) {
+        codesSection.style.display = 'block';
+        renderGeneratedCodes(cls, course);
+    } else {
+        codesSection.style.display = 'none';
+    }
 
     document.getElementById('modal-attendance').classList.add('active');
 }
@@ -1803,10 +1813,17 @@ function saveAttendanceOnly() {
     if (!course) return;
     const cls = (course.classes || []).find(cl => String(cl.id) === String(currentAttendanceClassId));
     if (!cls) return;
+
+    // Guardar asistencia
     cls.attendance = JSON.parse(JSON.stringify(currentAttendanceData));
     saveCourses();
+
+    // Generar códigos con la asistencia actual
+    generateCodes();
+
     renderAttendanceList();
-    showToast('Asistencia guardada');
+    renderCourses();
+    showToast('Asistencia guardada y códigos generados! ✅');
 }
 
 function renderAttendanceList() {
@@ -1841,7 +1858,12 @@ function generateCodes() {
     const modulePrefix = mod ? mod.prefix : 'MOD';
 
     currentAttendanceData.forEach(a => {
-        const visibleCode = buildVisibleShortCode(modulePrefix, cls.blockCode || 'R75T', a.studentCode || '00');
+        const visibleCode = buildVisibleShortCode(
+            modulePrefix,
+            cls.blockCode || 'R75T',
+            a.studentCode || '00',
+            a.present
+        );
 
         const codeData = {
             code: visibleCode,
@@ -1873,10 +1895,10 @@ function generateCodes() {
     cls.codesGenerated = true;
     saveCourses();
 
-    document.getElementById('generated-codes-section').style.display = 'block';
+    const codesSection = document.getElementById('generated-codes-section');
+    codesSection.style.display = 'block';
     renderGeneratedCodes(cls, course);
     renderAttendanceList();
-    showToast('Códigos generados! 📋');
 }
 
 function regenerateCodes() {
