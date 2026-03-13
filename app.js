@@ -2511,7 +2511,8 @@ function saveMaterial(e) {
         unit,
         category,
         subcategory,
-        priceHistory
+        priceHistory,
+        pending: false
     };
 
     if (currentEditingMaterialId) {
