@@ -1162,6 +1162,7 @@ function renderRecipeCard(r, priceColor) {
                     ${tipH}
                     <div style="display:flex;gap:10px;margin-top:16px;">
                         <button class="btn-submit" style="margin-top:0;flex:1;" onclick="showAddRecipeModal('${r.id}')"><i class='bx bx-edit'></i> Editar</button>
+                        <button class="btn-icon" style="width:48px;height:48px;font-size:20px;background:var(--secondary-color);color:white;" onclick="shareRecipe('${r.id}')" title="Compartir"><i class='bx bx-share-alt'></i></button>
                         <button class="btn-icon danger" style="width:48px;height:48px;font-size:20px;" onclick="deleteRecipe('${r.id}')"><i class='bx bx-trash'></i></button>
                     </div>
                 </div>
