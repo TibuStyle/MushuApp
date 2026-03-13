@@ -1557,7 +1557,8 @@ function showAttendanceModal(courseId, classId) {
     renderGeneratedCodes(cls, course);
 
     document.getElementById('modal-attendance').classList.add('active');
-    
+}
+
 function toggleAttendance(studentId) {
     const student = currentAttendanceData.find(a => String(a.studentId) === String(studentId));
     if (student) {
