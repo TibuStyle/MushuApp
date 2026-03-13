@@ -2573,12 +2573,17 @@ function showAddRecipeModal(recipeId = null) {
     if (currentRecipeExtra) {
         document.getElementById('recipe-extra-subcat').value = currentRecipeExtra;
     }
+
     // Mostrar campos extra solo para recetas de módulo
     const moduleExtras = document.getElementById('module-recipe-extras');
     const tipsInput = document.getElementById('recipe-tips-input');
     const photoPreview = document.getElementById('recipe-photo-preview');
-    
-    if (teacherMode.active) {
+
+    const folderValue = folderInput ? folderInput.value : '';
+    const isModuleRecipe = teacherMode.active && folderValue && folderValue !== 'Mis Recetas';
+    const isEditingModuleRecipe = recipeId && teacherMode.active && recipes.find(r => String(r.id) === String(recipeId) && r.recipeFolder && r.recipeFolder !== 'Mis Recetas');
+
+    if (isModuleRecipe || isEditingModuleRecipe || window.currentModuleRecipeMode) {
         moduleExtras.style.display = 'block';
         if (recipeId) {
             const recipeData = recipes.find(r => String(r.id) === String(recipeId));
@@ -2599,6 +2604,7 @@ function showAddRecipeModal(recipeId = null) {
         currentRecipePhoto = null;
         currentRecipeTips = '';
     }
+    
     document.getElementById('modal-recipe').classList.add('active');
 }
 
