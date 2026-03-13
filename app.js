@@ -1181,6 +1181,16 @@ function renderRecipeCard(r, priceColor) {
                     ${bd}
                     ${sl}
                     ${tipH}
+                    ${r.sharedBy ? `
+                    <div style="text-align:center; padding:10px 0; margin-top:12px; border-top:1px dashed rgba(0,0,0,0.08);">
+                        <span style="font-size:12px; color:var(--text-muted);">
+                            <i class='bx bx-share-alt' style="font-size:14px; vertical-align:middle; margin-right:4px; color:var(--secondary-color);"></i>
+                            Receta compartida por 
+                            <strong style="color:var(--secondary-color);">
+                                ${sanitizeHTML(r.sharedBy)}
+                            </strong>
+                        </span>
+                    </div>` : ''}
                     <div style="display:flex;gap:10px;margin-top:16px;">
                         <button class="btn-submit" style="margin-top:0;flex:1;" onclick="showAddRecipeModal('${r.id}')"><i class='bx bx-edit'></i> Editar</button>
                         <button class="btn-icon" style="width:48px;height:48px;font-size:20px;background:var(--secondary-color);color:white;" onclick="shareRecipe('${r.id}')" title="Compartir"><i class='bx bx-share-alt'></i></button>
@@ -2771,6 +2781,7 @@ function shareRecipe(recipeId) {
         version: '4.1',
         type: 'recipe',
         exportDate: new Date().toISOString(),
+        sharedBy: studentName || (teacherMode.active ? 'Profesor/a' : 'Anónimo'),
         recipe: {
             name: r.name,
             ingredients: r.ingredients || [],
@@ -2941,7 +2952,8 @@ function importRecipeFromFile(event) {
                 totalCost: ic + dc + ec,
                 portions: recipe.portions || 1,
                 recipeFolder: 'Mis Recetas',
-                recipeSource: 'personal'
+                recipeSource: 'personal',
+                sharedBy: data.sharedBy || null
             };
 
             recipes.push(newRecipe);
