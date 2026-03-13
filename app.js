@@ -194,6 +194,10 @@ function buildVisibleShortCode(modulePrefix, blockCode, studentCode) {
     return `${modulePrefix}${blockCode}${studentCode}`;
 }
 
+// === MATERIALES PENDIENTES - VARIABLES ===
+let pendingMaterialData = null;
+let pendingMaterialCallback = null;
+
 function createPendingMaterial(name, category = 'productos', subcategory = '') {
     const exists = materials.find(m => 
         m.name.toLowerCase().trim() === name.toLowerCase().trim()
