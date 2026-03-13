@@ -1,6 +1,6 @@
 // === MushuApp v4.0 estable - Parte 1/2 ===
 
-const TEACHER_HASH = '1099370671';
+const TEACHER_HASH = '46115714';
 function simpleHash(str) { let h = 0; for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h = h & h; } return Math.abs(h).toString(); }
 
 function sanitizeHTML(str) {
