@@ -3012,6 +3012,23 @@ function openRecipeFromClass(recipeId) {
     }, 300);
 }
 
+function onRecipeFolderChange() {
+    const folderValue = document.getElementById('recipe-folder-input').value;
+    const moduleExtras = document.getElementById('module-recipe-extras');
+    const tipsInput = document.getElementById('recipe-tips-input');
+    const photoPreview = document.getElementById('recipe-photo-preview');
+
+    if (folderValue && folderValue !== 'Mis Recetas') {
+        moduleExtras.style.display = 'block';
+    } else {
+        moduleExtras.style.display = 'none';
+        currentRecipePhoto = null;
+        currentRecipeTips = '';
+        if (tipsInput) tipsInput.value = '';
+        if (photoPreview) photoPreview.innerHTML = '';
+    }
+}
+
 // === FOTO Y TIPS DE RECETA ===
 function handleRecipePhoto(event) {
     const file = event.target.files[0];
