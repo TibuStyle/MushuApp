@@ -937,6 +937,17 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
         }
     }
 
+    // Advertencia si se mueve a módulo sin foto o tips
+    if (finalSource === 'module' && teacherMode.active) {
+        if (!recipePhoto && !recipeTips) {
+            showToast('⚠️ Receta sin foto ni tips', false);
+        } else if (!recipePhoto) {
+            showToast('⚠️ Receta sin foto', false);
+        } else if (!recipeTips) {
+            showToast('⚠️ Receta sin tips', false);
+        }
+    }
+    
     saveRecipesToStorage();
     updateRecipesView();
     closeModal('modal-recipe');
@@ -1855,10 +1866,8 @@ function renderAttendanceList() {
     list.innerHTML = currentAttendanceData.map(a => {
         const statusIcon = a.present ? '✅' : '❌';
         let codeStatus = '';
-        if (a.code) {
-            codeStatus = a.codeUsed
-                ? `<span class="attendance-code-status sent">📋 enviado</span>`
-                : `<span class="attendance-code-status pending">⚠️ pendiente</span>`;
+        if (a.code && a.codeUsed) {
+            codeStatus = `<span class="attendance-code-status sent">📋 copiado</span>`;
         }
         return `
             <div class="attendance-item">
@@ -2097,7 +2106,7 @@ function viewImportedClass(classId) {
         html += `<div class="class-content-section">
             <h4><i class='bx bx-camera'></i> Foto de la Receta</h4>
             <div class="class-content-photo">
-                <img src="${ic.linkedRecipe.recipePhoto}" alt="Foto de receta">
+            <img src="${ic.linkedRecipe.recipePhoto}" alt="Foto de receta" onclick="event.stopPropagation(); openPhotoFullscreen('${ic.linkedRecipe.recipePhoto}', '${sanitizeHTML(watermarkName)}')" style="cursor:pointer;">
                 <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
             </div>
         </div>`;
@@ -2110,7 +2119,7 @@ function viewImportedClass(classId) {
             <div class="class-content-photos">
                 ${ic.photos.map(p => `
                     <div class="class-content-photo">
-                        <img src="${p}" alt="Foto de clase">
+                     <img src="${p}" alt="Foto de clase" onclick="event.stopPropagation(); openPhotoFullscreen('${p}', '${sanitizeHTML(watermarkName)}')" style="cursor:pointer;">
                         <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
                     </div>
                 `).join('')}
@@ -2955,6 +2964,20 @@ function selectRecipeForClass(recipeId) {
     renderSelectedClassRecipeBox();
     closeModal('modal-select-recipe');
     showToast(`Receta "${currentSelectedClassRecipe.name}" seleccionada`);
+}
+
+// === PHOTO FULLSCREEN ===
+function openPhotoFullscreen(src, watermark) {
+    const viewer = document.getElementById('photo-fullscreen');
+    const img = document.getElementById('photo-fullscreen-img');
+    const wm = document.getElementById('photo-fullscreen-watermark');
+    img.src = src;
+    wm.textContent = watermark || '';
+    viewer.style.display = 'flex';
+}
+
+function closePhotoFullscreen() {
+    document.getElementById('photo-fullscreen').style.display = 'none';
 }
 
 // === ABRIR RECETA DESDE CLASE ===
