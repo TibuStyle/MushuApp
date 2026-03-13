@@ -2679,3 +2679,30 @@ function clearSelectedClassRecipe() {
     currentSelectedClassRecipe = null;
     renderSelectedClassRecipeBox();
 }
+
+// === FUNCIONES FALTANTES ===
+
+function saveStudentName() {
+    const name = document.getElementById('student-name-input').value.trim();
+    if (!name) {
+        showToast('Ingresa tu nombre', true);
+        return;
+    }
+    studentName = name;
+    localStorage.setItem('mushu_student_name', studentName);
+    updateClassesView();
+    updateRecipesView();
+    showToast('Nombre guardado: ' + name);
+}
+
+function saveProfitMargin() {
+    const val = parseFloat(document.getElementById('profit-margin').value);
+    if (isNaN(val) || val < 1) {
+        showToast('Margen inválido', true);
+        return;
+    }
+    profitMargin = val;
+    localStorage.setItem('mushu_profit_margin', profitMargin.toString());
+    updateRecipesView();
+    showToast('Margen actualizado: x' + profitMargin);
+}
