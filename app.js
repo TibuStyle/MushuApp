@@ -438,14 +438,11 @@ function deleteExtraSubcategory(sc) {
 function updateMaterialSelect() {
     const s = document.getElementById('recipe-add-mat');
     const m = materials.filter(m => (m.category || 'productos') === 'productos');
-    if (m.length === 0) {
-        s.innerHTML = '<option value="">No hay productos</option>';
-        return;
-    }
     s.innerHTML =
         '<option value="">Selecciona...</option>' +
+        '<option value="__nuevo__">➕ Nuevo material...</option>' +
         m.sort((a, b) => a.name.localeCompare(b.name))
-            .map(m => `<option value="${m.id}">${m.name} ($${formatCLP(m.price)} x ${m.qty}${m.unit})</option>`)
+            .map(m => `<option value="${m.id}">${m.name}${m.pending ? ' ⚠️' : ''} ($${formatCLP(m.price)} x ${m.qty}${m.unit})</option>`)
             .join('');
 }
 
