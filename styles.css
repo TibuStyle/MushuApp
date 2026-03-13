@@ -1327,3 +1327,11 @@ input:checked + .slider:before { transform: translateX(16px); }
 #modal-pending-material {
     z-index: 450;
 }
+
+/* === RECIPE CARD CLICKEABLE === */
+.recipe-card-header:active {
+    background: var(--surface-hover);
+}
+.recipe-card-toggle {
+    padding: 6px 0;
+}
