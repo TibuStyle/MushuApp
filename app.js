@@ -2069,17 +2069,17 @@ function completeClassImport(decoded) {
 }
 
 function exportData() {
+    const personalRecipes = recipes.filter(r => 
+        (r.recipeSource || 'personal') === 'personal'
+    );
+
     const d = {
-        version: '4.0',
+        version: '4.1',
         exportDate: new Date().toISOString(),
         materials,
-        recipes,
-        modules,
-        courses,
-        importedClasses,
+        recipes: personalRecipes,
         extraSubcategories: JSON.parse(localStorage.getItem('mushu_extra_subcategories') || '[]'),
         profitMargin,
-        teacherMode,
         studentName
     };
 
@@ -2108,20 +2108,22 @@ function importData(event) {
                 return;
             }
 
+            const personalCount = d.recipes.length;
+
             showConfirmModal(
                 'Importar datos',
-                `Se importarán ${d.materials.length} materiales y ${d.recipes.length} recetas. ¿Continuar?`,
+                `Se importarán ${d.materials.length} materiales y ${personalCount} recetas personales. ¿Continuar?`,
                 () => {
                     materials = d.materials;
-                    recipes = d.recipes;
-                    if (d.modules) modules = d.modules;
+
+                    // Mantener recetas de módulos/clases que ya tengo
+                    const moduleRecipes = recipes.filter(r => 
+                        r.recipeSource === 'module' || r.recipeSource === 'class'
+                    );
+                    recipes = [...d.recipes, ...moduleRecipes];
+
                     profitMargin = d.profitMargin || 2;
-                    if (d.courses) courses = d.courses;
-                    if (d.importedClasses) importedClasses = d.importedClasses;
-                    if (d.teacherMode) {
-                        teacherMode = d.teacherMode;
-                        localStorage.setItem('mushu_teacher_mode', JSON.stringify(teacherMode));
-                    }
+
                     if (d.studentName) {
                         studentName = d.studentName;
                         localStorage.setItem('mushu_student_name', studentName);
@@ -2132,13 +2134,9 @@ function importData(event) {
 
                     saveMaterialsToStorage();
                     saveRecipesToStorage();
-                    saveModules();
-                    saveCourses();
-                    saveImportedClasses();
                     localStorage.setItem('mushu_profit_margin', profitMargin.toString());
 
                     normalizeExistingRecipes();
-                    normalizeExistingCourses();
                     renderMaterials();
                     updateRecipesView();
                     updateMaterialSelect();
@@ -2146,11 +2144,11 @@ function importData(event) {
                     updateExtraSubcategorySelect();
                     updateClassesView();
 
-                    showToast(`Importado ✅`);
+                    showToast(`Importado ✅ ${d.materials.length} materiales y ${personalCount} recetas`);
                 }
             );
         } catch (err) {
-            showToast("Error", true);
+            showToast("Error al importar", true);
         }
     };
 
