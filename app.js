@@ -3136,6 +3136,84 @@ function showSyncStatus(text) {
     statusText.textContent = text;
 }
 
+function showSyncMissingModal(missingList) {
+    const list = document.getElementById('sync-missing-list');
+    list.innerHTML = missingList.map((m, i) => `
+        <div class="missing-material-item">
+            <h4><i class='bx bx-error-circle'></i> ${sanitizeHTML(m.name)}
+                <span style="font-size:11px; font-weight:400; color:var(--text-muted);"> (${m.category})</span>
+            </h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Precio (CLP)</label>
+                    <input type="number" id="sync-missing-price-${i}" placeholder="990" min="0">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Cantidad Base</label>
+                    <input type="number" id="sync-missing-qty-${i}" placeholder="1" min="0.01" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Unidad</label>
+                    <select id="sync-missing-unit-${i}">
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="l">L</option>
+                        <option value="cm3">mL</option>
+                        <option value="u">u</option>
+                    </select>
+                </div>
+            </div>
+            <input type="hidden" id="sync-missing-name-${i}" value="${m.name}">
+            <input type="hidden" id="sync-missing-category-${i}" value="${m.category}">
+        </div>
+    `).join('');
+
+    document.getElementById('modal-sync-missing').classList.add('active');
+}
+
+function saveSyncMissingMaterials() {
+    const items = document.querySelectorAll('[id^="sync-missing-name-"]');
+    let updated = 0;
+
+    for (let i = 0; i < items.length; i++) {
+        const name = document.getElementById('sync-missing-name-' + i).value;
+        const price = parseFloat(document.getElementById('sync-missing-price-' + i).value);
+        const qty = parseFloat(document.getElementById('sync-missing-qty-' + i).value);
+        const unit = document.getElementById('sync-missing-unit-' + i).value;
+
+        if (!isNaN(price) && !isNaN(qty) && qty > 0 && price >= 0) {
+            const mat = materials.find(m =>
+                m.name.toLowerCase().trim() === name.toLowerCase().trim()
+            );
+            if (mat) {
+                mat.price = price;
+                mat.qty = qty;
+                mat.unit = unit;
+                mat.pending = false;
+                mat.priceHistory = [{ date: new Date().toISOString().slice(0, 10), price: price }];
+                updated++;
+            }
+        }
+    }
+
+    saveMaterialsToStorage();
+    recalculateAllRecipes();
+    renderMaterials();
+    updateMaterialSelect();
+    updateDecorationSelect();
+    updateRecipesView();
+
+    closeModal('modal-sync-missing');
+
+    if (updated > 0) {
+        showToast(updated + ' material' + (updated > 1 ? 'es' : '') + ' actualizado' + (updated > 1 ? 's' : '') + '! ✅');
+    } else {
+        showToast('Materiales dejados como pendientes');
+    }
+}
+
 function syncModuleUpload() {
     const mod = modules.find(m => String(m.id) === String(currentSyncModuleId));
     if (!mod) return;
@@ -3267,42 +3345,50 @@ function syncModuleDownload() {
                 modules[modIdx].prefix = data.module.prefix;
             }
 
-            // Actualizar recetas del módulo
-            const oldModuleRecipes = recipes.filter(r =>
-                r.recipeFolder === mod.name &&
-                (r.recipeSource === 'module' || r.recipeSource === 'class')
-            );
+            // Quitar recetas viejas del módulo
             recipes = recipes.filter(r =>
                 !(r.recipeFolder === mod.name &&
                 (r.recipeSource === 'module' || r.recipeSource === 'class'))
             );
 
-            (data.recipes || []).forEach(r => {
-                const allIngredients = [...(r.ingredients || []), ...(r.decorations || [])];
-                const missingMats = [];
+            // Juntar TODOS los materiales faltantes
+            const allMissing = [];
 
-                // Reasignar matId y detectar faltantes
+            (data.recipes || []).forEach(r => {
+                const allItems = [...(r.ingredients || []), ...(r.decorations || [])];
+                allItems.forEach(item => {
+                    const found = materials.find(m =>
+                        m.name.toLowerCase().trim() === item.name.toLowerCase().trim()
+                    );
+                    if (!found && !allMissing.find(mm => mm.name.toLowerCase() === item.name.toLowerCase())) {
+                        const isDeco = (r.decorations || []).some(d =>
+                            d.name.toLowerCase().trim() === item.name.toLowerCase().trim()
+                        );
+                        allMissing.push({
+                            name: item.name,
+                            category: isDeco ? 'decoracion' : 'productos'
+                        });
+                    }
+                });
+            });
+
+            // Crear materiales pendientes por ahora
+            allMissing.forEach(mm => {
+                createPendingMaterial(mm.name, mm.category);
+            });
+
+            // Agregar recetas con matId actualizados
+            (data.recipes || []).forEach(r => {
                 r.ingredients = (r.ingredients || []).map(i => {
                     const found = materials.find(m =>
                         m.name.toLowerCase().trim() === i.name.toLowerCase().trim()
                     );
-                    if (found) {
-                        return {
-                            ...i,
-                            id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
-                            matId: String(found.id),
-                            cost: found.pending ? 0 : calculateIngredientCost(found, i.qty, i.unit),
-                            pending: found.pending || false
-                        };
-                    }
-                    if (!missingMats.find(mm => mm.name.toLowerCase() === i.name.toLowerCase())) {
-                        missingMats.push({ name: i.name, category: 'productos' });
-                    }
                     return {
                         ...i,
                         id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
-                        pending: true,
-                        cost: 0
+                        matId: found ? String(found.id) : '',
+                        cost: (found && !found.pending) ? calculateIngredientCost(found, i.qty, i.unit) : 0,
+                        pending: found ? (found.pending || false) : true
                     };
                 });
 
@@ -3310,39 +3396,13 @@ function syncModuleDownload() {
                     const found = materials.find(m =>
                         m.name.toLowerCase().trim() === d.name.toLowerCase().trim()
                     );
-                    if (found) {
-                        return {
-                            ...d,
-                            id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
-                            matId: String(found.id),
-                            cost: found.pending ? 0 : calculateIngredientCost(found, d.qty, d.unit),
-                            pending: found.pending || false
-                        };
-                    }
-                    if (!missingMats.find(mm => mm.name.toLowerCase() === d.name.toLowerCase())) {
-                        missingMats.push({ name: d.name, category: 'decoracion' });
-                    }
                     return {
                         ...d,
                         id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
-                        pending: true,
-                        cost: 0
+                        matId: found ? String(found.id) : '',
+                        cost: (found && !found.pending) ? calculateIngredientCost(found, d.qty, d.unit) : 0,
+                        pending: found ? (found.pending || false) : true
                     };
-                });
-
-                // Crear materiales pendientes
-                missingMats.forEach(mm => {
-                    const pendingMat = createPendingMaterial(mm.name, mm.category);
-                    r.ingredients.forEach(i => {
-                        if (i.name.toLowerCase().trim() === mm.name.toLowerCase().trim()) {
-                            i.matId = String(pendingMat.id);
-                        }
-                    });
-                    r.decorations.forEach(d => {
-                        if (d.name.toLowerCase().trim() === mm.name.toLowerCase().trim()) {
-                            d.matId = String(pendingMat.id);
-                        }
-                    });
                 });
 
                 const ic = r.ingredients.reduce((s, i) => s + (i.cost || 0), 0);
@@ -3382,7 +3442,6 @@ function syncModuleDownload() {
                         classes: []
                     };
 
-                    // Agregar clases de este curso
                     (data.classes || []).forEach(cls => {
                         if (cls.courseId === courseData.id) {
                             newCourse.classes.push({
@@ -3409,6 +3468,7 @@ function syncModuleDownload() {
             saveModules();
             saveRecipesToStorage();
             saveCourses();
+            saveMaterialsToStorage();
             renderMaterials();
             updateMaterialSelect();
             updateDecorationSelect();
@@ -3416,14 +3476,22 @@ function syncModuleDownload() {
             updateClassesView();
 
             showSyncStatus('✅ Módulo actualizado correctamente');
-            showToast('Módulo "' + data.module.name + '" cargado! ✅');
+            closeModal('modal-sync-module');
+
+            // Si hay materiales faltantes, mostrar modal
+            if (allMissing.length > 0) {
+                showSyncMissingModal(allMissing);
+                showToast('Módulo cargado! ⚠️ ' + allMissing.length + ' materiales pendientes');
+            } else {
+                showToast('Módulo "' + data.module.name + '" cargado! ✅');
+            }
         })
         .catch(err => {
             console.error(err);
             showSyncStatus('❌ No se encontró el módulo. ¿Ya lo subiste a GitHub?');
             showToast('No se pudo cargar el módulo', true);
         });
-} 
+}
     
 // === MODAL NUEVO MATERIAL NOMBRE ===
 function showNewMaterialNameModal(category, callback) {
