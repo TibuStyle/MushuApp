@@ -1182,7 +1182,11 @@ function renderModuleFolder(mod, recipesInModule) {
                         .sort((a, b) => a.name.localeCompare(b.name))
                         .map(r => renderRecipeCard(r, priceColor))
                         .join('')
-                    : '<div class="empty-state" style="padding:20px;font-size:13px;margin-top:10px;">Este módulo no tiene recetas aún.</div>'}
+                     : '<div class="empty-state" style="padding:20px;font-size:13px;margin-top:10px;">Este módulo no tiene recetas aún.</div>'}
+
+                <button class="btn-submit" style="margin-top:16px; background:linear-gradient(135deg, #6366f1, #8b5cf6);" onclick="showSyncModuleModal('${mod.id}')">
+                    <i class='bx bx-cloud'></i> Sincronizar
+                </button>
             </div>
         </div>
     `;
@@ -3111,6 +3115,35 @@ function importRecipeFromFile(event) {
     event.target.value = '';
 }
 
+// === SINCRONIZAR MÓDULO ===
+let currentSyncModuleId = null;
+
+function showSyncModuleModal(moduleId) {
+    const mod = modules.find(m => String(m.id) === String(moduleId));
+    if (!mod) return;
+
+    currentSyncModuleId = moduleId;
+    document.getElementById('sync-module-name').textContent = mod.name;
+    document.getElementById('sync-module-prefix').textContent = 'Prefijo: ' + mod.prefix;
+    document.getElementById('sync-status').style.display = 'none';
+    document.getElementById('modal-sync-module').classList.add('active');
+}
+
+function showSyncStatus(text) {
+    const statusDiv = document.getElementById('sync-status');
+    const statusText = document.getElementById('sync-status-text');
+    statusDiv.style.display = 'block';
+    statusText.textContent = text;
+}
+
+function syncModuleUpload() {
+    showToast('Próximamente...', true);
+}
+
+function syncModuleDownload() {
+    showToast('Próximamente...', true);
+} 
+    
 // === MODAL NUEVO MATERIAL NOMBRE ===
 function showNewMaterialNameModal(category, callback) {
     newMaterialNameCategory = category;
