@@ -194,6 +194,29 @@ function buildVisibleShortCode(modulePrefix, blockCode, studentCode) {
     return `${modulePrefix}${blockCode}${studentCode}`;
 }
 
+function createPendingMaterial(name, category = 'productos', subcategory = '') {
+    const exists = materials.find(m => 
+        m.name.toLowerCase().trim() === name.toLowerCase().trim()
+    );
+    if (exists) return exists;
+
+    const pendingMat = {
+        id: Date.now().toString() + '-pending',
+        name: name.trim(),
+        price: 0,
+        qty: 0,
+        unit: 'u',
+        category,
+        subcategory,
+        pending: true,
+        priceHistory: []
+    };
+
+    materials.push(pendingMat);
+    saveMaterialsToStorage();
+    return pendingMat;
+}
+
 // --- Basic save helpers ---
 function saveMaterialsToStorage() {
     localStorage.setItem('mushu_materials', JSON.stringify(materials));
