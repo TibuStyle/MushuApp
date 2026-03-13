@@ -754,27 +754,16 @@
                 <div id="attendance-class-info"></div>
                 <div id="attendance-list"></div>
 
-                <div style="display:flex; gap:10px; margin-top:20px;">
-                    <button type="button" class="btn-submit" id="btn-generate-codes" onclick="generateCodes()" style="margin-top:0; flex:1;">
-                        <i class='bx bx-key'></i> Generar Códigos
-                    </button>
-                    <button type="button" class="btn-submit" id="btn-save-attendance" onclick="saveAttendanceOnly()" style="margin-top:0; flex:1; background:linear-gradient(135deg,var(--secondary-color),var(--secondary-hover));">
-                        <i class='bx bx-save'></i> Guardar
-                    </button>
-                </div>
+        <div style="margin-top:20px;">
+            <button type="button" class="btn-submit" id="btn-save-attendance" onclick="saveAttendanceOnly()" style="margin-top:0; background:linear-gradient(135deg,var(--secondary-color),var(--secondary-hover));">
+                <i class='bx bx-save'></i> Guardar Asistencia
+            </button>
+        </div>
 
-                <div id="generated-codes-section" style="display:none; margin-top:20px;">
-                    <h4 style="margin-bottom:12px;">📋 Códigos Generados</h4>
-                    <div id="generated-codes-list"></div>
-                    <div class="backup-buttons" style="margin-top:12px;">
-                        <button type="button" class="btn-backup export" onclick="copyAllCodes()">
-                            <i class='bx bx-copy'></i> Copiar Todos
-                        </button>
-                        <button type="button" class="btn-backup import" onclick="regenerateCodes()">
-                            <i class='bx bx-refresh'></i> Regenerar
-                        </button>
-                    </div>
-                </div>
+        <div id="generated-codes-section" style="display:none; margin-top:20px;">
+            <h4 style="margin-bottom:12px;">📋 Códigos de Alumnos</h4>
+            <div id="generated-codes-list"></div>
+        </div>
             </div>
         </div>
 
