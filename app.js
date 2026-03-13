@@ -865,23 +865,44 @@ function duplicateCurrentRecipe() {
 }
 
 function toggleSellingPrice() {
-    showMinSellingPrice = document.querySelector('#toggle-selling-price, #toggle-selling-price-student, #toggle-selling-price-default')?.checked || false;
-    updateRecipesView();
+    const checked = document.getElementById('toggle-selling-price').checked;
+    syncAllPriceToggles(checked);
 }
 
 function toggleSellingPriceStudentMirror() {
     const checked = document.getElementById('toggle-selling-price-student').checked;
-    showMinSellingPrice = checked;
-    const d = document.getElementById('toggle-selling-price-default');
-    if (d) d.checked = checked;
-    updateRecipesView();
+    syncAllPriceToggles(checked);
 }
 
 function toggleSellingPriceDefaultMirror() {
     const checked = document.getElementById('toggle-selling-price-default').checked;
+    syncAllPriceToggles(checked);
+}
+
+function syncAllPriceToggles(checked) {
     showMinSellingPrice = checked;
-    const s = document.getElementById('toggle-selling-price-student');
-    if (s) s.checked = checked;
+
+    ['toggle-selling-price', 'toggle-selling-price-student', 'toggle-selling-price-default'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.checked = checked;
+    });
+
+    document.querySelectorAll('.price-toggle-label.cost-label').forEach(el => {
+        if (checked) {
+            el.classList.remove('active-label');
+        } else {
+            el.classList.add('active-label');
+        }
+    });
+
+    document.querySelectorAll('.price-toggle-label.sale-label').forEach(el => {
+        if (checked) {
+            el.classList.add('active-label');
+        } else {
+            el.classList.remove('active-label');
+        }
+    });
+
     updateRecipesView();
 }
 
