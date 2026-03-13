@@ -1139,7 +1139,7 @@ function renderRecipeCard(r, priceColor) {
 
     return `
         <div class="recipe-card">
-            <div class="recipe-card-header">
+        <div class="recipe-card-header" onclick="toggleRecipeDetail('${r.id}')" style="cursor:pointer;">
                 <div class="recipe-card-info">
                     <h3>${sanitizeHTML(r.name)}</h3>
                     <p>${ti} Items${r.extraSubcategory ? ' + Extra' : ''}</p>
@@ -1152,8 +1152,8 @@ function renderRecipeCard(r, priceColor) {
                     <div class="recipe-card-price-value" style="color:${priceColor};">$${formatCLP(dp)}</div>
                 </div>
             </div>
-            <div class="recipe-card-toggle" id="recipe-toggle-${r.id}" onclick="toggleRecipeDetail('${r.id}')">
-                <span>Ver detalle</span><i class='bx bx-chevron-down'></i>
+            <div class="recipe-card-toggle" id="recipe-toggle-${r.id}" onclick="toggleRecipeDetail('${r.id}')" style="cursor:pointer;">
+                <i class='bx bx-chevron-down'></i>
             </div>
             <div class="recipe-card-detail" id="recipe-detail-${r.id}">
                 <div class="recipe-detail-content">
