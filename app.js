@@ -1693,7 +1693,8 @@ function removeClassPhoto(index) {
 
 function renderClassPhotosPreview() {
     const preview = document.getElementById('class-photos-preview');
-    if (!currentClassPhotos.length) {
+    if (!preview) return;
+    if (!currentClassPhotos || !currentClassPhotos.length) {
         preview.innerHTML = '';
         return;
     }
