@@ -1355,3 +1355,47 @@ input:checked + .slider:before { transform: translateX(16px); }
     gap: 6px;
     flex-shrink: 0;
 }
+
+/* === HEADER RECETAS CENTRADO === */
+.section-header-recipes {
+    text-align: center;
+    margin-bottom: 20px;
+}
+.section-header-recipes h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 12px;
+}
+.recipe-header-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.recipe-header-buttons .btn-primary {
+    font-size: 13px;
+    padding: 8px 14px;
+}
+.price-toggle-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--surface-color);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(0,0,0,0.05);
+}
+.price-toggle-label {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-muted);
+    transition: all 0.3s;
+}
+.price-toggle-label.active-label {
+    font-weight: 600;
+    color: var(--text-main);
+}
+.price-toggle-label.sale-label.active-label {
+    color: var(--secondary-color);
+}
