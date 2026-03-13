@@ -1335,3 +1335,23 @@ input:checked + .slider:before { transform: translateX(16px); }
 .recipe-card-toggle {
     padding: 6px 0;
 }
+
+/* === ARREGLO HEADER RECETAS === */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.section-header .btn-primary {
+    font-size: 12px;
+    padding: 6px 10px;
+    white-space: nowrap;
+}
+.recipe-header-buttons {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
