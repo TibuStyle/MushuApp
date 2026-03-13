@@ -136,6 +136,9 @@
                             <button class="btn-primary" onclick="showAddRecipeModal()">
                                 <i class='bx bx-plus'></i> Nueva receta
                             </button>
+                            <button class="btn-primary" onclick="document.getElementById('import-recipe-file').click()" style="background:var(--secondary-color);">
+                                <i class='bx bx-import'></i> Cargar
+                            </button>
                         </div>
                     </div>
 
@@ -160,6 +163,9 @@
                         <button class="btn-primary" onclick="showAddRecipeModal()">
                             <i class='bx bx-plus'></i> Nueva receta
                         </button>
+                        <button class="btn-primary" onclick="document.getElementById('import-recipe-file').click()" style="background:var(--secondary-color);">
+                            <i class='bx bx-import'></i> Cargar
+                        </button>
                     </div>
 
                     <div id="student-recipe-groups-list" class="list-container">
@@ -182,6 +188,9 @@
                         </div>
                         <button class="btn-primary" onclick="showAddRecipeModal()">
                             <i class='bx bx-plus'></i> Nueva receta
+                        </button>
+                        <button class="btn-primary" onclick="document.getElementById('import-recipe-file').click()" style="background:var(--secondary-color);">
+                            <i class='bx bx-import'></i> Cargar
                         </button>
                     </div>
 
@@ -849,6 +858,9 @@
                 </div>
             </div>
         </div>
+
+    <!-- Import Recipe File Input -->
+    <input type="file" id="import-recipe-file" accept=".json" style="display:none;" onchange="importRecipeFromFile(event)">
     
     <!-- Toast -->
     <div id="toast" class="toast">Mensaje</div>
