@@ -2078,7 +2078,7 @@ function viewImportedClass(classId) {
     const ic = importedClasses.find(x => String(x.id) === String(classId));
     if (!ic) return;
 
-    const watermarkName = studentName || ic.studentName || 'Alumno';
+    const watermarkName = (studentName || ic.studentName || 'Alumno') + ' • MushuApp';
     document.getElementById('view-class-title').textContent = ic.className;
 
     let html = '';
