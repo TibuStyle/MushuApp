@@ -331,7 +331,7 @@ function renderExtraMaterials(q) {
                 <div style="display:flex;align-items:center;gap:8px;">
                     <i class='bx bx-chevron-down' id="chevron-extra-${sid}" style="transition:transform 0.3s;"></i>
                     <i class='bx bx-folder' style="color:var(--secondary-color);"></i>
-                    <span>${sc}</span>
+                    <span>${sanitizeHTML(sc)}</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:10px;" onclick="event.stopPropagation()">
                     <span class="card-price">$${formatCLP(tot)}</span>
