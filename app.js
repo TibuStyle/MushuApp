@@ -2995,15 +2995,115 @@ function findRecipeByName(recipeName) {
 }
 
 function openRecipeFromClass(recipeId) {
-    switchTab('recetas');
+    const r = recipes.find(x => String(x.id) === String(recipeId));
+    if (!r) {
+        showToast('Receta no encontrada', true);
+        return;
+    }
 
-    setTimeout(() => {
-        const detail = document.getElementById('recipe-detail-' + recipeId);
-        const toggle = document.getElementById('recipe-toggle-' + recipeId);
-        if (detail && !detail.classList.contains('open')) {
-            detail.classList.add('open');
-            if (toggle) toggle.classList.add('open');
-        }
+    const ic = (r.ingredients || []).reduce((s, i) => s + i.cost, 0);
+    const dc = (r.decorations || []).reduce((s, i) => s + i.cost, 0);
+    const ec = r.extraCost || 0;
+    const se = Math.floor((r.totalCost * profitMargin) / 500) * 500;
+
+    let html = '';
+
+    html += `<div class="class-content-header">
+        <h2>${sanitizeHTML(r.name)}</h2>
+        <p>${(r.ingredients || []).length + (r.decorations || []).length} Items${r.extraSubcategory ? ' + Extra' : ''}${r.portions > 1 ? ' • ' + r.portions + ' porciones' : ''}</p>
+    </div>`;
+
+    // Ingredientes
+    if ((r.ingredients || []).length > 0) {
+        html += `<div class="class-content-section">
+            <h4><i class='bx bx-package'></i> Ingredientes</h4>
+            <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;">
+                ${r.ingredients.map(i => `
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
+                        <span>${sanitizeHTML(i.name)} (${i.qty} ${i.unit})</span>
+                        <span style="font-weight:500;">$${formatCLP(i.cost)}</span>
+                    </div>
+                `).join('')}
+                <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:600;">
+                    <span>Subtotal</span><span>$${formatCLP(ic)}</span>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // Decoraciones
+    if ((r.decorations || []).length > 0) {
+        html += `<div class="class-content-section">
+            <h4><i class='bx bx-palette'></i> Decoración</h4>
+            <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;">
+                ${r.decorations.map(d => `
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
+                        <span>${sanitizeHTML(d.name)} (${d.qty} ${d.unit})</span>
+                        <span style="font-weight:500;">$${formatCLP(d.cost)}</span>
+                    </div>
+                `).join('')}
+                <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:600;">
+                    <span>Subtotal</span><span>$${formatCLP(dc)}</span>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // Extra
+    if (r.extraSubcategory && ec > 0) {
+        const extraItems = materials.filter(m => m.category === 'extra' && m.subcategory === r.extraSubcategory);
+        html += `<div class="class-content-section">
+            <h4><i class='bx bx-star'></i> Extra</h4>
+            <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;">
+                ${extraItems.map(m => `
+                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
+                        <span>${sanitizeHTML(m.name)}</span>
+                        <span style="font-weight:500;">$${formatCLP(m.price)}</span>
+                    </div>
+                `).join('')}
+                <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:600;">
+                    <span>Subtotal</span><span>$${formatCLP(ec)}</span>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    // Costo total y precio sugerido
+    html += `<div class="class-content-section">
+        <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;">
+            <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700;font-size:16px;">
+                <span>COSTO TOTAL</span><span>$${formatCLP(r.totalCost)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:var(--secondary-color);font-weight:600;">
+                <span>💰 Venta sugerida (x${profitMargin}):</span><span>$${formatCLP(se)}</span>
+            </div>
+            ${r.portions > 1 ? `
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:var(--text-muted);">
+                <span>🍰 Por porción (${r.portions}x):</span><span>$${formatCLP(Math.round(se / r.portions))} c/u</span>
+            </div>` : ''}
+        </div>
+    </div>`;
+
+    // Tips del profesor
+    if (r.recipeTips) {
+        html += `<div class="class-content-section">
+            <h4><i class='bx bx-bulb'></i> Tips del Profesor</h4>
+            <div class="class-content-tips">
+                ${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}
+            </div>
+        </div>`;
+    }
+
+    // Tip automático
+    const autoTip = generateRecipeTip(r);
+    if (autoTip) {
+        html += `<div class="recipe-tip"><strong>💡 Consejo</strong>${autoTip}</div>`;
+    }
+
+    document.getElementById('view-class-title').textContent = r.name;
+    document.getElementById('view-class-content').innerHTML = html;
+    document.getElementById('modal-view-class').classList.add('active');
+}
 
         const card = document.querySelector('.recipe-card-header[onclick*="' + recipeId + '"]');
         if (card) {
