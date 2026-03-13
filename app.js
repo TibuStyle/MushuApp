@@ -343,7 +343,7 @@ function renderExtraMaterials(q) {
                 ${(q ? f : items).sort((a, b) => a.name.localeCompare(b.name)).map(m => `
                     <div class="card" onclick="showAddMaterialModal('${m.id}')" style="cursor:pointer;margin-left:8px;">
                         <div class="card-info">
-                            <h3>${m.name}</h3>
+                            <h3>${sanitizeHTML(m.name)}</h3>
                             <p>${m.qty} ${m.unit}</p>
                             ${getPriceBadgeHTML(m)}
                         </div>
@@ -566,7 +566,7 @@ function renderCurrentRecipeIngredients() {
     l.innerHTML = currentRecipeIngredients.map(i => `
         <div class="ingredient-item">
             <div class="ingredient-details">
-                <span><strong>${i.name}</strong></span>
+                <span><strong>${sanitizeHTML(i.name)}</strong></span>
                 <span style="font-size:12px;color:var(--text-muted);">${i.qty} ${i.unit}</span>
             </div>
             <div style="display:flex;align-items:center;gap:10px;">
@@ -620,7 +620,7 @@ function renderCurrentRecipeDecorations() {
     l.innerHTML = currentRecipeDecorations.map(i => `
         <div class="ingredient-item">
             <div class="ingredient-details">
-                <span><strong>${i.name}</strong></span>
+                <span><strong>${sanitizeHTML(i.name)}</strong></span>
                 <span style="font-size:12px;color:var(--text-muted);">${i.qty} ${i.unit}</span>
             </div>
             <div style="display:flex;align-items:center;gap:10px;">
@@ -1049,7 +1049,7 @@ function renderRecipeCard(r, priceColor) {
         <div class="recipe-card">
             <div class="recipe-card-header">
                 <div class="recipe-card-info">
-                    <h3>${r.name}</h3>
+                    <h3>${sanitizeHTML(r.name)}</h3>
                     <p>${ti} Items${r.extraSubcategory ? ' + Extra' : ''}</p>
                     ${sourceBadge}
                     ${pb}
@@ -1187,7 +1187,7 @@ function renderCourseStudents() {
 
     list.innerHTML = currentCourseStudents.map(s => `
         <div class="course-student-item">
-            <span>👤 ${s.name}</span>
+            <span>👤 ${sanitizeHTML(s.name)}</span>
             <div style="display:flex; align-items:center; gap:8px;">
                 <span class="student-code-badge">${s.studentCode || '--'}</span>
                 <button onclick="removeStudentFromCourse('${s.id}')"><i class='bx bx-x'></i></button>
