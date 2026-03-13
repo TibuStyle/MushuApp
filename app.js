@@ -2825,6 +2825,148 @@ function downloadRecipeFile(jsonString, fileName, recipeName) {
     showToast(`"${recipeName}" descargada! 📥`);
 }
 
+function importRecipeFromFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+
+            if (!data.type || data.type !== 'recipe' || !data.recipe) {
+                showToast('Archivo no es una receta válida', true);
+                return;
+            }
+
+            const recipe = data.recipe;
+
+            const existing = recipes.find(r => 
+                r.name.toLowerCase() === recipe.name.toLowerCase() && 
+                (r.recipeFolder || 'Mis Recetas') === 'Mis Recetas'
+            );
+            if (existing) {
+                showToast('Ya tienes una receta con ese nombre', true);
+                return;
+            }
+
+            const allIngredients = [...(recipe.ingredients || []), ...(recipe.decorations || [])];
+            const missingMats = [];
+
+            allIngredients.forEach(item => {
+                const found = materials.find(m => 
+                    m.name.toLowerCase().trim() === item.name.toLowerCase().trim()
+                );
+                if (!found && !missingMats.find(mm => mm.name.toLowerCase() === item.name.toLowerCase())) {
+                    const isDeco = (recipe.decorations || []).some(d => 
+                        d.name.toLowerCase().trim() === item.name.toLowerCase().trim()
+                    );
+                    missingMats.push({
+                        name: item.name,
+                        category: isDeco ? 'decoracion' : 'productos'
+                    });
+                }
+            });
+
+            recipe.ingredients = (recipe.ingredients || []).map(i => {
+                const found = materials.find(m => 
+                    m.name.toLowerCase().trim() === i.name.toLowerCase().trim()
+                );
+                if (found) {
+                    return {
+                        ...i,
+                        id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
+                        matId: String(found.id),
+                        cost: found.pending ? 0 : calculateIngredientCost(found, i.qty, i.unit),
+                        pending: found.pending || false
+                    };
+                }
+                return { 
+                    ...i, 
+                    id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5), 
+                    pending: true, 
+                    cost: 0 
+                };
+            });
+
+            recipe.decorations = (recipe.decorations || []).map(d => {
+                const found = materials.find(m => 
+                    m.name.toLowerCase().trim() === d.name.toLowerCase().trim()
+                );
+                if (found) {
+                    return {
+                        ...d,
+                        id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
+                        matId: String(found.id),
+                        cost: found.pending ? 0 : calculateIngredientCost(found, d.qty, d.unit),
+                        pending: found.pending || false
+                    };
+                }
+                return { 
+                    ...d, 
+                    id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5), 
+                    pending: true, 
+                    cost: 0 
+                };
+            });
+
+            if (missingMats.length > 0) {
+                missingMats.forEach(mm => {
+                    const pendingMat = createPendingMaterial(mm.name, mm.category);
+                    
+                    recipe.ingredients.forEach(i => {
+                        if (i.name.toLowerCase().trim() === mm.name.toLowerCase().trim()) {
+                            i.matId = String(pendingMat.id);
+                        }
+                    });
+                    recipe.decorations.forEach(d => {
+                        if (d.name.toLowerCase().trim() === mm.name.toLowerCase().trim()) {
+                            d.matId = String(pendingMat.id);
+                        }
+                    });
+                });
+            }
+
+            const ic = recipe.ingredients.reduce((s, i) => s + (i.cost || 0), 0);
+            const dc = recipe.decorations.reduce((s, d) => s + (d.cost || 0), 0);
+            const ec = recipe.extraCost || 0;
+
+            const newRecipe = {
+                id: Date.now().toString(),
+                name: recipe.name,
+                ingredients: recipe.ingredients,
+                decorations: recipe.decorations,
+                extraSubcategory: recipe.extraSubcategory || null,
+                extraCost: ec,
+                totalCost: ic + dc + ec,
+                portions: recipe.portions || 1,
+                recipeFolder: 'Mis Recetas',
+                recipeSource: 'personal'
+            };
+
+            recipes.push(newRecipe);
+            saveRecipesToStorage();
+            renderMaterials();
+            updateMaterialSelect();
+            updateDecorationSelect();
+            updateRecipesView();
+
+            if (missingMats.length > 0) {
+                showToast(`"${recipe.name}" cargada! ⚠️ ${missingMats.length} material${missingMats.length > 1 ? 'es' : ''} pendiente${missingMats.length > 1 ? 's' : ''}`);
+            } else {
+                showToast(`"${recipe.name}" cargada! ✅`);
+            }
+
+        } catch(err) {
+            console.error(err);
+            showToast('Error al leer el archivo', true);
+        }
+    };
+
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
 // === MODAL MATERIAL PENDIENTE ===
 function showPendingMaterialModal(name, category, callback) {
     pendingMaterialData = { name, category };
