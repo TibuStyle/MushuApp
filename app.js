@@ -1269,8 +1269,19 @@ function renderRecipeCard(r, priceColor) {
     }
     sl += `</div>`;
 
-    const tip = generateRecipeTip(r);
-    const tipH = tip ? `<div class="recipe-tip"><strong>💡 Consejo</strong>${tip}</div>` : '';
+    let tipH = '';
+    if (teacherMode.active && r.recipeTips) {
+        tipH = `<div class="recipe-tip"><strong>💡 Tips del Profesor</strong>${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}</div>`;
+    } else {
+        const tip = generateRecipeTip(r);
+        tipH = tip ? `<div class="recipe-tip"><strong>💡 Consejo</strong>${tip}</div>` : '';
+    }
+
+    const recipePhotoH = (teacherMode.active && r.recipePhoto)
+        ? `<div style="margin-top:12px; border-radius:var(--radius-sm); overflow:hidden;">
+            <img src="${r.recipePhoto}" style="width:100%; display:block; border-radius:var(--radius-sm);">
+           </div>`
+        : '';
 
     const sourceBadge = r.recipeSource === 'class'
         ? `<div class="module-badge"><i class='bx bx-book'></i> Receta de módulo</div>`
@@ -1298,6 +1309,7 @@ function renderRecipeCard(r, priceColor) {
                 <div class="recipe-detail-content">
                     ${bd}
                     ${sl}
+                    ${recipePhotoH}
                     ${tipH}
                     ${r.sharedBy ? `
                     <div style="text-align:center; padding:10px 0; margin-top:12px; border-top:1px dashed rgba(0,0,0,0.08);">
