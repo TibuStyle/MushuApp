@@ -1407,3 +1407,7 @@ input:checked + .slider:before { transform: translateX(16px); }
     text-align: center;
     padding: 8px 0;
 }
+
+#modal-new-material-name {
+    z-index: 440;
+}
