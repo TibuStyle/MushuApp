@@ -3238,7 +3238,191 @@ function syncModuleUpload() {
 }
 
 function syncModuleDownload() {
-    showToast('Próximamente...', true);
+    const mod = modules.find(m => String(m.id) === String(currentSyncModuleId));
+    if (!mod) return;
+
+    const fileName = mod.prefix.toLowerCase() + '-module.json';
+    const url = 'https://tibustyle.github.io/MushuApp/modules/' + fileName + '?v=' + Date.now();
+
+    showSyncStatus('⏳ Buscando módulo en GitHub...');
+
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('No encontrado');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data.type || data.type !== 'module' || !data.module) {
+                showSyncStatus('❌ El archivo no es un módulo válido');
+                showToast('Archivo no válido', true);
+                return;
+            }
+
+            // Actualizar módulo
+            const modIdx = modules.findIndex(m => String(m.id) === String(currentSyncModuleId));
+            if (modIdx !== -1) {
+                modules[modIdx].name = data.module.name;
+                modules[modIdx].prefix = data.module.prefix;
+            }
+
+            // Actualizar recetas del módulo
+            const oldModuleRecipes = recipes.filter(r =>
+                r.recipeFolder === mod.name &&
+                (r.recipeSource === 'module' || r.recipeSource === 'class')
+            );
+            recipes = recipes.filter(r =>
+                !(r.recipeFolder === mod.name &&
+                (r.recipeSource === 'module' || r.recipeSource === 'class'))
+            );
+
+            (data.recipes || []).forEach(r => {
+                const allIngredients = [...(r.ingredients || []), ...(r.decorations || [])];
+                const missingMats = [];
+
+                // Reasignar matId y detectar faltantes
+                r.ingredients = (r.ingredients || []).map(i => {
+                    const found = materials.find(m =>
+                        m.name.toLowerCase().trim() === i.name.toLowerCase().trim()
+                    );
+                    if (found) {
+                        return {
+                            ...i,
+                            id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
+                            matId: String(found.id),
+                            cost: found.pending ? 0 : calculateIngredientCost(found, i.qty, i.unit),
+                            pending: found.pending || false
+                        };
+                    }
+                    if (!missingMats.find(mm => mm.name.toLowerCase() === i.name.toLowerCase())) {
+                        missingMats.push({ name: i.name, category: 'productos' });
+                    }
+                    return {
+                        ...i,
+                        id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
+                        pending: true,
+                        cost: 0
+                    };
+                });
+
+                r.decorations = (r.decorations || []).map(d => {
+                    const found = materials.find(m =>
+                        m.name.toLowerCase().trim() === d.name.toLowerCase().trim()
+                    );
+                    if (found) {
+                        return {
+                            ...d,
+                            id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
+                            matId: String(found.id),
+                            cost: found.pending ? 0 : calculateIngredientCost(found, d.qty, d.unit),
+                            pending: found.pending || false
+                        };
+                    }
+                    if (!missingMats.find(mm => mm.name.toLowerCase() === d.name.toLowerCase())) {
+                        missingMats.push({ name: d.name, category: 'decoracion' });
+                    }
+                    return {
+                        ...d,
+                        id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
+                        pending: true,
+                        cost: 0
+                    };
+                });
+
+                // Crear materiales pendientes
+                missingMats.forEach(mm => {
+                    const pendingMat = createPendingMaterial(mm.name, mm.category);
+                    r.ingredients.forEach(i => {
+                        if (i.name.toLowerCase().trim() === mm.name.toLowerCase().trim()) {
+                            i.matId = String(pendingMat.id);
+                        }
+                    });
+                    r.decorations.forEach(d => {
+                        if (d.name.toLowerCase().trim() === mm.name.toLowerCase().trim()) {
+                            d.matId = String(pendingMat.id);
+                        }
+                    });
+                });
+
+                const ic = r.ingredients.reduce((s, i) => s + (i.cost || 0), 0);
+                const dc = r.decorations.reduce((s, d) => s + (d.cost || 0), 0);
+                const ec = r.extraCost || 0;
+
+                recipes.push({
+                    id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
+                    name: r.name,
+                    ingredients: r.ingredients,
+                    decorations: r.decorations,
+                    extraSubcategory: r.extraSubcategory || null,
+                    extraCost: ec,
+                    totalCost: ic + dc + ec,
+                    portions: r.portions || 1,
+                    recipeFolder: data.module.name,
+                    recipeSource: 'module'
+                });
+            });
+
+            // Actualizar cursos
+            (data.courses || []).forEach(courseData => {
+                const existingCourse = courses.find(c =>
+                    String(c.moduleId) === String(currentSyncModuleId) &&
+                    c.name === courseData.name
+                );
+
+                if (!existingCourse) {
+                    const newCourse = {
+                        id: courseData.id || Date.now().toString(),
+                        name: courseData.name,
+                        moduleId: currentSyncModuleId,
+                        moduleName: data.module.name,
+                        day: courseData.day || 'Lunes',
+                        schedule: courseData.schedule || '',
+                        students: courseData.students || [],
+                        classes: []
+                    };
+
+                    // Agregar clases de este curso
+                    (data.classes || []).forEach(cls => {
+                        if (cls.courseId === courseData.id) {
+                            newCourse.classes.push({
+                                id: cls.classId || Date.now().toString(),
+                                name: cls.className,
+                                date: cls.date,
+                                tips: cls.tips || '',
+                                photos: cls.photos || [],
+                                linkedRecipe: cls.linkedRecipe || null,
+                                linkedRecipeId: cls.linkedRecipe ? cls.linkedRecipe.id : null,
+                                blockCode: cls.blockCode || generateClassBlockCode(),
+                                codeExpiry: cls.codeExpiry || 0,
+                                attendance: cls.attendance || [],
+                                codesGenerated: false
+                            });
+                        }
+                    });
+
+                    courses.push(newCourse);
+                }
+            });
+
+            // Guardar todo
+            saveModules();
+            saveRecipesToStorage();
+            saveCourses();
+            renderMaterials();
+            updateMaterialSelect();
+            updateDecorationSelect();
+            updateRecipesView();
+            updateClassesView();
+
+            showSyncStatus('✅ Módulo actualizado correctamente');
+            showToast('Módulo "' + data.module.name + '" cargado! ✅');
+        })
+        .catch(err => {
+            console.error(err);
+            showSyncStatus('❌ No se encontró el módulo. ¿Ya lo subiste a GitHub?');
+            showToast('No se pudo cargar el módulo', true);
+        });
 } 
     
 // === MODAL NUEVO MATERIAL NOMBRE ===
