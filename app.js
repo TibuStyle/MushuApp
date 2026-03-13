@@ -449,14 +449,11 @@ function updateMaterialSelect() {
 function updateDecorationSelect() {
     const s = document.getElementById('recipe-add-deco-mat');
     const m = materials.filter(m => m.category === 'decoracion');
-    if (m.length === 0) {
-        s.innerHTML = '<option value="">No hay decoraciones</option>';
-        return;
-    }
     s.innerHTML =
         '<option value="">Selecciona...</option>' +
+        '<option value="__nuevo__">➕ Nueva decoración...</option>' +
         m.sort((a, b) => a.name.localeCompare(b.name))
-            .map(m => `<option value="${m.id}">${m.name} ($${formatCLP(m.price)} x ${m.qty}${m.unit})</option>`)
+            .map(m => `<option value="${m.id}">${m.name}${m.pending ? ' ⚠️' : ''} ($${formatCLP(m.price)} x ${m.qty}${m.unit})</option>`)
             .join('');
 }
 
@@ -570,7 +567,57 @@ function addIngredientToRecipeForm() {
     const q = parseFloat(document.getElementById('recipe-add-qty').value);
     const u = document.getElementById('recipe-add-unit').value;
 
-    // Si seleccionó del dropdown
+    if (mi === '__nuevo__') {
+        const name = prompt('Nombre del nuevo material:');
+        if (!name || !name.trim()) return;
+
+        if (isNaN(q) || q <= 0) {
+            showToast('Ingresa la cantidad', true);
+            return;
+        }
+
+        const existing = materials.find(m =>
+            m.name.toLowerCase().trim() === name.toLowerCase().trim() &&
+            (m.category || 'productos') === 'productos'
+        );
+
+        if (existing) {
+            currentRecipeIngredients.push({
+                id: Date.now().toString(),
+                matId: String(existing.id),
+                name: existing.name,
+                qty: q,
+                unit: u,
+                cost: existing.pending ? 0 : calculateIngredientCost(existing, q, u),
+                pending: existing.pending || false
+            });
+            document.getElementById('recipe-add-mat').value = '';
+            document.getElementById('recipe-add-qty').value = '';
+            renderCurrentRecipeIngredients();
+            updateRecipeTotal();
+            showToast('"' + existing.name + '" agregado');
+            return;
+        }
+
+        showPendingMaterialModal(name.trim(), 'productos', function(mat) {
+            currentRecipeIngredients.push({
+                id: Date.now().toString(),
+                matId: String(mat.id),
+                name: mat.name,
+                qty: q,
+                unit: u,
+                cost: mat.pending ? 0 : calculateIngredientCost(mat, q, u),
+                pending: mat.pending || false
+            });
+            document.getElementById('recipe-add-mat').value = '';
+            document.getElementById('recipe-add-qty').value = '';
+            updateMaterialSelect();
+            renderCurrentRecipeIngredients();
+            updateRecipeTotal();
+        });
+        return;
+    }
+
     if (mi && !isNaN(q) && q > 0) {
         const m = materials.find(x => String(x.id) === String(mi));
         if (!m) return;
@@ -592,11 +639,7 @@ function addIngredientToRecipeForm() {
         return;
     }
 
-    // Si no seleccionó nada
-    if (!mi || isNaN(q) || q <= 0) {
-        showToast("Completa datos", true);
-        return;
-    }
+    showToast("Completa datos", true);
 }
 
 function removeIngredientFromRecipe(id) {
@@ -638,26 +681,80 @@ function addDecorationToRecipeForm() {
     const mi = document.getElementById('recipe-add-deco-mat').value;
     const q = parseFloat(document.getElementById('recipe-add-deco-qty').value);
     const u = document.getElementById('recipe-add-deco-unit').value;
-    if (!mi || isNaN(q) || q <= 0) {
-        showToast("Completa datos", true);
+
+    if (mi === '__nuevo__') {
+        const name = prompt('Nombre de la nueva decoración:');
+        if (!name || !name.trim()) return;
+
+        if (isNaN(q) || q <= 0) {
+            showToast('Ingresa la cantidad', true);
+            return;
+        }
+
+        const existing = materials.find(m =>
+            m.name.toLowerCase().trim() === name.toLowerCase().trim() &&
+            m.category === 'decoracion'
+        );
+
+        if (existing) {
+            currentRecipeDecorations.push({
+                id: Date.now().toString(),
+                matId: String(existing.id),
+                name: existing.name,
+                qty: q,
+                unit: u,
+                cost: existing.pending ? 0 : calculateIngredientCost(existing, q, u),
+                pending: existing.pending || false
+            });
+            document.getElementById('recipe-add-deco-mat').value = '';
+            document.getElementById('recipe-add-deco-qty').value = '';
+            renderCurrentRecipeDecorations();
+            updateRecipeTotal();
+            showToast('"' + existing.name + '" agregado');
+            return;
+        }
+
+        showPendingMaterialModal(name.trim(), 'decoracion', function(mat) {
+            currentRecipeDecorations.push({
+                id: Date.now().toString(),
+                matId: String(mat.id),
+                name: mat.name,
+                qty: q,
+                unit: u,
+                cost: mat.pending ? 0 : calculateIngredientCost(mat, q, u),
+                pending: mat.pending || false
+            });
+            document.getElementById('recipe-add-deco-mat').value = '';
+            document.getElementById('recipe-add-deco-qty').value = '';
+            updateDecorationSelect();
+            renderCurrentRecipeDecorations();
+            updateRecipeTotal();
+        });
         return;
     }
-    const m = materials.find(x => String(x.id) === String(mi));
-    if (!m) return;
 
-    currentRecipeDecorations.push({
-        id: Date.now().toString(),
-        matId: String(m.id),
-        name: m.name,
-        qty: q,
-        unit: u,
-        cost: calculateIngredientCost(m, q, u)
-    });
+    if (mi && !isNaN(q) && q > 0) {
+        const m = materials.find(x => String(x.id) === String(mi));
+        if (!m) return;
 
-    document.getElementById('recipe-add-deco-mat').value = '';
-    document.getElementById('recipe-add-deco-qty').value = '';
-    renderCurrentRecipeDecorations();
-    updateRecipeTotal();
+        currentRecipeDecorations.push({
+            id: Date.now().toString(),
+            matId: String(m.id),
+            name: m.name,
+            qty: q,
+            unit: u,
+            cost: m.pending ? 0 : calculateIngredientCost(m, q, u),
+            pending: m.pending || false
+        });
+
+        document.getElementById('recipe-add-deco-mat').value = '';
+        document.getElementById('recipe-add-deco-qty').value = '';
+        renderCurrentRecipeDecorations();
+        updateRecipeTotal();
+        return;
+    }
+
+    showToast("Completa datos", true);
 }
 
 function removeDecorationFromRecipe(id) {
@@ -2622,6 +2719,12 @@ function saveMaterial(e) {
     updateMaterialSelect();
     updateDecorationSelect();
     updateExtraSubcategorySelect();
+
+    if (window.pendingMaterialSaveCallback && material) {
+        window.pendingMaterialSaveCallback(material);
+        window.pendingMaterialSaveCallback = null;
+    }
+
     closeModal('modal-material');
 }
 
@@ -2998,6 +3101,7 @@ function addPendingMaterialNow() {
     if (pendingMaterialData) {
         showAddMaterialModal(null, pendingMaterialData.category, '');
         document.getElementById('mat-name').value = pendingMaterialData.name;
+        window.pendingMaterialSaveCallback = pendingMaterialCallback;
     }
 }
 
