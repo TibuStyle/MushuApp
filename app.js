@@ -3,6 +3,12 @@
 const TEACHER_HASH = '1099370671';
 function simpleHash(str) { let h = 0; for (let i = 0; i < str.length; i++) { h = ((h << 5) - h) + str.charCodeAt(i); h = h & h; } return Math.abs(h).toString(); }
 
+function sanitizeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
 // --- Data State ---
 let materials = JSON.parse(localStorage.getItem('mushu_materials')) || [];
 let recipes = JSON.parse(localStorage.getItem('mushu_recipes')) || [];
@@ -282,7 +288,7 @@ function renderMaterials() {
         list.innerHTML = f.sort((a, b) => a.name.localeCompare(b.name)).map(m => `
             <div class="card" onclick="showAddMaterialModal('${m.id}')" style="cursor:pointer;">
                 <div class="card-info">
-                    <h3>${m.name}</h3>
+                    <h3>${sanitizeHTML(m.name)}</h3>
                     <p>${m.qty} ${m.unit}</p>
                     ${getPriceBadgeHTML(m)}
                 </div>
