@@ -3105,13 +3105,6 @@ function openRecipeFromClass(recipeId) {
     document.getElementById('modal-view-class').classList.add('active');
 }
 
-        const card = document.querySelector('.recipe-card-header[onclick*="' + recipeId + '"]');
-        if (card) {
-            card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }, 300);
-}
-
 function onRecipeFolderChange() {
     const folderValue = document.getElementById('recipe-folder-input').value;
     const moduleExtras = document.getElementById('module-recipe-extras');
