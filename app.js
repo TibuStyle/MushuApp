@@ -22,6 +22,8 @@ let studentName = localStorage.getItem('mushu_student_name') || '';
 let currentRecipeIngredients = [];
 let currentRecipeDecorations = [];
 let currentRecipeExtra = null;
+let currentRecipePhoto = null;
+let currentRecipeTips = '';
 let currentEditingRecipeId = null;
 let currentEditingMaterialId = null;
 let currentMaterialCategory = 'productos';
@@ -869,6 +871,8 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
     const ec = getExtraCost();
     const tc = ic + dc + ec;
     const po = parseInt(document.getElementById('recipe-portions').value) || 1;
+    const recipeTips = document.getElementById('recipe-tips-input') ? document.getElementById('recipe-tips-input').value.trim() : '';
+    const recipePhoto = currentRecipePhoto || null;
 
     const folderSelect = document.getElementById('recipe-folder-input');
     const finalFolder = recipeFolder || (folderSelect ? folderSelect.value : '') || 'Mis Recetas';
@@ -900,7 +904,9 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
                 recipeFolder: finalFolder,
                 recipeSource: finalSource,
                 sourceCourseName: recipes[idx].sourceCourseName || sourceCourseName,
-                sourceClassDate: recipes[idx].sourceClassDate || sourceClassDate
+                sourceClassDate: recipes[idx].sourceClassDate || sourceClassDate,
+                recipePhoto: recipePhoto,
+                recipeTips: recipeTips
             };
             showToast("Receta actualizada!");
         }
@@ -917,7 +923,9 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
             recipeFolder: finalFolder,
             recipeSource: finalSource,
             sourceCourseName: sourceCourseName,
-            sourceClassDate: sourceClassDate
+            sourceClassDate: sourceClassDate,
+            recipePhoto: recipePhoto,
+            recipeTips: recipeTips
         };
 
         recipes.push(newRecipe);
@@ -2531,7 +2539,32 @@ function showAddRecipeModal(recipeId = null) {
     if (currentRecipeExtra) {
         document.getElementById('recipe-extra-subcat').value = currentRecipeExtra;
     }
-
+    // Mostrar campos extra solo para recetas de módulo
+    const moduleExtras = document.getElementById('module-recipe-extras');
+    const tipsInput = document.getElementById('recipe-tips-input');
+    const photoPreview = document.getElementById('recipe-photo-preview');
+    
+    if (teacherMode.active) {
+        moduleExtras.style.display = 'block';
+        if (recipeId) {
+            const recipeData = recipes.find(r => String(r.id) === String(recipeId));
+            if (recipeData) {
+                currentRecipePhoto = recipeData.recipePhoto || null;
+                currentRecipeTips = recipeData.recipeTips || '';
+                tipsInput.value = currentRecipeTips;
+                renderRecipePhotoPreview();
+            }
+        } else {
+            currentRecipePhoto = null;
+            currentRecipeTips = '';
+            tipsInput.value = '';
+            photoPreview.innerHTML = '';
+        }
+    } else {
+        moduleExtras.style.display = 'none';
+        currentRecipePhoto = null;
+        currentRecipeTips = '';
+    }
     document.getElementById('modal-recipe').classList.add('active');
 }
 
@@ -2897,6 +2930,56 @@ function selectRecipeForClass(recipeId) {
     renderSelectedClassRecipeBox();
     closeModal('modal-select-recipe');
     showToast(`Receta "${currentSelectedClassRecipe.name}" seleccionada`);
+}
+
+// === FOTO Y TIPS DE RECETA ===
+function handleRecipePhoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const maxW = 800;
+            let w = img.width, h = img.height;
+            if (w > maxW) {
+                h = Math.round(h * maxW / w);
+                w = maxW;
+            }
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            currentRecipePhoto = canvas.toDataURL('image/jpeg', 0.7);
+            renderRecipePhotoPreview();
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+}
+
+function removeRecipePhoto() {
+    currentRecipePhoto = null;
+    renderRecipePhotoPreview();
+}
+
+function renderRecipePhotoPreview() {
+    const preview = document.getElementById('recipe-photo-preview');
+    if (!currentRecipePhoto) {
+        preview.innerHTML = '';
+        return;
+    }
+    preview.innerHTML = `
+        <div class="class-photo-container">
+            <img src="${currentRecipePhoto}" class="class-photo-thumb" style="width:100%; height:auto; max-height:200px;">
+            <button class="class-photo-remove" onclick="removeRecipePhoto()">
+                <i class='bx bx-x'></i>
+            </button>
+        </div>
+    `;
 }
 
 // === COMPARTIR RECETAS ===
