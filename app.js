@@ -1916,8 +1916,6 @@ function renderClassPhotosPreview() {
     `).join('');
 }
 
-function onClassCourseChange() {}
-
 function saveClass() {
     const courseId = document.getElementById('class-course-select').value;
     const date = document.getElementById('class-date').value;
