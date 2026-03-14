@@ -1627,20 +1627,121 @@ function renderCourses() {
     }).join('');
 }
 
-function showCreateClassModal(courseId) {
-    currentEditingClassId = null;
-    currentClassPhotos = [];
-    currentSelectedClassRecipe = null;
+function renderCourses() {
+    const list = document.getElementById('courses-list');
+    if (!courses.length) {
+        list.innerHTML = '<div class="empty-state">No hay cursos. Crea tu primer curso.</div>';
+        return;
+    }
 
-    document.getElementById('class-date').value = new Date().toISOString().slice(0, 10);
-    document.getElementById('modal-class-title').textContent = 'Crear Clase';
-    document.getElementById('class-linked-recipes-box').style.display = 'none';
-    document.getElementById('class-linked-recipes-list').innerHTML = '';
+    list.innerHTML = courses.map((course) => {
+        const moduleData = modules.find(m => String(m.id) === String(course.moduleId));
+        const modulePrefix = moduleData ? moduleData.prefix : '---';
+        const totalClasses = course.totalClasses || 18;
 
-    const courseSelect = document.getElementById('class-course-select');
-    courseSelect.innerHTML = courses.map(c =>
-        `<option value="${c.id}" ${String(c.id) === String(courseId) ? 'selected' : ''}>${c.name}</option>`
-    ).join('');
+        // Calcular asistencia por alumno
+        const studentStats = (course.students || []).map(student => {
+            let attended = 0;
+            let totalClassesHeld = (course.classes || []).length;
+
+            (course.classes || []).forEach(cls => {
+                const att = (cls.attendance || []).find(a => 
+                    String(a.studentId) === String(student.id)
+                );
+                if (att && att.present) attended++;
+            });
+
+            const percentage = totalClassesHeld > 0 ? Math.round((attended / totalClassesHeld) * 100) : 100;
+            const absences = totalClassesHeld - attended;
+            const warning = absences >= 3;
+
+            return {
+                ...student,
+                attended,
+                totalClassesHeld,
+                percentage,
+                absences,
+                warning
+            };
+        });
+
+        // Clases HTML
+        const classesHTML = (course.classes || [])
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .map(cls => {
+                const att = cls.attendance || [];
+                const present = att.filter(a => a.present).length;
+                const total = att.length;
+                return `
+                <div class="class-item">
+                    <div class="class-item-info" onclick="previewClassAsStudent('${course.id}', '${cls.id}')">
+                        <h4>${sanitizeHTML(cls.name)}</h4>
+                        <p>📅 ${formatDate(cls.date)} • ${cls.blockCode || '----'} • ✅ ${present}/${total}</p>
+                    </div>
+                    <div class="class-item-actions">
+                        <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showEditClassModal('${course.id}','${cls.id}')"><i class='bx bx-edit'></i></button>
+                        <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showAttendanceModal('${course.id}','${cls.id}')"><i class='bx bx-clipboard'></i></button>
+                        <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteClass('${course.id}','${cls.id}')"><i class='bx bx-trash'></i></button>
+                    </div>
+                </div>`;
+            }).join('');
+
+        // Alumnos HTML
+        const studentsHTML = studentStats.map(s => {
+            const barColor = s.warning ? 'var(--danger-color)' : s.percentage >= 80 ? 'var(--success-color)' : 'var(--warning-color)';
+            const warningIcon = s.warning ? ' ⚠️' : '';
+            return `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.04); font-size:13px;">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="student-code-badge">${s.studentCode || '--'}</span>
+                    <span>${sanitizeHTML(s.name)}${warningIcon}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="width:60px; height:6px; background:rgba(0,0,0,0.08); border-radius:3px; overflow:hidden;">
+                        <div style="width:${s.percentage}%; height:100%; background:${barColor}; border-radius:3px;"></div>
+                    </div>
+                    <span style="font-weight:600; color:${barColor}; min-width:35px; text-align:right;">${s.percentage}%</span>
+                </div>
+            </div>`;
+        }).join('');
+
+        const folderId = course.id;
+        const classCount = (course.classes || []).length;
+
+        return `
+            <div class="course-card">
+                <div class="course-card-header" onclick="toggleFolderBody('course-folder','${folderId}')">
+                    <div class="course-card-header-left">
+                        <i class='bx bxs-graduation' style="font-size:24px;color:var(--secondary-color);"></i>
+                        <div>
+                            <h3>${sanitizeHTML(course.name)}</h3>
+                            <div class="course-card-day">${course.day} • ${modulePrefix}</div>
+                            <div class="course-card-schedule">${course.schedule || ''} • ${course.students.length} alumnos • ${classCount} clase${classCount !== 1 ? 's' : ''}</div>
+                        </div>
+                    </div>
+                    <div class="course-card-actions" onclick="event.stopPropagation()">
+                        <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showCreateCourseModal('${course.id}')"><i class='bx bx-edit'></i></button>
+                        <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteCourse('${course.id}')"><i class='bx bx-trash'></i></button>
+                    </div>
+                </div>
+                <div class="course-card-body" id="course-folder-body-${folderId}">
+                    <div style="background:var(--surface-hover); border-radius:var(--radius-sm); padding:12px; margin-bottom:12px;">
+                        <h4 style="font-size:13px; color:var(--text-muted); margin:0 0 8px; display:flex; align-items:center; gap:6px;">
+                            <i class='bx bx-user' style="color:var(--secondary-color);"></i> Alumnos y Asistencia
+                        </h4>
+                        ${studentsHTML || '<p style="font-size:13px;color:var(--text-muted);">Sin alumnos</p>'}
+                    </div>
+
+                    ${classesHTML}
+
+                    <button class="btn-add-class" onclick="showCreateClassModal('${course.id}')">
+                        <i class='bx bx-plus'></i> Nueva Clase
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
 
     // Llenar dropdown de clases del módulo
     updateClassModuleClassSelect(courseId);
