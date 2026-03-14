@@ -158,10 +158,13 @@ function switchTab(tabName) {
 // --- Generic toggle folders ---
 function toggleFolderBody(idPrefix, id) {
     const body = document.getElementById(`${idPrefix}-body-${id}`);
-    const chevron = document.getElementById(`${idPrefix}-chevron-${id}`);
-    if (!body || !chevron) return;
+    if (!body) return;
     body.classList.toggle('open');
-    chevron.style.transform = body.classList.contains('open') ? 'rotate(0deg)' : 'rotate(-90deg)';
+    
+    const chevron = document.getElementById(`${idPrefix}-chevron-${id}`);
+    if (chevron) {
+        chevron.style.transform = body.classList.contains('open') ? 'rotate(0deg)' : 'rotate(-90deg)';
+    }
 }
 
 // --- Confirm Modal ---
