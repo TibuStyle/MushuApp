@@ -1632,8 +1632,10 @@ function showCreateClassModal(courseId) {
 
     document.getElementById('class-name').value = '';
     document.getElementById('class-date').value = new Date().toISOString().slice(0, 10);
-    document.getElementById('class-tips').value = '';
-    document.getElementById('class-photos-preview').innerHTML = '';
+    const tipsEl = document.getElementById('class-tips');
+    if (tipsEl) tipsEl.value = '';
+    const photosPreview = document.getElementById('class-photos-preview');
+    if (photosPreview) photosPreview.innerHTML = '';
     document.getElementById('selected-class-recipe-box').style.display = 'none';
     document.getElementById('selected-class-recipe-box').innerHTML = '';
     document.getElementById('modal-class-title').textContent = 'Crear Clase';
