@@ -1743,12 +1743,6 @@ function renderCourses() {
     }).join('');
 }
 
-    // Llenar dropdown de clases del módulo
-    updateClassModuleClassSelect(courseId);
-
-    document.getElementById('modal-create-class').classList.add('active');
-}
-
 function updateClassModuleClassSelect(courseId) {
     const course = courses.find(c => String(c.id) === String(courseId));
     if (!course) return;
