@@ -1584,7 +1584,7 @@ function renderCourses() {
             const total = att.length;
             return `
                 <div class="class-item">
-                    <div class="class-item-info" onclick="showAttendanceModal('${course.id}', '${cls.id}')">
+                        <div class="class-item-info" onclick="previewClassAsStudent('${course.id}', '${cls.id}')">
                         <h4>${cls.name}</h4>
                         <p>📅 ${formatDate(cls.date)} • Código clase: ${cls.blockCode || '----'} • ✅ ${present}/${total}</p>
                     </div>
@@ -3116,6 +3116,81 @@ function selectRecipeForClass(recipeId) {
     renderSelectedClassRecipeBox();
     closeModal('modal-select-recipe');
     showToast(`Receta "${currentSelectedClassRecipe.name}" seleccionada`);
+}
+
+// === PREVISUALIZAR CLASE COMO ALUMNO ===
+function previewClassAsStudent(courseId, classId) {
+    const course = courses.find(c => String(c.id) === String(courseId));
+    if (!course) return;
+    const cls = (course.classes || []).find(cl => String(cl.id) === String(classId));
+    if (!cls) return;
+
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    const watermarkName = 'Vista Previa Profesor';
+
+    document.getElementById('view-class-title').textContent = cls.name;
+
+    let html = '';
+
+    html += `<div class="class-content-header">
+        <h2>${sanitizeHTML(cls.name)}</h2>
+        <p>📅 ${formatDate(cls.date)} • ${sanitizeHTML(course.name)}</p>
+        <p style="font-size:12px;color:var(--secondary-color);font-weight:700;margin:6px 0 0;">Código: ${cls.blockCode || '----'}</p>
+        <span class="class-content-badge present" style="background:rgba(99,102,241,0.1);color:#6366f1;">
+            👁️ Vista previa del alumno
+        </span>
+    </div>`;
+
+    // Recetas vinculadas
+    const classRecipes = cls.linkedRecipes || (cls.linkedRecipe ? [cls.linkedRecipe] : []);
+
+    if (classRecipes.length > 0) {
+        // Foto de la primera receta que tenga foto
+        const recipeWithPhoto = classRecipes.find(r => r.recipePhoto);
+        if (recipeWithPhoto) {
+            html += `<div class="class-content-section">
+                <h4><i class='bx bx-camera'></i> Foto de la Receta</h4>
+                <div class="class-content-photo">
+                    <img src="${recipeWithPhoto.recipePhoto}" alt="Foto de receta" onclick="event.stopPropagation(); openPhotoFullscreen('${recipeWithPhoto.recipePhoto}', '${sanitizeHTML(watermarkName)}')" style="cursor:pointer;">
+                    <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
+                </div>
+            </div>`;
+        }
+
+        // Botones para abrir cada receta
+        html += `<div class="class-content-section">
+            <h4><i class='bx bx-book-open'></i> Recetas de esta clase</h4>`;
+
+        classRecipes.forEach(r => {
+            const localRecipe = recipes.find(x =>
+                x.name.toLowerCase().trim() === r.name.toLowerCase().trim()
+            );
+            const recipeId = localRecipe ? localRecipe.id : null;
+
+            if (recipeId) {
+                html += `<button class="btn-submit" style="margin-top:8px; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" onclick="closeModal('modal-view-class'); openRecipeFromClass('${recipeId}')">
+                    <i class='bx bx-book-open'></i> ${sanitizeHTML(r.name)} • $${formatCLP(r.totalCost)}
+                </button>`;
+            } else {
+                html += `<div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
+                    <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${sanitizeHTML(r.name)}</div>
+                    <div style="font-size:13px;color:var(--text-muted);">Costo: $${formatCLP(r.totalCost)}</div>
+                </div>`;
+            }
+        });
+
+        html += `</div>`;
+    }
+
+    // Botones de gestión (solo para profesor)
+    html += `<div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn-submit" style="margin-top:0; flex:1;" onclick="closeModal('modal-view-class'); showAttendanceModal('${courseId}', '${classId}')">
+            <i class='bx bx-clipboard'></i> Asistencia
+        </button>
+    </div>`;
+
+    document.getElementById('view-class-content').innerHTML = html;
+    document.getElementById('modal-view-class').classList.add('active');
 }
 
 // === PHOTO FULLSCREEN ===
