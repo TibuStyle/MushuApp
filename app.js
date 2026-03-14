@@ -4022,17 +4022,19 @@ function syncModuleUpload() {
     const moduleClasses = [];
     moduleCourses.forEach(course => {
         (course.classes || []).forEach(cls => {
-            moduleClasses.push({
-                classId: cls.id,
-                className: cls.name,
-                courseId: course.id,
-                courseName: course.name,
-                date: cls.date,
-                tips: cls.tips || '',
-                photos: cls.photos || [],
-                linkedRecipe: cls.linkedRecipe || null,
-                blockCode: cls.blockCode || '',
-                codeExpiry: cls.codeExpiry || 0,
+                moduleClasses.push({
+                    classId: cls.id,
+                    className: cls.name,
+                    courseId: course.id,
+                    courseName: course.name,
+                    date: cls.date,
+                    moduleClassName: cls.moduleClassName || cls.name || '',
+                    tips: cls.tips || '',
+                    photos: cls.photos || [],
+                    linkedRecipe: cls.linkedRecipe || null,
+                    linkedRecipes: cls.linkedRecipes || [],
+                    blockCode: cls.blockCode || '',
+                    codeExpiry: cls.codeExpiry || 0,
                 attendance: (cls.attendance || []).map(a => ({
                     studentId: a.studentId,
                     studentName: a.studentName,
