@@ -215,13 +215,14 @@ let newMaterialNameCallback = null;
 let newMaterialNameCategory = 'productos';
 
 function createPendingMaterial(name, category = 'productos', subcategory = '') {
+    // Buscar si ya existe (por nombre, sin importar mayúsculas)
     const exists = materials.find(m => 
         m.name.toLowerCase().trim() === name.toLowerCase().trim()
     );
     if (exists) return exists;
 
     const pendingMat = {
-        id: Date.now().toString() + '-pending',
+        id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
         name: name.trim(),
         price: 0,
         qty: 0,
@@ -4044,20 +4045,37 @@ function saveSyncMissingMaterials() {
         const qty = parseFloat(document.getElementById('sync-missing-qty-' + i).value);
         const unit = document.getElementById('sync-missing-unit-' + i).value;
 
-        if (!isNaN(price) && !isNaN(qty) && qty > 0 && price >= 0) {
-            const mat = materials.find(m =>
-                m.name.toLowerCase().trim() === name.toLowerCase().trim()
-            );
-            if (mat) {
-                mat.price = price;
-                mat.qty = qty;
-                mat.unit = unit;
-                mat.pending = false;
-                mat.priceHistory = [{ date: new Date().toISOString().slice(0, 10), price: price }];
-                updated++;
+            if (!isNaN(price) && !isNaN(qty) && qty > 0 && price >= 0) {
+                const mat = materials.find(m =>
+                    m.name.toLowerCase().trim() === name.toLowerCase().trim()
+                );
+                if (mat) {
+                    mat.price = price;
+                    mat.qty = qty;
+                    mat.unit = unit;
+                    mat.pending = false;
+                    mat.priceHistory = [{ date: new Date().toISOString().slice(0, 10), price: price }];
+                    updated++;
+
+                    // Reasignar matId en todas las recetas que usen este material
+                    recipes.forEach(r => {
+                        (r.ingredients || []).forEach(i => {
+                            if (i.name.toLowerCase().trim() === name.toLowerCase().trim()) {
+                                i.matId = String(mat.id);
+                                i.pending = false;
+                                i.cost = calculateIngredientCost(mat, i.qty, i.unit);
+                            }
+                        });
+                        (r.decorations || []).forEach(d => {
+                            if (d.name.toLowerCase().trim() === name.toLowerCase().trim()) {
+                                d.matId = String(mat.id);
+                                d.pending = false;
+                                d.cost = calculateIngredientCost(mat, d.qty, d.unit);
+                            }
+                        });
+                    });
+                }
             }
-        }
-    }
 
     saveMaterialsToStorage();
     recalculateAllRecipes();
