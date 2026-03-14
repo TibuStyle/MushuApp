@@ -2944,8 +2944,20 @@ function createRecipeInModule(moduleName) {
     renderExtraInRecipe();
     updateRecipeTotal();
 
+    // Mostrar campos de módulo
+    const moduleExtras = document.getElementById('module-recipe-extras');
+    if (moduleExtras) moduleExtras.style.display = 'block';
+    
     updateModuleClassSelect(moduleName);
     currentRecipeModuleClass = '';
+
+    // Limpiar foto y tips
+    currentRecipePhoto = null;
+    currentRecipeTips = '';
+    const tipsInput = document.getElementById('recipe-tips-input');
+    if (tipsInput) tipsInput.value = '';
+    const photoPreview = document.getElementById('recipe-photo-preview');
+    if (photoPreview) photoPreview.innerHTML = '';
     
     document.querySelector('#modal-recipe h3').textContent = "Crear Receta del Módulo";
     document.getElementById('modal-recipe').classList.add('active');
