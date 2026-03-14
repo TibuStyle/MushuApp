@@ -241,8 +241,7 @@ body {
 .category-icon { font-size: 22px; color: var(--secondary-color); }
 .category-chevron { font-size: 20px; color: var(--text-muted); transition: transform 0.3s ease; }
 .category-body { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease; padding: 0 16px; }
-.category-body.open { max-height: 2000px; padding: 0 16px 16px; }
-
+.category-body.open { max-height: none; padding: 0 16px 16px; }
 /* --- Extra --- */
 .extra-subcat { margin-bottom: 10px; }
 .extra-subcat-header {
@@ -256,7 +255,7 @@ body {
 .extra-subcat-header:hover { background: var(--surface-hover); border-radius: var(--radius-sm); }
 .extra-subcat-header i { color: var(--secondary-color); margin-right: 4px; }
 .extra-subcat-body { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease; padding: 0; }
-.extra-subcat-body.open { max-height: 2000px; padding: 8px 0; }
+.extra-subcat-body.open { max-height: none; padding: 8px 0; }
 
 /* --- Card --- */
 .card {
