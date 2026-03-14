@@ -215,14 +215,15 @@ let newMaterialNameCallback = null;
 let newMaterialNameCategory = 'productos';
 
 function createPendingMaterial(name, category = 'productos', subcategory = '') {
-    // Buscar si ya existe (por nombre, sin importar mayúsculas)
     const exists = materials.find(m => 
         m.name.toLowerCase().trim() === name.toLowerCase().trim()
     );
     if (exists) return exists;
 
+    const uniqueId = Date.now().toString() + '-' + Math.random().toString(36).substr(2, 8) + '-' + materials.length;
+
     const pendingMat = {
-        id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
+        id: uniqueId,
         name: name.trim(),
         price: 0,
         qty: 0,
