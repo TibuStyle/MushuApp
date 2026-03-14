@@ -2828,6 +2828,14 @@ function saveMaterial(e) {
         window.pendingMaterialSaveCallback = null;
     }
 
+    // Scroll al nuevo material
+    setTimeout(() => {
+        const contentArea = document.querySelector('.content-area');
+        if (contentArea) {
+            contentArea.scrollTop = contentArea.scrollHeight;
+        }
+    }, 100);
+    
     closeModal('modal-material');
 }
 
