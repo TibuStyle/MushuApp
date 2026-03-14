@@ -416,7 +416,20 @@
                         <input type="number" id="recipe-portions" placeholder="Ej: 15" min="1" step="1" oninput="updateRecipeTotal()">
                     </div>
                     
-                    <div id="module-recipe-extras" style="display:none;">
+                        <div id="module-recipe-extras" style="display:none;">
+                        <div class="recipe-ingredients-section">
+                            <h4><i class='bx bx-folder'></i> Clase del Módulo</h4>
+                            <div class="form-row align-bottom">
+                                <div class="form-group flex-2" style="margin-bottom:0;">
+                                    <select id="recipe-module-class-select">
+                                        <option value="">Sin clase (suelto)</option>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn-add-small" onclick="addNewModuleClass()">
+                                    <i class='bx bx-plus'></i>
+                                </button>
+                            </div>
+                        </div>
                         <div class="recipe-ingredients-section">
                             <h4><i class='bx bx-camera'></i> Foto de la Receta (Módulo)</h4>
                             <input type="file" id="recipe-photo-input" accept="image/*" onchange="handleRecipePhoto(event)" style="display:none;">
