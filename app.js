@@ -1172,14 +1172,60 @@ function renderModuleFolder(mod, recipesInModule) {
     const moduleId = mod.id;
     const priceColor = showMinSellingPrice ? 'var(--secondary-color)' : 'var(--primary-color)';
 
+    const classGroups = {};
+    const noClassRecipes = [];
+
+    recipesInModule.forEach(r => {
+        if (r.moduleClass) {
+            if (!classGroups[r.moduleClass]) classGroups[r.moduleClass] = [];
+            classGroups[r.moduleClass].push(r);
+        } else {
+            noClassRecipes.push(r);
+        }
+    });
+
+    const classNames = Object.keys(classGroups).sort((a, b) => a.localeCompare(b));
+
+    let recipesHTML = '';
+
+    classNames.forEach(className => {
+        const classRecipes = classGroups[className].sort((a, b) => a.name.localeCompare(b.name));
+        const classId = className.replace(/[^a-zA-Z0-9]/g, '_') + '_' + moduleId;
+
+        recipesHTML += `
+            <div class="recipe-folder" style="margin-top:10px;">
+                <div class="recipe-folder-header" onclick="toggleFolderBody('module-class','${classId}')">
+                    <div class="recipe-folder-header-left">
+                        <i class='bx bx-book-open' style="font-size:18px;color:var(--secondary-color);"></i>
+                        <div>
+                            <h3 style="font-size:14px;">${sanitizeHTML(className)}</h3>
+                            <div class="recipe-folder-count">${classRecipes.length} receta${classRecipes.length !== 1 ? 's' : ''}</div>
+                        </div>
+                    </div>
+                    <i class='bx bx-chevron-down recipe-folder-chevron' id="module-class-chevron-${classId}" style="transform:rotate(-90deg);"></i>
+                </div>
+                <div class="recipe-folder-body" id="module-class-body-${classId}">
+                    ${classRecipes.map(r => renderRecipeCard(r, priceColor)).join('')}
+                </div>
+            </div>
+        `;
+    });
+
+    if (noClassRecipes.length > 0) {
+        recipesHTML += noClassRecipes
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(r => renderRecipeCard(r, priceColor))
+            .join('');
+    }
+
     return `
         <div class="recipe-folder">
             <div class="recipe-folder-header" onclick="toggleFolderBody('module-folder','${moduleId}')">
                 <div class="recipe-folder-header-left">
                     <i class='bx bx-book' style="font-size:22px;color:var(--secondary-color);"></i>
                     <div>
-                        <h3>${mod.name}</h3>
-                        <div class="recipe-folder-count">Prefijo: ${mod.prefix} • ${recipesInModule.length} receta${recipesInModule.length !== 1 ? 's' : ''}</div>
+                        <h3>${sanitizeHTML(mod.name)}</h3>
+                        <div class="recipe-folder-count">Prefijo: ${mod.prefix} • ${recipesInModule.length} receta${recipesInModule.length !== 1 ? 's' : ''}${classNames.length > 0 ? ' • ' + classNames.length + ' clase' + (classNames.length !== 1 ? 's' : '') : ''}</div>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:6px;" onclick="event.stopPropagation()">
@@ -1191,7 +1237,7 @@ function renderModuleFolder(mod, recipesInModule) {
 
             <div class="recipe-folder-body" id="module-folder-body-${moduleId}">
                 <div class="module-info-box">
-                    <strong>${mod.name}</strong>
+                    <strong>${sanitizeHTML(mod.name)}</strong>
                     <p>Prefijo del módulo: ${mod.prefix}</p>
                 </div>
 
@@ -1201,12 +1247,7 @@ function renderModuleFolder(mod, recipesInModule) {
                     </button>
                 </div>
 
-                ${recipesInModule.length
-                    ? recipesInModule
-                        .sort((a, b) => a.name.localeCompare(b.name))
-                        .map(r => renderRecipeCard(r, priceColor))
-                        .join('')
-                     : '<div class="empty-state" style="padding:20px;font-size:13px;margin-top:10px;">Este módulo no tiene recetas aún.</div>'}
+                ${recipesHTML || '<div class="empty-state" style="padding:20px;font-size:13px;margin-top:10px;">Este módulo no tiene recetas aún.</div>'}
 
                 <button class="btn-submit" style="margin-top:16px; background:linear-gradient(135deg, #6366f1, #8b5cf6);" onclick="showSyncModuleModal('${mod.id}')">
                     <i class='bx bx-cloud'></i> Sincronizar
@@ -3691,7 +3732,8 @@ function importSelectedCourses() {
                 recipeFolder: data.module.name,
                 recipeSource: 'module',
                 recipePhoto: r.recipePhoto || null,
-                recipeTips: r.recipeTips || ''
+                recipeTips: r.recipeTips || '',
+                moduleClass: r.moduleClass || ''
             });
         });
 
@@ -4082,7 +4124,10 @@ function syncModuleDownload() {
                     totalCost: ic + dc + ec,
                     portions: r.portions || 1,
                     recipeFolder: data.module.name,
-                    recipeSource: 'module'
+                    recipeSource: 'module',
+                    recipePhoto: r.recipePhoto || null,
+                    recipeTips: r.recipeTips || '',
+                    moduleClass: r.moduleClass || ''
                 });
             });
 
