@@ -1630,22 +1630,78 @@ function showCreateClassModal(courseId) {
     currentClassPhotos = [];
     currentSelectedClassRecipe = null;
 
-    document.getElementById('class-name').value = '';
     document.getElementById('class-date').value = new Date().toISOString().slice(0, 10);
-    const tipsEl = document.getElementById('class-tips');
-    if (tipsEl) tipsEl.value = '';
-    const photosPreview = document.getElementById('class-photos-preview');
-    if (photosPreview) photosPreview.innerHTML = '';
-    document.getElementById('selected-class-recipe-box').style.display = 'none';
-    document.getElementById('selected-class-recipe-box').innerHTML = '';
     document.getElementById('modal-class-title').textContent = 'Crear Clase';
+    document.getElementById('class-linked-recipes-box').style.display = 'none';
+    document.getElementById('class-linked-recipes-list').innerHTML = '';
 
     const courseSelect = document.getElementById('class-course-select');
     courseSelect.innerHTML = courses.map(c =>
         `<option value="${c.id}" ${String(c.id) === String(courseId) ? 'selected' : ''}>${c.name}</option>`
     ).join('');
 
+    // Llenar dropdown de clases del módulo
+    updateClassModuleClassSelect(courseId);
+
     document.getElementById('modal-create-class').classList.add('active');
+}
+
+function updateClassModuleClassSelect(courseId) {
+    const course = courses.find(c => String(c.id) === String(courseId));
+    if (!course) return;
+
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    if (!mod) return;
+
+    const moduleClasses = getModuleClasses(mod.name);
+    const select = document.getElementById('class-module-class-select');
+
+    select.innerHTML = '<option value="">Selecciona una clase...</option>' +
+        moduleClasses.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function onClassCourseChange() {
+    const courseId = document.getElementById('class-course-select').value;
+    updateClassModuleClassSelect(courseId);
+    document.getElementById('class-linked-recipes-box').style.display = 'none';
+    document.getElementById('class-linked-recipes-list').innerHTML = '';
+}
+
+function onClassModuleClassChange() {
+    const moduleClassName = document.getElementById('class-module-class-select').value;
+    const courseId = document.getElementById('class-course-select').value;
+    const course = courses.find(c => String(c.id) === String(courseId));
+
+    if (!moduleClassName || !course) {
+        document.getElementById('class-linked-recipes-box').style.display = 'none';
+        return;
+    }
+
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    if (!mod) return;
+
+    const classRecipes = recipes.filter(r =>
+        r.recipeFolder === mod.name &&
+        r.moduleClass === moduleClassName &&
+        (r.recipeSource === 'module' || r.recipeSource === 'class')
+    );
+
+    const box = document.getElementById('class-linked-recipes-box');
+    const list = document.getElementById('class-linked-recipes-list');
+
+    if (classRecipes.length === 0) {
+        box.style.display = 'block';
+        list.innerHTML = '<p style="font-size:13px; color:var(--warning-color);">⚠️ No hay recetas en esta clase del módulo</p>';
+        return;
+    }
+
+    box.style.display = 'block';
+    list.innerHTML = classRecipes.map(r => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:13px;">
+            <span>✅ ${sanitizeHTML(r.name)}</span>
+            <span style="font-weight:600;">$${formatCLP(r.totalCost)}</span>
+        </div>
+    `).join('');
 }
 
 function showEditClassModal(courseId, classId) {
@@ -1656,21 +1712,23 @@ function showEditClassModal(courseId, classId) {
 
     currentEditingClassId = classId;
     currentClassPhotos = [...(cls.photos || [])];
-    currentSelectedClassRecipe = cls.linkedRecipe ? JSON.parse(JSON.stringify(cls.linkedRecipe)) : null;
 
-    document.getElementById('class-name').value = cls.name;
     document.getElementById('class-date').value = cls.date;
-    const tipsField = document.getElementById('class-tips');
-    if (tipsField) tipsField.value = cls.tips || '';
-    document.getElementById('modal-class-title').textContent = `Editar Clase • ${cls.blockCode || ''}`;
+    document.getElementById('modal-class-title').textContent = 'Editar Clase • ' + (cls.blockCode || '');
 
     const courseSelect = document.getElementById('class-course-select');
     courseSelect.innerHTML = courses.map(c =>
         `<option value="${c.id}" ${String(c.id) === String(courseId) ? 'selected' : ''}>${c.name}</option>`
     ).join('');
 
-    if (typeof renderClassPhotosPreview === 'function') renderClassPhotosPreview();
-    renderSelectedClassRecipeBox();
+    updateClassModuleClassSelect(courseId);
+
+    // Seleccionar la clase del módulo
+    const moduleClassSelect = document.getElementById('class-module-class-select');
+    if (cls.moduleClassName) {
+        moduleClassSelect.value = cls.moduleClassName;
+        onClassModuleClassChange();
+    }
 
     document.getElementById('modal-create-class').classList.add('active');
 }
@@ -1759,33 +1817,43 @@ function onClassCourseChange() {}
 
 function saveClass() {
     const courseId = document.getElementById('class-course-select').value;
-    const name = document.getElementById('class-name').value.trim();
     const date = document.getElementById('class-date').value;
-    const tipsEl = document.getElementById('class-tips');
-    const tips = tipsEl ? tipsEl.value.trim() : '';
+    const moduleClassName = document.getElementById('class-module-class-select').value;
     const codeExpiry = parseInt(document.getElementById('class-code-expiry').value);
 
-    if (!name) { showToast('Ingresa nombre de clase', true); return; }
     if (!date) { showToast('Selecciona fecha', true); return; }
-    if (!currentSelectedClassRecipe) { showToast('Debes seleccionar una receta del módulo', true); return; }
+    if (!moduleClassName) { showToast('Selecciona una clase del módulo', true); return; }
 
     const course = courses.find(c => String(c.id) === String(courseId));
     if (!course) { showToast('Selecciona un curso', true); return; }
+
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    if (!mod) return;
+
+    // Buscar recetas de la clase del módulo
+    const classRecipes = recipes.filter(r =>
+        r.recipeFolder === mod.name &&
+        r.moduleClass === moduleClassName &&
+        (r.recipeSource === 'module' || r.recipeSource === 'class')
+    );
+
+    if (classRecipes.length === 0) {
+        showToast('Esta clase no tiene recetas', true);
+        return;
+    }
 
     if (currentEditingClassId) {
         const cls = (course.classes || []).find(cl => String(cl.id) === String(currentEditingClassId));
         if (!cls) return;
 
-        cls.name = name;
+        cls.name = moduleClassName;
         cls.date = date;
-        cls.tips = tips;
-        cls.photos = currentClassPhotos ? [...currentClassPhotos] : [];
-        cls.linkedRecipe = JSON.parse(JSON.stringify(currentSelectedClassRecipe));
-        cls.linkedRecipeId = currentSelectedClassRecipe.id;
+        cls.moduleClassName = moduleClassName;
+        cls.linkedRecipes = classRecipes.map(r => JSON.parse(JSON.stringify(r)));
+        cls.linkedRecipe = classRecipes[0] ? JSON.parse(JSON.stringify(classRecipes[0])) : null;
         cls.codeExpiry = codeExpiry;
         showToast('Clase actualizada!');
     } else {
-        const mod = modules.find(m => String(m.id) === String(course.moduleId));
         const modulePrefix = mod ? mod.prefix : 'MOD';
         const blockCode = generateClassBlockCode();
 
@@ -1803,12 +1871,14 @@ function saveClass() {
 
         const newClass = {
             id: Date.now().toString(),
-            name,
+            name: moduleClassName,
             date,
-            tips,
-            photos: [...currentClassPhotos],
-            linkedRecipeId: currentSelectedClassRecipe.id,
-            linkedRecipe: JSON.parse(JSON.stringify(currentSelectedClassRecipe)),
+            moduleClassName,
+            tips: '',
+            photos: [],
+            linkedRecipeId: classRecipes[0] ? classRecipes[0].id : null,
+            linkedRecipe: classRecipes[0] ? JSON.parse(JSON.stringify(classRecipes[0])) : null,
+            linkedRecipes: classRecipes.map(r => JSON.parse(JSON.stringify(r))),
             codeExpiry,
             blockCode,
             attendance,
@@ -1817,7 +1887,7 @@ function saveClass() {
 
         if (!course.classes) course.classes = [];
         course.classes.push(newClass);
-        showToast(`Clase creada! Código base: ${blockCode}`);
+        showToast('Clase "' + moduleClassName + '" creada! Código: ' + blockCode);
     }
 
     saveCourses();
