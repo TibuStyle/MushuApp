@@ -24,6 +24,7 @@ let currentRecipeDecorations = [];
 let currentRecipeExtra = null;
 let currentRecipePhoto = null;
 let currentRecipeTips = '';
+let currentRecipeModuleClass = '';
 let currentEditingRecipeId = null;
 let currentEditingMaterialId = null;
 let currentMaterialCategory = 'productos';
