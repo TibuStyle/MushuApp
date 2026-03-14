@@ -3141,35 +3141,31 @@ function previewClassAsStudent(courseId, classId) {
         </span>
     </div>`;
 
-    // Recetas vinculadas
     const classRecipes = cls.linkedRecipes || (cls.linkedRecipe ? [cls.linkedRecipe] : []);
 
     if (classRecipes.length > 0) {
-        // Foto de la primera receta que tenga foto
-        const recipeWithPhoto = classRecipes.find(r => r.recipePhoto);
-        if (recipeWithPhoto) {
-            html += `<div class="class-content-section">
-                <h4><i class='bx bx-camera'></i> Foto de la Receta</h4>
-                <div class="class-content-photo">
-                    <img src="${recipeWithPhoto.recipePhoto}" alt="Foto de receta" onclick="event.stopPropagation(); openPhotoFullscreen('${recipeWithPhoto.recipePhoto}', '${sanitizeHTML(watermarkName)}')" style="cursor:pointer;">
-                    <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
-                </div>
-            </div>`;
-        }
-
-        // Botones para abrir cada receta
-        html += `<div class="class-content-section">
-            <h4><i class='bx bx-book-open'></i> Recetas de esta clase</h4>`;
-
-        classRecipes.forEach(r => {
+        classRecipes.forEach((r, index) => {
             const localRecipe = recipes.find(x =>
                 x.name.toLowerCase().trim() === r.name.toLowerCase().trim()
             );
             const recipeId = localRecipe ? localRecipe.id : null;
 
+            html += `<div class="class-content-section" style="margin-top:${index > 0 ? '20' : '12'}px; padding-bottom:16px; ${index < classRecipes.length - 1 ? 'border-bottom:1px dashed rgba(0,0,0,0.1);' : ''}">
+                <h4><i class='bx bx-book-open'></i> Receta ${index + 1}: ${sanitizeHTML(r.name)}</h4>`;
+
+            if (r.recipePhoto) {
+                html += `<div class="class-content-photo" style="margin-bottom:10px;">
+                    <img src="${r.recipePhoto}" alt="Foto de receta" 
+                         onclick="event.stopPropagation(); openPhotoFullscreen('${r.recipePhoto}', '${sanitizeHTML(watermarkName)}')" 
+                         style="cursor:pointer;">
+                    <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
+                </div>`;
+            }
+
             if (recipeId) {
-                html += `<button class="btn-submit" style="margin-top:8px; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" onclick="closeModal('modal-view-class'); openRecipeFromClass('${recipeId}')">
-                    <i class='bx bx-book-open'></i> ${sanitizeHTML(r.name)} • $${formatCLP(r.totalCost)}
+                html += `<button class="btn-submit" style="margin-top:8px; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" 
+                         onclick="closeModal('modal-view-class'); openRecipeFromClass('${recipeId}')">
+                    <i class='bx bx-book-open'></i> Abrir: ${sanitizeHTML(r.name)} • $${formatCLP(r.totalCost)}
                 </button>`;
             } else {
                 html += `<div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
@@ -3177,12 +3173,13 @@ function previewClassAsStudent(courseId, classId) {
                     <div style="font-size:13px;color:var(--text-muted);">Costo: $${formatCLP(r.totalCost)}</div>
                 </div>`;
             }
-        });
 
-        html += `</div>`;
+            html += `</div>`;
+        });
+    } else {
+        html += `<div class="empty-state" style="margin-top:12px;">No hay recetas vinculadas a esta clase</div>`;
     }
 
-    // Botones de gestión (solo para profesor)
     html += `<div style="display:flex; gap:10px; margin-top:20px;">
         <button class="btn-submit" style="margin-top:0; flex:1;" onclick="closeModal('modal-view-class'); showAttendanceModal('${courseId}', '${classId}')">
             <i class='bx bx-clipboard'></i> Asistencia
