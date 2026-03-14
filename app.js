@@ -1743,6 +1743,26 @@ function renderCourses() {
     }).join('');
 }
 
+function showCreateClassModal(courseId) {
+    currentEditingClassId = null;
+    currentClassPhotos = [];
+    currentSelectedClassRecipe = null;
+
+    document.getElementById('class-date').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('modal-class-title').textContent = 'Crear Clase';
+    document.getElementById('class-linked-recipes-box').style.display = 'none';
+    document.getElementById('class-linked-recipes-list').innerHTML = '';
+
+    const courseSelect = document.getElementById('class-course-select');
+    const courseName = courses.find(c => String(c.id) === String(courseId))?.name || '';
+    courseSelect.innerHTML = `<option value="${courseId}" selected>${courseName}</option>`;
+    courseSelect.disabled = true;
+
+    updateClassModuleClassSelect(courseId);
+
+    document.getElementById('modal-create-class').classList.add('active');
+}
+
 function updateClassModuleClassSelect(courseId) {
     const course = courses.find(c => String(c.id) === String(courseId));
     if (!course) return;
