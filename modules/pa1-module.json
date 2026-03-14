@@ -1,97 +1,218 @@
 {
   "version": "4.1",
   "type": "module",
-  "exportDate": "2026-03-13T22:20:24.801Z",
+  "exportDate": "2026-03-14T03:49:15.419Z",
   "module": {
-    "id": "1773302164616",
+    "id": "1773432233597",
     "name": "Pasteleria 1",
     "prefix": "PA1"
   },
   "recipes": [
     {
-      "name": "torta de durazno manjar",
+      "name": "Galletas mantequilla",
       "ingredients": [
         {
-          "id": "1773433134208-n4nhz",
-          "matId": "1773263837930",
-          "name": "azucar",
-          "qty": 150,
+          "id": "1773445595867",
+          "matId": "1773445595864-pending",
+          "name": "Harina",
+          "qty": 230,
           "unit": "g",
-          "cost": 135,
-          "pending": false
+          "cost": 0,
+          "pending": true
         },
         {
-          "id": "1773433134208-861ze",
-          "matId": "1773263948701",
-          "name": "durazno",
-          "qty": 380,
+          "id": "1773445619344",
+          "matId": "1773445619342-pending",
+          "name": "Mantequilla",
+          "qty": 115,
           "unit": "g",
-          "cost": 1390,
-          "pending": false
+          "cost": 0,
+          "pending": true
         },
         {
-          "id": "1773433134208-0je89",
-          "matId": "1773263777308",
-          "name": "harina",
-          "qty": 150,
+          "id": "1773445661564",
+          "matId": "1773445661563-pending",
+          "name": "Azucar glass",
+          "qty": 80,
           "unit": "g",
-          "cost": 131,
-          "pending": false
+          "cost": 0,
+          "pending": true
         },
         {
-          "id": "1773433134208-tshjn",
-          "matId": "1773263818769",
-          "name": "huevos",
-          "qty": 5,
+          "id": "1773445679437",
+          "matId": "1773445679436-pending",
+          "name": "Huevos",
+          "qty": 2,
           "unit": "u",
-          "cost": 833,
-          "pending": false
+          "cost": 0,
+          "pending": true
         },
         {
-          "id": "1773433134208-3hx0d",
-          "matId": "1773263962609",
-          "name": "manjar",
-          "qty": 350,
+          "id": "1773445721047",
+          "matId": "1773445721046-pending",
+          "name": "Maicena",
+          "qty": 15,
           "unit": "g",
-          "cost": 872,
-          "pending": false
+          "cost": 0,
+          "pending": true
         },
         {
-          "id": "1773433134208-hwtze",
-          "matId": "1773264388524",
-          "name": "crema chantilly",
-          "qty": 500,
+          "id": "1773445752221",
+          "matId": "1773445752221-pending",
+          "name": "Vainilla",
+          "qty": 5,
           "unit": "cm3",
-          "cost": 2250,
-          "pending": false
+          "cost": 0,
+          "pending": true
         }
       ],
-      "decorations": [],
-      "extraSubcategory": "torta 10 personas",
-      "extraCost": 1000,
-      "totalCost": 6611,
-      "portions": 10
-    }
-  ],
-  "courses": [
-    {
-      "id": "1773273394940",
-      "name": "Pasteleria 1 Lunes",
-      "day": "Sábado",
-      "schedule": "10:30 - 1:30",
-      "students": [
+      "decorations": [
         {
-          "id": "1773273393854",
-          "name": "Diego maureira",
-          "studentCode": "01"
+          "id": "1773445793731",
+          "matId": "1773445793730-pending",
+          "name": "Chocolate",
+          "qty": 100,
+          "unit": "g",
+          "cost": 0,
+          "pending": true
+        }
+      ],
+      "extraSubcategory": null,
+      "extraCost": 0,
+      "totalCost": 0,
+      "portions": 30
+    },
+    {
+      "name": "Galleta ojo de buey",
+      "ingredients": [
+        {
+          "id": "1773445929872",
+          "matId": "1773445595864-pending",
+          "name": "Harina",
+          "qty": 200,
+          "unit": "g",
+          "cost": 0,
+          "pending": true
         },
         {
-          "id": "1773431145697",
-          "name": "Graciela miau",
-          "studentCode": "02"
+          "id": "1773445939071",
+          "matId": "1773445661563-pending",
+          "name": "Azucar glass",
+          "qty": 90,
+          "unit": "g",
+          "cost": 0,
+          "pending": true
+        },
+        {
+          "id": "1773445983891",
+          "matId": "1773445983891-pending",
+          "name": "Margarina",
+          "qty": 60,
+          "unit": "g",
+          "cost": 0,
+          "pending": true
+        },
+        {
+          "id": "1773445990533",
+          "matId": "1773445619342-pending",
+          "name": "Mantequilla",
+          "qty": 60,
+          "unit": "g",
+          "cost": 0,
+          "pending": true
+        },
+        {
+          "id": "1773446013011",
+          "matId": "1773445679436-pending",
+          "name": "Huevos",
+          "qty": 2,
+          "unit": "u",
+          "cost": 0,
+          "pending": true
+        },
+        {
+          "id": "1773446041219",
+          "matId": "1773446041218-pending",
+          "name": "Mermelada",
+          "qty": 200,
+          "unit": "g",
+          "cost": 0,
+          "pending": true
         }
-      ]
+      ],
+      "decorations": [
+        {
+          "id": "1773446078127",
+          "matId": "1773445661563-pending",
+          "name": "Azucar glass",
+          "qty": 50,
+          "unit": "g",
+          "cost": 0,
+          "pending": true
+        }
+      ],
+      "extraSubcategory": null,
+      "extraCost": 0,
+      "totalCost": 0,
+      "portions": 15
+    },
+    {
+      "name": "Lengua de gato",
+      "ingredients": [
+        {
+          "id": "1773446303449",
+          "matId": "1773445679436-pending",
+          "name": "Huevos",
+          "qty": 3,
+          "unit": "u",
+          "cost": 0,
+          "pending": true
+        },
+        {
+          "id": "1773446330169",
+          "matId": "1773446330168-pending",
+          "name": "Azucar granulada",
+          "qty": 150,
+          "unit": "g",
+          "cost": 0,
+          "pending": true
+        },
+        {
+          "id": "1773446346740",
+          "matId": "1773445595864-pending",
+          "name": "Harina",
+          "qty": 120,
+          "unit": "g",
+          "cost": 0,
+          "pending": true
+        },
+        {
+          "id": "1773446362288",
+          "matId": "1773445721046-pending",
+          "name": "Maicena",
+          "qty": 30,
+          "unit": "g",
+          "cost": 0,
+          "pending": true
+        }
+      ],
+      "decorations": [
+        {
+          "id": "1773446389370",
+          "matId": "1773446330168-pending",
+          "name": "Azucar granulada",
+          "qty": 100,
+          "unit": "g",
+          "cost": 0,
+          "pending": true
+        }
+      ],
+      "extraSubcategory": null,
+      "extraCost": 0,
+      "totalCost": 0,
+      "portions": 30
     }
   ],
+  "courses": [],
   "classes": []
 }
