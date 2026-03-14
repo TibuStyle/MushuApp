@@ -739,21 +739,17 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Nombre de la Clase</label>
-                    <input type="text" id="class-name" placeholder="Ej: Clase Galletas">
+                    <label>Clase del Módulo</label>
+                    <select id="class-module-class-select" onchange="onClassModuleClassChange()">
+                        <option value="">Selecciona una clase...</option>
+                    </select>
                 </div>
 
-                <div class="settings-section">
-                    <h4><i class='bx bx-book'></i> Receta del Módulo</h4>
-                    <p class="settings-desc">Selecciona una receta del módulo asociado al curso</p>
-
-                    <div class="backup-buttons" style="margin-top:12px;">
-                        <button class="btn-backup export" onclick="selectExistingRecipeForClass()">
-                            <i class='bx bx-check-square'></i> Seleccionar
-                        </button>
+                <div id="class-linked-recipes-box" style="display:none; margin-bottom:16px;">
+                    <div style="background:var(--surface-hover); border-radius:var(--radius-sm); padding:12px;">
+                        <strong style="font-size:14px; display:block; margin-bottom:8px;">📖 Recetas incluidas:</strong>
+                        <div id="class-linked-recipes-list"></div>
                     </div>
-
-                    <div id="selected-class-recipe-box" style="margin-top:12px; display:none;"></div>
                 </div>
 
                 <div class="form-group">
