@@ -2217,20 +2217,25 @@ function renderCodeItem(a) {
         </div>`;
 }
 
-function copySingleCode(studentId) {
+function copyShortCode(studentId) {
     const a = currentAttendanceData.find(x => String(x.studentId) === String(studentId));
-    if (!a || !a.codeData) return;
+    if (!a || !a.shortCode) {
+        showToast('No hay código generado', true);
+        return;
+    }
+
+    const codeToCopy = a.shortCode;
 
     if (navigator.clipboard) {
-        navigator.clipboard.writeText(a.codeData).then(() => {
+        navigator.clipboard.writeText(codeToCopy).then(() => {
             a.codeUsed = true;
             saveAttendanceOnly();
             renderAttendanceList();
-            showToast(`Código de ${a.studentName} copiado!`);
+            showToast('Código ' + codeToCopy + ' copiado!');
         });
     } else {
         const ta = document.createElement('textarea');
-        ta.value = a.codeData;
+        ta.value = codeToCopy;
         document.body.appendChild(ta);
         ta.select();
         document.execCommand('copy');
@@ -2238,7 +2243,7 @@ function copySingleCode(studentId) {
         a.codeUsed = true;
         saveAttendanceOnly();
         renderAttendanceList();
-        showToast(`Código de ${a.studentName} copiado!`);
+        showToast('Código ' + codeToCopy + ' copiado!');
     }
 }
 
@@ -3483,10 +3488,50 @@ function openRecipeFromClass(recipeId) {
         return;
     }
 
-    const ic = (r.ingredients || []).reduce((s, i) => s + i.cost, 0);
-    const dc = (r.decorations || []).reduce((s, i) => s + i.cost, 0);
+    // Recalcular costos en vivo
+    let ic = 0;
+    let dc = 0;
+
+    const ingredientsHTML = (r.ingredients || []).map(i => {
+        const m = materials.find(x => String(x.id) === String(i.matId));
+        let cost = i.cost;
+        if (m && !m.pending) {
+            cost = calculateIngredientCost(m, i.qty, i.unit);
+        }
+        ic += cost;
+        return `
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
+                <span>${sanitizeHTML(i.name)} (${i.qty} ${i.unit})</span>
+                <span style="font-weight:500;">$${formatCLP(cost)}</span>
+            </div>
+        `;
+    }).join('');
+
+    const decorationsHTML = (r.decorations || []).map(d => {
+        const m = materials.find(x => String(x.id) === String(d.matId));
+        let cost = d.cost;
+        if (m && !m.pending) {
+            cost = calculateIngredientCost(m, d.qty, d.unit);
+        }
+        dc += cost;
+        return `
+            <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
+                <span>${sanitizeHTML(d.name)} (${d.qty} ${d.unit})</span>
+                <span style="font-weight:500;">$${formatCLP(cost)}</span>
+            </div>
+        `;
+    }).join('');
+
     const ec = r.extraCost || 0;
-    const se = Math.floor((r.totalCost * profitMargin) / 500) * 500;
+    
+    let currentExtraCost = ec;
+    if (r.extraSubcategory) {
+        const extraItems = materials.filter(m => m.category === 'extra' && m.subcategory === r.extraSubcategory);
+        currentExtraCost = extraItems.reduce((s, m) => s + m.price, 0);
+    }
+
+    const totalCost = ic + dc + currentExtraCost;
+    const se = Math.floor((totalCost * profitMargin) / 500) * 500;
 
     let html = '';
 
@@ -3495,17 +3540,11 @@ function openRecipeFromClass(recipeId) {
         <p>${(r.ingredients || []).length + (r.decorations || []).length} Items${r.extraSubcategory ? ' + Extra' : ''}${r.portions > 1 ? ' • ' + r.portions + ' porciones' : ''}</p>
     </div>`;
 
-    // Ingredientes
     if ((r.ingredients || []).length > 0) {
         html += `<div class="class-content-section">
             <h4><i class='bx bx-package'></i> Ingredientes</h4>
             <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;">
-                ${r.ingredients.map(i => `
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
-                        <span>${sanitizeHTML(i.name)} (${i.qty} ${i.unit})</span>
-                        <span style="font-weight:500;">$${formatCLP(i.cost)}</span>
-                    </div>
-                `).join('')}
+                ${ingredientsHTML}
                 <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:600;">
                     <span>Subtotal</span><span>$${formatCLP(ic)}</span>
                 </div>
@@ -3513,17 +3552,11 @@ function openRecipeFromClass(recipeId) {
         </div>`;
     }
 
-    // Decoraciones
     if ((r.decorations || []).length > 0) {
         html += `<div class="class-content-section">
             <h4><i class='bx bx-palette'></i> Decoración</h4>
             <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;">
-                ${r.decorations.map(d => `
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
-                        <span>${sanitizeHTML(d.name)} (${d.qty} ${d.unit})</span>
-                        <span style="font-weight:500;">$${formatCLP(d.cost)}</span>
-                    </div>
-                `).join('')}
+                ${decorationsHTML}
                 <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:600;">
                     <span>Subtotal</span><span>$${formatCLP(dc)}</span>
                 </div>
@@ -3531,8 +3564,7 @@ function openRecipeFromClass(recipeId) {
         </div>`;
     }
 
-    // Extra
-    if (r.extraSubcategory && ec > 0) {
+    if (r.extraSubcategory && currentExtraCost > 0) {
         const extraItems = materials.filter(m => m.category === 'extra' && m.subcategory === r.extraSubcategory);
         html += `<div class="class-content-section">
             <h4><i class='bx bx-star'></i> Extra</h4>
@@ -3544,17 +3576,16 @@ function openRecipeFromClass(recipeId) {
                     </div>
                 `).join('')}
                 <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:600;">
-                    <span>Subtotal</span><span>$${formatCLP(ec)}</span>
+                    <span>Subtotal</span><span>$${formatCLP(currentExtraCost)}</span>
                 </div>
             </div>
         </div>`;
     }
 
-    // Costo total y precio sugerido
     html += `<div class="class-content-section">
         <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;">
             <div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700;font-size:16px;">
-                <span>COSTO TOTAL</span><span>$${formatCLP(r.totalCost)}</span>
+                <span>COSTO TOTAL</span><span>$${formatCLP(totalCost)}</span>
             </div>
             <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:var(--secondary-color);font-weight:600;">
                 <span>💰 Venta sugerida (x${profitMargin}):</span><span>$${formatCLP(se)}</span>
@@ -3566,7 +3597,6 @@ function openRecipeFromClass(recipeId) {
         </div>
     </div>`;
 
-    // Tips del profesor
     if (r.recipeTips) {
         html += `<div class="class-content-section">
             <h4><i class='bx bx-bulb'></i> Tips del Profesor</h4>
@@ -3576,7 +3606,6 @@ function openRecipeFromClass(recipeId) {
         </div>`;
     }
 
-    // Tip automático
     const autoTip = generateRecipeTip(r);
     if (autoTip) {
         html += `<div class="recipe-tip"><strong>💡 Consejo</strong>${autoTip}</div>`;
