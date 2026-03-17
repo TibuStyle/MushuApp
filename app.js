@@ -4052,6 +4052,8 @@ function importSelectedCourses() {
                     tips: cls.tips || '',
                     photos: cls.photos || [],
                     linkedRecipe: cls.linkedRecipe || null,
+                    linkedRecipe: cls.linkedRecipe || null,
+                    linkedRecipes: cls.linkedRecipes || [],
                     linkedRecipeId: cls.linkedRecipe ? cls.linkedRecipe.id : null,
                     blockCode: cls.blockCode || generateClassBlockCode(),
                     codeExpiry: cls.codeExpiry || 0,
