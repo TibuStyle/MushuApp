@@ -2426,7 +2426,7 @@ function viewImportedClass(classId) {
             if (recipeId) {
                 html += `<button class="btn-submit" style="margin-top:8px; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" 
                          onclick="closeModal('modal-view-class'); openRecipeFromClass('${recipeId}')">
-                    <i class='bx bx-book-open'></i> Abrir: ${sanitizeHTML(r.name)} • $${formatCLP(r.totalCost)}
+                    <i class='bx bx-book-open'></i> Ver costo de receta
                 </button>`;
             } else {
                 html += `<div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
@@ -3514,7 +3514,7 @@ function previewClassAsStudent(courseId, classId) {
             if (recipeId) {
                 html += `<button class="btn-submit" style="margin-top:8px; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" 
                          onclick="closeModal('modal-view-class'); openRecipeFromClass('${recipeId}')">
-                    <i class='bx bx-book-open'></i> Abrir: ${sanitizeHTML(r.name)} • $${formatCLP(r.totalCost)}
+                    <i class='bx bx-book-open'></i> Ver costo de receta
                 </button>`;
             } else {
                 html += `<div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
