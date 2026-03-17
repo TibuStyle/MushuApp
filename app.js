@@ -2340,62 +2340,55 @@ function viewImportedClass(classId) {
         </span>
     </div>`;
 
-    // Foto de la receta con marca de agua
-    if (ic.linkedRecipe && ic.linkedRecipe.recipePhoto) {
-        html += `<div class="class-content-section">
-            <h4><i class='bx bx-camera'></i> Foto de la Receta</h4>
-            <div class="class-content-photo">
-            <img src="${ic.linkedRecipe.recipePhoto}" alt="Foto de receta" onclick="event.stopPropagation(); openPhotoFullscreen('${ic.linkedRecipe.recipePhoto}', '${sanitizeHTML(watermarkName)}')" style="cursor:pointer;">
-                <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
-            </div>
-        </div>`;
+    const classRecipes = ic.linkedRecipes || (ic.linkedRecipe ? [ic.linkedRecipe] : []);
+
+    if (classRecipes.length > 0) {
+        classRecipes.forEach((r, index) => {
+            const localRecipe = recipes.find(x =>
+                x.name.toLowerCase().trim() === r.name.toLowerCase().trim()
+            );
+            const recipeId = localRecipe ? localRecipe.id : null;
+
+            html += `<div class="class-content-section" style="margin-top:${index > 0 ? '20' : '12'}px; padding-bottom:16px; ${index < classRecipes.length - 1 ? 'border-bottom:1px dashed rgba(0,0,0,0.1);' : ''}">
+                <h4><i class='bx bx-book-open'></i> Receta ${index + 1}: ${sanitizeHTML(r.name)}</h4>`;
+
+            if (r.recipePhoto) {
+                html += `<div class="class-content-photo" style="margin-bottom:10px;">
+                    <img src="${r.recipePhoto}" alt="Foto de receta" 
+                         onclick="event.stopPropagation(); openPhotoFullscreen('${r.recipePhoto}', '${sanitizeHTML(watermarkName)}')" 
+                         style="cursor:pointer;">
+                    <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
+                </div>`;
+            }
+
+            if (recipeId) {
+                html += `<button class="btn-submit" style="margin-top:8px; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" 
+                         onclick="closeModal('modal-view-class'); openRecipeFromClass('${recipeId}')">
+                    <i class='bx bx-book-open'></i> Abrir: ${sanitizeHTML(r.name)} • $${formatCLP(r.totalCost)}
+                </button>`;
+            } else {
+                html += `<div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
+                    <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${sanitizeHTML(r.name)}</div>
+                    <div style="font-size:13px;color:var(--text-muted);">Costo: $${formatCLP(r.totalCost)}</div>
+                </div>`;
+            }
+
+            html += `</div>`;
+        });
     }
 
-    // Fotos de la clase (si las hay)
     if (ic.photos && ic.photos.length > 0) {
         html += `<div class="class-content-section">
             <h4><i class='bx bx-camera'></i> Fotos de Clase</h4>
             <div class="class-content-photos">
                 ${ic.photos.map(p => `
                     <div class="class-content-photo">
-                     <img src="${p}" alt="Foto de clase" onclick="event.stopPropagation(); openPhotoFullscreen('${p}', '${sanitizeHTML(watermarkName)}')" style="cursor:pointer;">
+                        <img src="${p}" alt="Foto de clase" onclick="event.stopPropagation(); openPhotoFullscreen('${p}', '${sanitizeHTML(watermarkName)}')" style="cursor:pointer;">
                         <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
                     </div>
                 `).join('')}
             </div>
         </div>`;
-    }
-
-    // Botón Abrir Receta
-    if (ic.linkedRecipe) {
-        const linkedRecipeId = findRecipeByName(ic.linkedRecipe.name);
-        if (linkedRecipeId) {
-            html += `<div class="class-content-section">
-                <button class="btn-submit" style="margin-top:0; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" onclick="closeModal('modal-view-class'); openRecipeFromClass('${linkedRecipeId}')">
-                    <i class='bx bx-book-open'></i> Abrir Receta: ${sanitizeHTML(ic.linkedRecipe.name)}
-                </button>
-            </div>`;
-        } else {
-            // Si no encuentra la receta local, mostrar resumen
-            const r = ic.linkedRecipe;
-            const ic2 = (r.ingredients || []).reduce((s, i) => s + i.cost, 0);
-            const dc2 = (r.decorations || []).reduce((s, i) => s + i.cost, 0);
-            const ec2 = r.extraCost || 0;
-
-            html += `<div class="class-content-section">
-                <h4><i class='bx bx-calculator'></i> Receta y Costos</h4>
-                <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;position:relative;overflow:hidden;">
-                    <div class="watermark">${sanitizeHTML(watermarkName)}</div>
-                    <div style="font-weight:700;font-size:16px;margin-bottom:8px;">${sanitizeHTML(r.name)}</div>
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;"><span>Ingredientes:</span><span>$${formatCLP(ic2)}</span></div>
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;"><span>Decoración:</span><span>$${formatCLP(dc2)}</span></div>
-                    ${ec2 > 0 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;"><span>Extra:</span><span>$${formatCLP(ec2)}</span></div>` : ''}
-                    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:2px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:700;font-size:16px;"><span>COSTO TOTAL</span><span>$${formatCLP(r.totalCost)}</span></div>
-                    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:var(--secondary-color);font-weight:600;"><span>💰 Venta sugerida (x${profitMargin}):</span><span>$${formatCLP(Math.floor((r.totalCost * profitMargin) / 500) * 500)}</span></div>
-                    ${r.portions > 1 ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:var(--text-muted);"><span>🍰 Por porción (${r.portions}x):</span><span>$${formatCLP(Math.round(Math.floor((r.totalCost * profitMargin) / 500) * 500 / r.portions))} c/u</span></div>` : ''}
-                </div>
-            </div>`;
-        }
     }
 
     document.getElementById('view-class-content').innerHTML = html;
