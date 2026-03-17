@@ -2411,6 +2411,14 @@ function normalizeText(str) {
         .replace(/[^a-z0-9]/g, "") // quitar símbolos
         .trim();
 }
+function normalizeText(str) {
+    if (!str) return '';
+    return str.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+        .replace(/[^a-z0-9]/g, "") 
+        .trim();
+}
+
 function getMissingMaterialsForRecipe(recipe) {
     const needed = [];
     const all = [...(recipe.ingredients || []), ...(recipe.decorations || [])];
@@ -2436,13 +2444,11 @@ function importClassFromCode() {
     const codeInput = document.getElementById('import-class-code').value.trim();
     if (!codeInput) { showToast('Pega un código', true); return; }
 
-    // Si es un código largo (base64), usar método viejo
     if (codeInput.length > 20) {
         importClassFromLongCode(codeInput);
         return;
     }
 
-    // Si es un código corto, parsear y buscar en GitHub
     importClassFromShortCode(codeInput);
 }
 
@@ -2537,7 +2543,6 @@ function importClassFromShortCode(code) {
             let classData = null;
             let courseData = null;
 
-            // Buscar en courses -> classes
             (data.courses || []).forEach(c => {
                 const foundClass = (data.classes || []).find(cls => 
                     cls.blockCode === blockCode && cls.courseId === c.id
@@ -2548,7 +2553,6 @@ function importClassFromShortCode(code) {
                 }
             });
 
-            // Buscar suelto en classes si no se encontró
             if (!classData) {
                 classData = (data.classes || []).find(cls => cls.blockCode === blockCode);
             }
@@ -2622,11 +2626,12 @@ function importClassFromShortCode(code) {
             showToast('No se encontró el módulo "' + prefix + '". ¿Ya lo subieron?', true);
         });
 }
+
 function showMissingMaterialsModal(missing) {
     const list = document.getElementById('missing-materials-list');
     list.innerHTML = missing.map((m, i) => `
         <div class="missing-material-item">
-            <h4><i class='bx bx-error-circle'></i> ${m.name}</h4>
+            <h4><i class='bx bx-error-circle'></i> ${sanitizeHTML(m.name)}</h4>
             <div class="form-row">
                 <div class="form-group">
                     <label>Precio (CLP)</label>
@@ -2660,11 +2665,11 @@ function saveMissingMaterialsAndContinue() {
     const items = document.querySelectorAll('[id^="missing-name-"]');
 
     for (let i = 0; i < items.length; i++) {
-        const name = document.getElementById(`missing-name-${i}`).value;
-        const category = document.getElementById(`missing-category-${i}`).value;
-        const price = parseFloat(document.getElementById(`missing-price-${i}`).value);
-        const qty = parseFloat(document.getElementById(`missing-qty-${i}`).value);
-        const unit = document.getElementById(`missing-unit-${i}`).value;
+        const name = document.getElementById('missing-name-' + i).value;
+        const category = document.getElementById('missing-category-' + i).value;
+        const price = parseFloat(document.getElementById('missing-price-' + i).value);
+        const qty = parseFloat(document.getElementById('missing-qty-' + i).value);
+        const unit = document.getElementById('missing-unit-' + i).value;
 
         if (!name || isNaN(price) || isNaN(qty) || qty <= 0) {
             showToast('Completa todos los materiales faltantes', true);
@@ -2672,14 +2677,14 @@ function saveMissingMaterialsAndContinue() {
         }
 
         materials.push({
-            id: Date.now().toString() + '-' + i,
-            name,
-            price,
-            qty,
-            unit,
-            category,
+            id: Date.now().toString() + '-' + i + '-' + Math.random().toString(36).substr(2, 5),
+            name: name,
+            price: price,
+            qty: qty,
+            unit: unit,
+            category: category,
             subcategory: '',
-            priceHistory: [{ date: new Date().toISOString().slice(0, 10), price }]
+            priceHistory: [{ date: new Date().toISOString().slice(0, 10), price: price }]
         });
     }
 
@@ -2698,45 +2703,6 @@ function saveMissingMaterialsAndContinue() {
 }
 
 function completeClassImport(decoded) {
-    // 1. Actualizar IDs de materiales en las recetas importadas
-    const recipesToProcess = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
-    
-    recipesToProcess.forEach(r => {
-        (r.ingredients || []).forEach(i => {
-            const localMat = materials.find(m => 
-                normalizeText(m.name) === normalizeText(i.name)
-            );
-            if (localMat) {
-                i.matId = String(localMat.id); // ← ESTO FALTABA
-                i.pending = localMat.pending || false;
-                if (!localMat.pending) {
-                    i.cost = calculateIngredientCost(localMat, i.qty, i.unit);
-                }
-            }
-        });
-
-        (r.decorations || []).forEach(d => {
-            const localMat = materials.find(m => 
-                normalizeText(m.name) === normalizeText(d.name)
-            );
-            );
-            if (localMat) {
-                d.matId = String(localMat.id); // ← ESTO FALTABA
-                d.pending = localMat.pending || false;
-                if (!localMat.pending) {
-                    d.cost = calculateIngredientCost(localMat, d.qty, d.unit);
-                }
-            }
-        });
-        
-        // Recalcular total
-        const ic = (r.ingredients || []).reduce((s, i) => s + (i.cost || 0), 0);
-        const dc = (r.decorations || []).reduce((s, d) => s + (d.cost || 0), 0);
-        const ec = r.extraCost || 0;
-        r.totalCost = ic + dc + ec;
-    });
-
-    // 2. Guardar la clase importada
     const importedClass = {
         id: Date.now().toString(),
         classId: decoded.classId,
@@ -2751,14 +2717,15 @@ function completeClassImport(decoded) {
         tips: decoded.tips || '',
         photos: decoded.photos || [],
         linkedRecipe: decoded.linkedRecipe,
-        linkedRecipes: recipesToProcess, // Usar las procesadas
+        linkedRecipes: decoded.linkedRecipes,
         importedAt: new Date().toISOString()
     };
 
     importedClasses.push(importedClass);
     saveImportedClasses();
 
-    // 3. Guardar las recetas en Mis Recetas
+    const recipesToProcess = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
+
     recipesToProcess.forEach(r => {
         const recipeCopy = JSON.parse(JSON.stringify(r));
         recipeCopy.id = Date.now().toString() + '-class-' + Math.random().toString(36).substr(2, 5);
@@ -2766,6 +2733,16 @@ function completeClassImport(decoded) {
         recipeCopy.recipeSource = 'class';
         recipeCopy.sourceCourseName = decoded.courseName;
         recipeCopy.sourceClassDate = decoded.date;
+
+        // Actualizar IDs de materiales con los locales
+        (recipeCopy.ingredients || []).forEach(i => {
+            const localMat = materials.find(m => normalizeText(m.name) === normalizeText(i.name));
+            if (localMat) i.matId = String(localMat.id);
+        });
+        (recipeCopy.decorations || []).forEach(d => {
+            const localMat = materials.find(m => normalizeText(m.name) === normalizeText(d.name));
+            if (localMat) d.matId = String(localMat.id);
+        });
 
         const alreadyExists = recipes.find(rec =>
             rec.name === recipeCopy.name &&
