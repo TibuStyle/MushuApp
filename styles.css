@@ -1474,3 +1474,7 @@ input:checked + .slider:before { transform: translateX(16px); }
     color: var(--text-muted);
     margin: 0;
 }
+
+#view-class-content {
+    padding-bottom: 20px;
+}
