@@ -2691,6 +2691,44 @@ function saveMissingMaterialsAndContinue() {
 }
 
 function completeClassImport(decoded) {
+    // 1. Actualizar IDs de materiales en las recetas importadas
+    const recipesToProcess = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
+    
+    recipesToProcess.forEach(r => {
+        (r.ingredients || []).forEach(i => {
+            const localMat = materials.find(m => 
+                m.name.toLowerCase().trim() === i.name.toLowerCase().trim()
+            );
+            if (localMat) {
+                i.matId = String(localMat.id); // ← ESTO FALTABA
+                i.pending = localMat.pending || false;
+                if (!localMat.pending) {
+                    i.cost = calculateIngredientCost(localMat, i.qty, i.unit);
+                }
+            }
+        });
+
+        (r.decorations || []).forEach(d => {
+            const localMat = materials.find(m => 
+                m.name.toLowerCase().trim() === d.name.toLowerCase().trim()
+            );
+            if (localMat) {
+                d.matId = String(localMat.id); // ← ESTO FALTABA
+                d.pending = localMat.pending || false;
+                if (!localMat.pending) {
+                    d.cost = calculateIngredientCost(localMat, d.qty, d.unit);
+                }
+            }
+        });
+        
+        // Recalcular total
+        const ic = (r.ingredients || []).reduce((s, i) => s + (i.cost || 0), 0);
+        const dc = (r.decorations || []).reduce((s, d) => s + (d.cost || 0), 0);
+        const ec = r.extraCost || 0;
+        r.totalCost = ic + dc + ec;
+    });
+
+    // 2. Guardar la clase importada
     const importedClass = {
         id: Date.now().toString(),
         classId: decoded.classId,
@@ -2705,16 +2743,15 @@ function completeClassImport(decoded) {
         tips: decoded.tips || '',
         photos: decoded.photos || [],
         linkedRecipe: decoded.linkedRecipe,
-        linkedRecipes: decoded.linkedRecipes,
+        linkedRecipes: recipesToProcess, // Usar las procesadas
         importedAt: new Date().toISOString()
     };
 
     importedClasses.push(importedClass);
     saveImportedClasses();
 
-    const recipesToSave = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
-
-    recipesToSave.forEach(r => {
+    // 3. Guardar las recetas en Mis Recetas
+    recipesToProcess.forEach(r => {
         const recipeCopy = JSON.parse(JSON.stringify(r));
         recipeCopy.id = Date.now().toString() + '-class-' + Math.random().toString(36).substr(2, 5);
         recipeCopy.recipeFolder = decoded.courseName;
