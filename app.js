@@ -2480,7 +2480,7 @@ function importClassFromLongCode(codeInput) {
         linkedRecipes.forEach(r => {
             const missing = getMissingMaterialsForRecipe(r);
             missing.forEach(m => {
-                if (!allMissing.find(am => am.name === m.name)) {
+                if (!allMissing.find(am => normalizeText(am.name) === normalizeText(m.name))) {
                     allMissing.push(m);
                 }
             });
@@ -2606,7 +2606,7 @@ function importClassFromShortCode(code) {
             linkedRecipes.forEach(r => {
                 const missing = getMissingMaterialsForRecipe(r);
                 missing.forEach(m => {
-                    if (!allMissing.find(am => am.name === m.name)) {
+                    if (!allMissing.find(am => normalizeText(am.name) === normalizeText(m.name))) {
                         allMissing.push(m);
                     }
                 });
