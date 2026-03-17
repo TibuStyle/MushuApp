@@ -17,7 +17,9 @@ let profitMargin = parseFloat(localStorage.getItem('mushu_profit_margin')) || 2;
 let courses = JSON.parse(localStorage.getItem('mushu_courses')) || [];
 let importedClasses = JSON.parse(localStorage.getItem('mushu_imported_classes')) || [];
 let teacherMode = JSON.parse(localStorage.getItem('mushu_teacher_mode')) || { active: false };
-let studentName = localStorage.getItem('mushu_student_name') || '';
+let studentProfile = JSON.parse(localStorage.getItem('mushu_student_profile')) || null;
+// studentName se mantiene por compatibilidad, pero usaremos studentProfile
+let studentName = studentProfile ? studentProfile.name : (localStorage.getItem('mushu_student_name') || '');
 
 let currentRecipeIngredients = [];
 let currentRecipeDecorations = [];
@@ -1420,12 +1422,25 @@ function updateClassesView() {
         if (studentView) studentView.style.display = 'none';
         if (noModeView) noModeView.style.display = 'none';
         renderCourses();
-    } else if (studentName) {
+        } else if (studentProfile || studentName) {
         if (teacherView) teacherView.style.display = 'none';
         if (studentView) studentView.style.display = 'block';
         if (noModeView) noModeView.style.display = 'none';
-        renderStudentClassesByFolders();
+        
+        // Lógica nueva de Login
+        const loginContainer = document.getElementById('student-login-container');
+        const dashboardContainer = document.getElementById('student-dashboard-container');
+        
+        if (studentProfile) {
+            loginContainer.style.display = 'none';
+            dashboardContainer.style.display = 'block';
+            renderStudentDashboard();
+        } else {
+            loginContainer.style.display = 'block';
+            dashboardContainer.style.display = 'none';
+        }
     } else {
+        
         if (teacherView) teacherView.style.display = 'none';
         if (studentView) studentView.style.display = 'none';
         if (noModeView) noModeView.style.display = 'block';
@@ -2274,52 +2289,43 @@ function copyAllCodes() {
     }
 }
 
-function renderStudentClassesByFolders() {
+function renderStudentDashboard() {
+    if (!studentProfile) return;
+
+    // Actualizar tarjeta de identidad
+    document.getElementById('student-dashboard-name').textContent = studentProfile.name;
+    document.getElementById('student-dashboard-course').textContent = studentProfile.courseName + ' (' + studentProfile.modulePrefix + ')';
+
+    // Calcular asistencia
+    const myClasses = importedClasses.filter(ic => ic.courseName === studentProfile.courseName);
+    const attended = myClasses.filter(ic => ic.present).length;
+    // Total de clases es el mayor entre las que ha importado y las que dice el módulo
+    const totalClasses = Math.max(studentProfile.totalClassesInModule || 0, myClasses.length);
+    
+    const percentage = totalClasses > 0 ? Math.round((attended / totalClasses) * 100) : 100;
+    
+    document.getElementById('student-dashboard-attendance').textContent = percentage + '%';
+    document.getElementById('student-dashboard-bar').style.width = percentage + '%';
+    document.getElementById('student-dashboard-bar').style.backgroundColor = percentage >= 80 ? 'var(--success-color)' : 'var(--warning-color)';
+    document.getElementById('student-dashboard-stats').textContent = `${attended} de ${totalClasses} clases`;
+
+    // Renderizar clases desbloqueadas
     const list = document.getElementById('student-class-folders-list');
-    if (!importedClasses.length) {
-        list.innerHTML = '<div class="empty-state">No hay clases importadas todavía.</div>';
+    
+    if (myClasses.length === 0) {
+        list.innerHTML = '<div class="empty-state">No has desbloqueado ninguna clase aún.</div>';
         return;
     }
 
-    const folders = {};
-    importedClasses.forEach(ic => {
-        const folder = ic.courseName;
-        if (!folders[folder]) folders[folder] = [];
-        folders[folder].push(ic);
-    });
-
-    const names = Object.keys(folders).sort((a, b) => a.localeCompare(b));
-
-    list.innerHTML = names.map((folderName, idx) => {
-        const folderId = folderName.replace(/[^a-zA-Z0-9]/g, '_');
-        const classes = folders[folderName].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        return `
-            <div class="folder-card">
-                <div class="folder-card-header" onclick="toggleFolderBody('student-class-folder','${folderId}')">
-                    <div class="folder-card-left">
-                        <i class='bx bxs-graduation' style="font-size:22px;color:var(--secondary-color);"></i>
-                        <div>
-                            <h3>${folderName}</h3>
-                            <p>${classes.length} clase${classes.length !== 1 ? 's' : ''}</p>
-                        </div>
-                    </div>
-                    <i class='bx bx-chevron-down folder-card-chevron' id="student-class-folder-chevron-${folderId}" style="transform:${idx === 0 ? 'rotate(0deg)' : 'rotate(-90deg)'};"></i>
-                </div>
-                <div class="folder-card-body ${idx === 0 ? 'open' : ''}" id="student-class-folder-body-${folderId}">
-                    ${classes.map(ic => `
-                        <div class="imported-class-card" onclick="viewImportedClass('${ic.id}')">
-                            <h3>${ic.className}</h3>
-                            <p>📅 ${formatDate(ic.date)} • ${ic.visibleCode || ''}</p>
-                            <span class="class-content-badge ${ic.present ? 'present' : 'absent'}">
-                                ${ic.present ? '✅ Clase' : '⚠️ Material de repaso'}
-                            </span>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-        `;
-    }).join('');
+    list.innerHTML = myClasses.sort((a, b) => new Date(b.date) - new Date(a.date)).map(ic => `
+        <div class="imported-class-card" onclick="viewImportedClass('${ic.id}')">
+            <h3>${sanitizeHTML(ic.className)}</h3>
+            <p>📅 ${formatDate(ic.date)} • ${ic.visibleCode || ''}</p>
+            <span class="class-content-badge ${ic.present ? 'present' : 'absent'}">
+                ${ic.present ? '✅ Presente' : '⚠️ Ausente'}
+            </span>
+        </div>
+    `).join('');
 }
 
 function renderImportedClasses() {
@@ -3984,6 +3990,101 @@ function importRecipeFromFile(event) {
 
     reader.readAsText(file);
     event.target.value = '';
+}
+
+// === LOGIN ALUMNO ===
+let loginModuleData = null;
+
+function searchModuleForLogin() {
+    const prefix = document.getElementById('student-login-prefix').value.trim().toUpperCase();
+    if (!prefix) { showToast('Ingresa un prefijo', true); return; }
+
+    const fileName = prefix.toLowerCase() + '-module.json';
+    const url = 'https://tibustyle.github.io/MushuApp/modules/' + fileName + '?v=' + Date.now();
+
+    showToast('⏳ Buscando curso...');
+
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('No encontrado');
+            return response.json();
+        })
+        .then(data => {
+            if (!data.courses || data.courses.length === 0) {
+                showToast('Este módulo no tiene cursos', true);
+                return;
+            }
+            loginModuleData = data;
+            
+            const courseSelect = document.getElementById('student-login-course');
+            courseSelect.innerHTML = '<option value="">Selecciona...</option>' + 
+                data.courses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            
+            document.getElementById('student-login-step2').style.display = 'block';
+            document.getElementById('student-login-name').innerHTML = '<option value="">Primero elige curso</option>';
+        })
+        .catch(err => {
+            showToast('No se encontró el curso "' + prefix + '"', true);
+        });
+}
+
+function onLoginCourseChange() {
+    const courseId = document.getElementById('student-login-course').value;
+    const nameSelect = document.getElementById('student-login-name');
+    
+    if (!courseId || !loginModuleData) {
+        nameSelect.innerHTML = '<option value="">Primero elige curso</option>';
+        return;
+    }
+
+    const course = loginModuleData.courses.find(c => c.id === courseId);
+    if (!course || !course.students || course.students.length === 0) {
+        nameSelect.innerHTML = '<option value="">Sin alumnos</option>';
+        return;
+    }
+
+    nameSelect.innerHTML = '<option value="">Selecciona tu nombre...</option>' +
+        course.students.map(s => `<option value="${s.id}" data-code="${s.studentCode}">${s.name}</option>`).join('');
+}
+
+function confirmStudentLogin() {
+    const courseId = document.getElementById('student-login-course').value;
+    const nameSelect = document.getElementById('student-login-name');
+    const studentId = nameSelect.value;
+    
+    if (!courseId || !studentId) {
+        showToast('Selecciona todos los datos', true);
+        return;
+    }
+
+    const course = loginModuleData.courses.find(c => c.id === courseId);
+    const student = course.students.find(s => s.id === studentId);
+    const totalClasses = (loginModuleData.classes || []).filter(cl => cl.courseId === courseId).length;
+
+    studentProfile = {
+        name: student.name,
+        id: student.id,
+        code: student.studentCode,
+        courseId: course.id,
+        courseName: course.name,
+        moduleId: loginModuleData.module.id,
+        modulePrefix: loginModuleData.module.prefix,
+        totalClassesInModule: totalClasses // Guardamos cuántas clases son en total
+    };
+
+    localStorage.setItem('mushu_student_profile', JSON.stringify(studentProfile));
+    studentName = student.name; // Actualizar global
+    
+    updateClassesView();
+    showToast('¡Hola ' + student.name + '! 👋');
+}
+
+function logoutStudent() {
+    showConfirmModal('Cerrar sesión', '¿Seguro? Tendrás que identificarte de nuevo.', () => {
+        studentProfile = null;
+        localStorage.removeItem('mushu_student_profile');
+        updateClassesView();
+    });
 }
 
 // === CARGAR MÓDULO EN CLASES ===
