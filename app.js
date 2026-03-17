@@ -2404,20 +2404,27 @@ function showImportClassModal() {
     document.getElementById('modal-import-class').classList.add('active');
 }
 
-function normalizeName(str) {
-    return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+function normalizeText(str) {
+    if (!str) return '';
+    return str.toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quitar acentos
+        .replace(/[^a-z0-9]/g, "") // quitar símbolos
+        .trim();
 }
-
 function getMissingMaterialsForRecipe(recipe) {
     const needed = [];
     const all = [...(recipe.ingredients || []), ...(recipe.decorations || [])];
 
     all.forEach(item => {
-        const exists = materials.some(m => normalizeName(m.name) === normalizeName(item.name));
-        if (!exists && !needed.find(n => normalizeName(n.name) === normalizeName(item.name))) {
+        const exists = materials.some(m => normalizeText(m.name) === normalizeText(item.name));
+        
+        if (!exists && !needed.find(n => normalizeText(n.name) === normalizeText(item.name))) {
+            const isDeco = (recipe.decorations || []).some(d => 
+                normalizeText(d.name) === normalizeText(item.name)
+            );
             needed.push({
                 name: item.name,
-                category: (recipe.decorations || []).some(d => normalizeName(d.name) === normalizeName(item.name)) ? 'decoracion' : 'productos'
+                category: isDeco ? 'decoracion' : 'productos'
             });
         }
     });
@@ -2697,7 +2704,7 @@ function completeClassImport(decoded) {
     recipesToProcess.forEach(r => {
         (r.ingredients || []).forEach(i => {
             const localMat = materials.find(m => 
-                m.name.toLowerCase().trim() === i.name.toLowerCase().trim()
+                normalizeText(m.name) === normalizeText(i.name)
             );
             if (localMat) {
                 i.matId = String(localMat.id); // ← ESTO FALTABA
@@ -2710,7 +2717,8 @@ function completeClassImport(decoded) {
 
         (r.decorations || []).forEach(d => {
             const localMat = materials.find(m => 
-                m.name.toLowerCase().trim() === d.name.toLowerCase().trim()
+                normalizeText(m.name) === normalizeText(d.name)
+            );
             );
             if (localMat) {
                 d.matId = String(localMat.id); // ← ESTO FALTABA
