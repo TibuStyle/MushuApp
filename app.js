@@ -2700,30 +2700,35 @@ function completeClassImport(decoded) {
         tips: decoded.tips || '',
         photos: decoded.photos || [],
         linkedRecipe: decoded.linkedRecipe,
+        linkedRecipes: decoded.linkedRecipes,
         importedAt: new Date().toISOString()
     };
 
     importedClasses.push(importedClass);
     saveImportedClasses();
 
-    const recipeCopy = JSON.parse(JSON.stringify(decoded.linkedRecipe));
-    recipeCopy.id = Date.now().toString() + '-class';
-    recipeCopy.recipeFolder = decoded.courseName;
-    recipeCopy.recipeSource = 'class';
-    recipeCopy.sourceCourseName = decoded.courseName;
-    recipeCopy.sourceClassDate = decoded.date;
+    const recipesToSave = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
 
-    const alreadyExists = recipes.find(r =>
-        r.name === recipeCopy.name &&
-        r.recipeFolder === recipeCopy.recipeFolder &&
-        r.sourceClassDate === recipeCopy.sourceClassDate
-    );
+    recipesToSave.forEach(r => {
+        const recipeCopy = JSON.parse(JSON.stringify(r));
+        recipeCopy.id = Date.now().toString() + '-class-' + Math.random().toString(36).substr(2, 5);
+        recipeCopy.recipeFolder = decoded.courseName;
+        recipeCopy.recipeSource = 'class';
+        recipeCopy.sourceCourseName = decoded.courseName;
+        recipeCopy.sourceClassDate = decoded.date;
 
-    if (!alreadyExists) {
-        recipes.push(recipeCopy);
-        saveRecipesToStorage();
-    }
+        const alreadyExists = recipes.find(rec =>
+            rec.name === recipeCopy.name &&
+            rec.recipeFolder === recipeCopy.recipeFolder &&
+            rec.sourceClassDate === recipeCopy.sourceClassDate
+        );
 
+        if (!alreadyExists) {
+            recipes.push(recipeCopy);
+        }
+    });
+
+    saveRecipesToStorage();
     renderImportedClasses();
     renderStudentClassesByFolders();
     updateRecipesView();
