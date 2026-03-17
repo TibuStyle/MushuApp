@@ -218,34 +218,82 @@
                     <div id="courses-list" class="list-container"></div>
                 </div>
 
-             <div id="student-classes-view" style="display:none;">
-                    <div class="section-header-recipes">
-                        <h2>🎓 Mis Clases</h2>
-                    </div>
+<div id="student-classes-view" style="display:none;">
+    <div class="section-header-recipes">
+        <h2>🎓 Mis Clases</h2>
+    </div>
 
-                    <div class="import-class-box" onclick="showImportClassModal()">
-                        <i class='bx bx-import'></i>
-                        <div>
-                            <strong>Ingresar Código de Clase</strong>
-                            <p>Pega el código que te dio tu profe</p>
-                        </div>
-                    </div>
+    <!-- ESTADO 1: NO REGISTRADO -->
+    <div id="student-login-container" style="text-align:center; padding:20px;">
+        <i class='bx bxs-school' style="font-size:48px; color:var(--secondary-color); margin-bottom:16px;"></i>
+        <h3 style="font-size:18px; margin-bottom:8px;">Bienvenido/a</h3>
+        <p style="font-size:14px; color:var(--text-muted); margin-bottom:24px;">
+            Para comenzar, ingresa el código del módulo que te dio tu profesor (ej: PA1).
+        </p>
 
-                    <div id="student-class-folders-list" class="list-container" style="margin-top:16px;">
-                        <div class="empty-state">No hay clases importadas todavía.</div>
-                    </div>
+        <div class="form-group" style="text-align:left;">
+            <label>Prefijo del módulo</label>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="student-login-prefix" placeholder="PA1" style="text-transform:uppercase;">
+                <button class="btn-primary" onclick="searchModuleForLogin()" style="width:auto;">
+                    <i class='bx bx-search'></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="student-login-step2" style="display:none; text-align:left; margin-top:16px;">
+            <div class="form-group">
+                <label>Selecciona tu Curso</label>
+                <select id="student-login-course" onchange="onLoginCourseChange()"></select>
+            </div>
+            <div class="form-group">
+                <label>Selecciona tu Nombre</label>
+                <select id="student-login-name"></select>
+            </div>
+            <button class="btn-submit" onclick="confirmStudentLogin()">
+                <i class='bx bx-check'></i> ¡Soy yo!
+            </button>
+        </div>
+    </div>
+
+    <!-- ESTADO 2: REGISTRADO -->
+    <div id="student-dashboard-container" style="display:none;">
+        <!-- Tarjeta de Identidad -->
+        <div class="card" style="margin-bottom:16px; background:linear-gradient(135deg, var(--surface-color), #fff0f5); border:1px solid var(--secondary-color);">
+            <div class="card-info" style="width:100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3 id="student-dashboard-name" style="font-size:18px; color:var(--secondary-color);">Alumno</h3>
+                    <button class="btn-icon" onclick="logoutStudent()" style="width:24px; height:24px; font-size:14px; opacity:0.5;">
+                        <i class='bx bx-log-out'></i>
+                    </button>
                 </div>
-
-                <div id="no-mode-classes-view">
-                    <div class="section-header-recipes">
-                        <h2>🎓 Clases</h2>
+                <p id="student-dashboard-course" style="font-size:13px; opacity:0.8;">Curso</p>
+                
+                <div style="margin-top:12px; padding-top:12px; border-top:1px dashed rgba(0,0,0,0.1);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                        <span>Asistencia:</span>
+                        <strong id="student-dashboard-attendance">0%</strong>
                     </div>
-                    <div class="empty-state">
-                        <i class='bx bxs-graduation' style="font-size: 48px; color: var(--secondary-color); display: block; margin-bottom: 12px;"></i>
-                        <p style="font-weight: 600;">Configura tu modo</p>
-                        <p style="font-size: 13px; margin-top: 8px;">Ve a Configuración ⚙️ y activa el Modo Profesor o registra tu nombre como alumno</p>
+                    <div style="width:100%; height:6px; background:rgba(0,0,0,0.05); border-radius:3px; margin-top:6px; overflow:hidden;">
+                        <div id="student-dashboard-bar" style="width:0%; height:100%; background:var(--secondary-color); border-radius:3px;"></div>
                     </div>
+                    <p id="student-dashboard-stats" style="font-size:11px; color:var(--text-muted); margin-top:4px; text-align:right;">0 de 0 clases</p>
                 </div>
+            </div>
+        </div>
+
+        <!-- Botón Ingresar Código -->
+        <button class="btn-submit" onclick="showImportClassModal()" style="margin-bottom:20px;">
+            <i class='bx bx-key'></i> Ingresar Código de Clase
+        </button>
+
+        <!-- Lista de Clases -->
+        <h4 style="font-size:14px; color:var(--text-muted); margin-bottom:10px;">Mis Clases Desbloqueadas</h4>
+        <div id="student-class-folders-list" class="list-container">
+            <div class="empty-state">No has desbloqueado ninguna clase aún.</div>
+        </div>
+    </div>
+</div>
             </section>
 
         </main>
