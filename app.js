@@ -17,10 +17,18 @@ let profitMargin = parseFloat(localStorage.getItem('mushu_profit_margin')) || 2;
 let courses = JSON.parse(localStorage.getItem('mushu_courses')) || [];
 let importedClasses = JSON.parse(localStorage.getItem('mushu_imported_classes')) || [];
 let teacherMode = JSON.parse(localStorage.getItem('mushu_teacher_mode')) || { active: false };
-let studentProfile = JSON.parse(localStorage.getItem('mushu_student_profile')) || null;
-// studentName se mantiene por compatibilidad, pero usaremos studentProfile
-let studentName = studentProfile ? studentProfile.name : (localStorage.getItem('mushu_student_name') || '');
-
+let studentProfiles = JSON.parse(localStorage.getItem('mushu_student_profiles')) || [];
+// Mantener compatibilidad si tenía un perfil único viejo
+if (!Array.isArray(studentProfiles)) {
+    const oldProfile = JSON.parse(localStorage.getItem('mushu_student_profile'));
+    if (oldProfile) {
+        studentProfiles = [oldProfile];
+        localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
+    } else {
+        studentProfiles = [];
+    }
+}
+let studentName = studentProfiles.length > 0 ? studentProfiles[0].name : '';
 let currentRecipeIngredients = [];
 let currentRecipeDecorations = [];
 let currentRecipeExtra = null;
@@ -1423,7 +1431,6 @@ function updateClassesView() {
         if (noModeView) noModeView.style.display = 'none';
         renderCourses();
     } else {
-        // Alumno (registrado o no)
         if (teacherView) teacherView.style.display = 'none';
         if (studentView) studentView.style.display = 'block';
         if (noModeView) noModeView.style.display = 'none';
@@ -1431,13 +1438,11 @@ function updateClassesView() {
         const loginContainer = document.getElementById('student-login-container');
         const dashboardContainer = document.getElementById('student-dashboard-container');
         
-        if (studentProfile) {
-            // Si ya se registró
+        if (studentProfiles.length > 0) {
             if (loginContainer) loginContainer.style.display = 'none';
             if (dashboardContainer) dashboardContainer.style.display = 'block';
             renderStudentDashboard();
         } else {
-            // Si no se ha registrado
             if (loginContainer) loginContainer.style.display = 'block';
             if (dashboardContainer) dashboardContainer.style.display = 'none';
         }
