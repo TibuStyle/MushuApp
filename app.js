@@ -2424,10 +2424,21 @@ function importClassFromCode() {
     const codeInput = document.getElementById('import-class-code').value.trim();
     if (!codeInput) { showToast('Pega un código', true); return; }
 
+    // Si es un código largo (base64), usar método viejo
+    if (codeInput.length > 20) {
+        importClassFromLongCode(codeInput);
+        return;
+    }
+
+    // Si es un código corto, parsear y buscar en GitHub
+    importClassFromShortCode(codeInput);
+}
+
+function importClassFromLongCode(codeInput) {
     try {
         const decoded = JSON.parse(decodeURIComponent(escape(atob(codeInput))));
 
-        if (!decoded.className || !decoded.linkedRecipe) {
+        if (!decoded.className || (!decoded.linkedRecipe && !decoded.linkedRecipes)) {
             showToast('Código inválido', true);
             return;
         }
@@ -2445,10 +2456,21 @@ function importClassFromCode() {
             return;
         }
 
-        const missing = getMissingMaterialsForRecipe(decoded.linkedRecipe);
-        if (missing.length > 0) {
+        const linkedRecipes = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
+        const allMissing = [];
+
+        linkedRecipes.forEach(r => {
+            const missing = getMissingMaterialsForRecipe(r);
+            missing.forEach(m => {
+                if (!allMissing.find(am => am.name === m.name)) {
+                    allMissing.push(m);
+                }
+            });
+        });
+
+        if (allMissing.length > 0) {
             pendingImportClassData = decoded;
-            showMissingMaterialsModal(missing);
+            showMissingMaterialsModal(allMissing);
             closeModal('modal-import-class');
             return;
         }
@@ -2461,6 +2483,133 @@ function importClassFromCode() {
     }
 }
 
+function importClassFromShortCode(code) {
+    if (code.length < 10) {
+        showToast('Código muy corto', true);
+        return;
+    }
+
+    const studentCode = code.slice(-2);
+    const attendanceDigit = parseInt(code.slice(-3, -2));
+    const blockCode = code.slice(-8, -3);
+    const prefix = code.slice(0, -8);
+
+    if (!prefix || prefix.length < 2) {
+        showToast('Código inválido (prefijo)', true);
+        return;
+    }
+
+    if (isNaN(attendanceDigit)) {
+        showToast('Código inválido (asistencia)', true);
+        return;
+    }
+
+    const isPresent = attendanceDigit % 2 !== 0;
+
+    const fileName = prefix.toLowerCase() + '-module.json';
+    const url = 'https://tibustyle.github.io/MushuApp/modules/' + fileName + '?v=' + Date.now();
+
+    showToast('⏳ Buscando clase...', false);
+
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('Módulo no encontrado');
+            return response.json();
+        })
+        .then(data => {
+            if (!data.type || data.type !== 'module') {
+                showToast('Módulo no válido', true);
+                return;
+            }
+
+            let classData = null;
+            let courseData = null;
+
+            // Buscar en courses -> classes
+            (data.courses || []).forEach(c => {
+                const foundClass = (data.classes || []).find(cls => 
+                    cls.blockCode === blockCode && cls.courseId === c.id
+                );
+                if (foundClass) {
+                    classData = foundClass;
+                    courseData = c;
+                }
+            });
+
+            // Buscar suelto en classes si no se encontró
+            if (!classData) {
+                classData = (data.classes || []).find(cls => cls.blockCode === blockCode);
+            }
+
+            if (!classData) {
+                showToast('Clase no encontrada con ese código', true);
+                return;
+            }
+
+            const studentData = (classData.attendance || []).find(a =>
+                a.studentCode === studentCode
+            );
+
+            if (!studentData) {
+                showToast('Alumno no encontrado con ese código', true);
+                return;
+            }
+
+            const existing = importedClasses.find(ic =>
+                ic.classId === classData.classId &&
+                ic.studentName === studentData.studentName
+            );
+            if (existing) {
+                showToast('Ya importaste esta clase', true);
+                return;
+            }
+
+            const decoded = {
+                code: code,
+                className: classData.className,
+                courseId: classData.courseId,
+                courseName: classData.courseName,
+                moduleId: data.module.id,
+                moduleName: data.module.name,
+                classId: classData.classId,
+                studentId: studentData.studentId,
+                studentName: studentData.studentName,
+                studentCode: studentCode,
+                present: isPresent,
+                date: classData.date,
+                tips: classData.tips || '',
+                photos: classData.photos || [],
+                linkedRecipe: classData.linkedRecipe || null,
+                linkedRecipes: classData.linkedRecipes || [],
+                expiry: null
+            };
+
+            const linkedRecipes = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
+            const allMissing = [];
+
+            linkedRecipes.forEach(r => {
+                const missing = getMissingMaterialsForRecipe(r);
+                missing.forEach(m => {
+                    if (!allMissing.find(am => am.name === m.name)) {
+                        allMissing.push(m);
+                    }
+                });
+            });
+
+            if (allMissing.length > 0) {
+                pendingImportClassData = decoded;
+                showMissingMaterialsModal(allMissing);
+                closeModal('modal-import-class');
+                return;
+            }
+
+            completeClassImport(decoded);
+        })
+        .catch(err => {
+            console.error(err);
+            showToast('No se encontró el módulo "' + prefix + '". ¿Ya lo subieron?', true);
+        });
+}
 function showMissingMaterialsModal(missing) {
     const list = document.getElementById('missing-materials-list');
     list.innerHTML = missing.map((m, i) => `
