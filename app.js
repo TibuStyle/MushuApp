@@ -1422,28 +1422,25 @@ function updateClassesView() {
         if (studentView) studentView.style.display = 'none';
         if (noModeView) noModeView.style.display = 'none';
         renderCourses();
-        } else if (studentProfile || studentName) {
+    } else {
+        // Alumno (registrado o no)
         if (teacherView) teacherView.style.display = 'none';
         if (studentView) studentView.style.display = 'block';
         if (noModeView) noModeView.style.display = 'none';
-        
-        // Lógica nueva de Login
+
         const loginContainer = document.getElementById('student-login-container');
         const dashboardContainer = document.getElementById('student-dashboard-container');
         
         if (studentProfile) {
-            loginContainer.style.display = 'none';
-            dashboardContainer.style.display = 'block';
+            // Si ya se registró
+            if (loginContainer) loginContainer.style.display = 'none';
+            if (dashboardContainer) dashboardContainer.style.display = 'block';
             renderStudentDashboard();
         } else {
-            loginContainer.style.display = 'block';
-            dashboardContainer.style.display = 'none';
+            // Si no se ha registrado
+            if (loginContainer) loginContainer.style.display = 'block';
+            if (dashboardContainer) dashboardContainer.style.display = 'none';
         }
-    } else {
-        
-        if (teacherView) teacherView.style.display = 'none';
-        if (studentView) studentView.style.display = 'none';
-        if (noModeView) noModeView.style.display = 'block';
     }
 }
 
