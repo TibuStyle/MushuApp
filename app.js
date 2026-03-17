@@ -2292,42 +2292,73 @@ function copyAllCodes() {
 }
 
 function renderStudentDashboard() {
-    if (!studentProfile) return;
+    if (studentProfiles.length === 0) return;
 
-    // Actualizar tarjeta de identidad
-    document.getElementById('student-dashboard-name').textContent = studentProfile.name;
-    document.getElementById('student-dashboard-course').textContent = studentProfile.courseName + ' (' + studentProfile.modulePrefix + ')';
+    // Renderizar lista de módulos inscritos
+    const modulesList = document.getElementById('student-modules-list');
+    modulesList.innerHTML = studentProfiles.map(p => {
+        // Calcular asistencia en este módulo
+        const myClasses = importedClasses.filter(ic => ic.courseName === p.courseName);
+        const attended = myClasses.filter(ic => ic.present).length;
+        const totalClasses = Math.max(p.totalClassesInModule || 0, myClasses.length);
+        const percentage = totalClasses > 0 ? Math.round((attended / totalClasses) * 100) : 100;
+        
+        return `
+        <div class="card" style="margin-bottom:10px; background:linear-gradient(135deg, var(--surface-color), #fff0f5); border:1px solid var(--secondary-color);">
+            <div class="card-info" style="width:100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="font-size:16px; color:var(--secondary-color);">${sanitizeHTML(p.name)}</h3>
+                    <button class="btn-icon" onclick="removeStudentModule('${p.moduleId}')" style="width:24px; height:24px; font-size:14px; opacity:0.5;">
+                        <i class='bx bx-x'></i>
+                    </button>
+                </div>
+                <p style="font-size:13px; opacity:0.8;">${sanitizeHTML(p.courseName)} (${p.modulePrefix})</p>
+                
+                <div style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(0,0,0,0.1);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px;">
+                        <span>Asistencia: <strong>${percentage}%</strong></span>
+                        <span>${attended}/${totalClasses} clases</span>
+                    </div>
+                    <div style="width:100%; height:4px; background:rgba(0,0,0,0.05); border-radius:2px; margin-top:4px; overflow:hidden;">
+                        <div style="width:${percentage}%; height:100%; background:${percentage >= 80 ? 'var(--success-color)' : 'var(--warning-color)'}; border-radius:2px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
 
-    // Calcular asistencia
-    const myClasses = importedClasses.filter(ic => ic.courseName === studentProfile.courseName);
-    const attended = myClasses.filter(ic => ic.present).length;
-    // Total de clases es el mayor entre las que ha importado y las que dice el módulo
-    const totalClasses = Math.max(studentProfile.totalClassesInModule || 0, myClasses.length);
+    // Renderizar clases desbloqueadas (todas mezcladas por fecha)
+    const classList = document.getElementById('student-class-folders-list');
     
-    const percentage = totalClasses > 0 ? Math.round((attended / totalClasses) * 100) : 100;
-    
-    document.getElementById('student-dashboard-attendance').textContent = percentage + '%';
-    document.getElementById('student-dashboard-bar').style.width = percentage + '%';
-    document.getElementById('student-dashboard-bar').style.backgroundColor = percentage >= 80 ? 'var(--success-color)' : 'var(--warning-color)';
-    document.getElementById('student-dashboard-stats').textContent = `${attended} de ${totalClasses} clases`;
-
-    // Renderizar clases desbloqueadas
-    const list = document.getElementById('student-class-folders-list');
-    
-    if (myClasses.length === 0) {
-        list.innerHTML = '<div class="empty-state">No has desbloqueado ninguna clase aún.</div>';
+    if (importedClasses.length === 0) {
+        classList.innerHTML = '<div class="empty-state">No has desbloqueado ninguna clase aún.</div>';
         return;
     }
 
-    list.innerHTML = myClasses.sort((a, b) => new Date(b.date) - new Date(a.date)).map(ic => `
+    classList.innerHTML = importedClasses.sort((a, b) => new Date(b.date) - new Date(a.date)).map(ic => `
         <div class="imported-class-card" onclick="viewImportedClass('${ic.id}')">
             <h3>${sanitizeHTML(ic.className)}</h3>
-            <p>📅 ${formatDate(ic.date)} • ${ic.visibleCode || ''}</p>
+            <p>📅 ${formatDate(ic.date)} • ${sanitizeHTML(ic.courseName)}</p>
             <span class="class-content-badge ${ic.present ? 'present' : 'absent'}">
                 ${ic.present ? '✅ Presente' : '⚠️ Ausente'}
             </span>
         </div>
     `).join('');
+}
+
+function showAddModuleModal() {
+    document.getElementById('student-login-container').style.display = 'block';
+    document.getElementById('student-dashboard-container').style.display = 'none';
+    document.getElementById('student-login-prefix').value = '';
+    document.getElementById('student-login-step2').style.display = 'none';
+}
+
+function removeStudentModule(moduleId) {
+    showConfirmModal('Quitar módulo', '¿Seguro? No perderás tus clases desbloqueadas, pero dejarás de ver este módulo en tu lista.', () => {
+        studentProfiles = studentProfiles.filter(p => String(p.moduleId) !== String(moduleId));
+        localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
+        updateClassesView();
+    });
 }
 
 function renderImportedClasses() {
@@ -4063,7 +4094,15 @@ function confirmStudentLogin() {
     const student = course.students.find(s => s.id === studentId);
     const totalClasses = (loginModuleData.classes || []).filter(cl => cl.courseId === courseId).length;
 
-    studentProfile = {
+    // Verificar si ya tiene este módulo
+    const exists = studentProfiles.find(p => p.moduleId === loginModuleData.module.id);
+    if (exists) {
+        showToast('Ya tienes agregado este módulo', true);
+        updateClassesView();
+        return;
+    }
+
+    const newProfile = {
         name: student.name,
         id: student.id,
         code: student.studentCode,
@@ -4071,14 +4110,19 @@ function confirmStudentLogin() {
         courseName: course.name,
         moduleId: loginModuleData.module.id,
         modulePrefix: loginModuleData.module.prefix,
-        totalClassesInModule: totalClasses // Guardamos cuántas clases son en total
+        totalClassesInModule: totalClasses
     };
 
-    localStorage.setItem('mushu_student_profile', JSON.stringify(studentProfile));
-    studentName = student.name; // Actualizar global
+    studentProfiles.push(newProfile);
+    localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
+    
+    // Actualizar nombre global si es el primero
+    if (studentProfiles.length === 1) {
+        studentName = student.name;
+    }
     
     updateClassesView();
-    showToast('¡Hola ' + student.name + '! 👋');
+    showToast('Módulo agregado! ✅');
 }
 
 function logoutStudent() {
