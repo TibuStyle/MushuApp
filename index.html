@@ -258,29 +258,26 @@
 
     <!-- ESTADO 2: REGISTRADO -->
     <div id="student-dashboard-container" style="display:none;">
-        <!-- Tarjeta de Identidad -->
-        <div class="card" style="margin-bottom:16px; background:linear-gradient(135deg, var(--surface-color), #fff0f5); border:1px solid var(--secondary-color);">
-            <div class="card-info" style="width:100%;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3 id="student-dashboard-name" style="font-size:18px; color:var(--secondary-color);">Alumno</h3>
-                    <button class="btn-icon" onclick="logoutStudent()" style="width:24px; height:24px; font-size:14px; opacity:0.5;">
-                        <i class='bx bx-log-out'></i>
-                    </button>
-                </div>
-                <p id="student-dashboard-course" style="font-size:13px; opacity:0.8;">Curso</p>
-                
-                <div style="margin-top:12px; padding-top:12px; border-top:1px dashed rgba(0,0,0,0.1);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
-                        <span>Asistencia:</span>
-                        <strong id="student-dashboard-attendance">0%</strong>
-                    </div>
-                    <div style="width:100%; height:6px; background:rgba(0,0,0,0.05); border-radius:3px; margin-top:6px; overflow:hidden;">
-                        <div id="student-dashboard-bar" style="width:0%; height:100%; background:var(--secondary-color); border-radius:3px;"></div>
-                    </div>
-                    <p id="student-dashboard-stats" style="font-size:11px; color:var(--text-muted); margin-top:4px; text-align:right;">0 de 0 clases</p>
-                </div>
-            </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="font-size:16px; margin:0;">Mis Módulos</h3>
+            <button class="btn-add-small" onclick="showAddModuleModal()">
+                <i class='bx bx-plus'></i>
+            </button>
         </div>
+
+        <div id="student-modules-list" class="list-container" style="margin-bottom:20px;"></div>
+
+        <!-- Botón Ingresar Código (Global) -->
+        <button class="btn-submit" onclick="showImportClassModal()" style="margin-bottom:20px;">
+            <i class='bx bx-key'></i> Ingresar Código de Clase
+        </button>
+
+        <!-- Lista de Clases Desbloqueadas -->
+        <h4 style="font-size:14px; color:var(--text-muted); margin-bottom:10px;">Últimas Clases</h4>
+        <div id="student-class-folders-list" class="list-container">
+            <div class="empty-state">No has desbloqueado ninguna clase aún.</div>
+        </div>
+    </div>
 
         <!-- Botón Ingresar Código -->
         <button class="btn-submit" onclick="showImportClassModal()" style="margin-bottom:20px;">
