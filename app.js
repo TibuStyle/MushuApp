@@ -2294,56 +2294,75 @@ function copyAllCodes() {
 function renderStudentDashboard() {
     if (studentProfiles.length === 0) return;
 
-    // Renderizar lista de módulos inscritos
     const modulesList = document.getElementById('student-modules-list');
+
     modulesList.innerHTML = studentProfiles.map(p => {
-        // Calcular asistencia en este módulo
         const myClasses = importedClasses.filter(ic => ic.courseName === p.courseName);
         const attended = myClasses.filter(ic => ic.present).length;
         const totalClasses = Math.max(p.totalClassesInModule || 0, myClasses.length);
         const percentage = totalClasses > 0 ? Math.round((attended / totalClasses) * 100) : 100;
-        
+        const folderId = 'student-mod-' + (p.moduleId || '').replace(/[^a-zA-Z0-9]/g, '_');
+
+        // Ordenar clases por fecha
+        const sortedClasses = myClasses.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const lastClass = sortedClasses.length > 0 ? sortedClasses[0] : null;
+
+        // Renderizar clases dentro del módulo
+        const classesHTML = sortedClasses.length > 0
+            ? sortedClasses.map(ic => `
+                <div class="imported-class-card" onclick="viewImportedClass('${ic.id}')" style="margin-bottom:8px;">
+                    <h3>${sanitizeHTML(ic.className)}</h3>
+                    <p>📅 ${formatDate(ic.date)}</p>
+                    <span class="class-content-badge ${ic.present ? 'present' : 'absent'}">
+                        ${ic.present ? '✅ Presente' : '⚠️ Ausente'}
+                    </span>
+                </div>
+            `).join('')
+            : '<div class="empty-state" style="padding:15px;font-size:13px;">No has desbloqueado clases aún.</div>';
+
         return `
-        <div class="card" style="margin-bottom:10px; background:linear-gradient(135deg, var(--surface-color), #fff0f5); border:1px solid var(--secondary-color);">
-            <div class="card-info" style="width:100%;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3 style="font-size:16px; color:var(--secondary-color);">${sanitizeHTML(p.name)}</h3>
+        <div class="course-card" style="margin-bottom:12px;">
+            <div class="course-card-header" onclick="toggleFolderBody('${folderId}','main')">
+                <div class="course-card-header-left">
+                    <i class='bx bxs-graduation' style="font-size:24px;color:var(--secondary-color);"></i>
+                    <div>
+                        <h3>${sanitizeHTML(p.courseName)}</h3>
+                        <div class="course-card-day">${p.modulePrefix} • ${sanitizeHTML(p.name)}</div>
+                        <div class="course-card-schedule">
+                            Asistencia: ${percentage}% (${attended}/${totalClasses})
+                            ${lastClass ? ' • Última: ' + sanitizeHTML(lastClass.className) : ''}
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;" onclick="event.stopPropagation()">
                     <button class="btn-icon" onclick="removeStudentModule('${p.moduleId}')" style="width:24px; height:24px; font-size:14px; opacity:0.5;">
                         <i class='bx bx-x'></i>
                     </button>
                 </div>
-                <p style="font-size:13px; opacity:0.8;">${sanitizeHTML(p.courseName)} (${p.modulePrefix})</p>
-                
-                <div style="margin-top:8px; padding-top:8px; border-top:1px dashed rgba(0,0,0,0.1);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px;">
-                        <span>Asistencia: <strong>${percentage}%</strong></span>
-                        <span>${attended}/${totalClasses} clases</span>
+            </div>
+            <div class="course-card-body" id="${folderId}-body-main">
+                <div style="margin-top:8px; padding:8px; background:var(--surface-hover); border-radius:var(--radius-sm); margin-bottom:12px;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted);">
+                        <span>Asistencia</span>
+                        <span style="font-weight:600; color:${percentage >= 80 ? 'var(--success-color)' : 'var(--warning-color)'};">${percentage}%</span>
                     </div>
                     <div style="width:100%; height:4px; background:rgba(0,0,0,0.05); border-radius:2px; margin-top:4px; overflow:hidden;">
                         <div style="width:${percentage}%; height:100%; background:${percentage >= 80 ? 'var(--success-color)' : 'var(--warning-color)'}; border-radius:2px;"></div>
                     </div>
                 </div>
+
+                ${classesHTML}
+
+                <button class="btn-add-class" onclick="showImportClassModal()">
+                    <i class='bx bx-key'></i> Ingresar Código de Clase
+                </button>
             </div>
         </div>`;
     }).join('');
 
-    // Renderizar clases desbloqueadas (todas mezcladas por fecha)
-    const classList = document.getElementById('student-class-folders-list');
-    
-    if (importedClasses.length === 0) {
-        classList.innerHTML = '<div class="empty-state">No has desbloqueado ninguna clase aún.</div>';
-        return;
-    }
-
-    classList.innerHTML = importedClasses.sort((a, b) => new Date(b.date) - new Date(a.date)).map(ic => `
-        <div class="imported-class-card" onclick="viewImportedClass('${ic.id}')">
-            <h3>${sanitizeHTML(ic.className)}</h3>
-            <p>📅 ${formatDate(ic.date)} • ${sanitizeHTML(ic.courseName)}</p>
-            <span class="class-content-badge ${ic.present ? 'present' : 'absent'}">
-                ${ic.present ? '✅ Presente' : '⚠️ Ausente'}
-            </span>
-        </div>
-    `).join('');
+    // Ocultar la lista global de clases
+    const globalList = document.getElementById('student-class-folders-list');
+    if (globalList) globalList.style.display = 'none';
 }
 
 function showAddModuleModal() {
