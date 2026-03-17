@@ -2208,13 +2208,12 @@ function renderCodeItem(a) {
             <div>
                 <div class="code-item-left">
                     <span class="code-item-status">${a.present ? '✅' : '❌'}</span>
-                    <span class="code-item-name">${a.studentName}</span>
+                    <span class="code-item-name">${sanitizeHTML(a.studentName)}</span>
                     <span class="student-code-badge">${a.studentCode || '--'}</span>
                 </div>
-                <div class="code-item-short">${a.shortCode || 'MODR75T00'}</div>
-                <div class="code-item-code">Código completo oculto • usar botón copiar</div>
+                <div class="code-item-short">${a.shortCode || '---'}</div>
             </div>
-            <button class="code-item-copy" onclick="copySingleCode('${a.studentId}')">Copiar</button>
+            <button class="code-item-copy" onclick="copyShortCode('${a.studentId}')">Copiar</button>
         </div>`;
 }
 
