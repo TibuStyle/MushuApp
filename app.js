@@ -2819,6 +2819,9 @@ function completeClassImport(decoded) {
     updateRecipesView();
     closeModal('modal-import-class');
 
+    // Refrescar la vista de clases
+    updateClassesView();
+
     if (decoded.present) {
         showToast('Clase importada! 🎓');
     } else {
