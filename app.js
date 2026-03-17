@@ -4152,65 +4152,6 @@ function showSyncMissingModal(missingList) {
     document.getElementById('modal-sync-missing').classList.add('active');
 }
 
-function saveSyncMissingMaterials() {
-    const items = document.querySelectorAll('[id^="sync-missing-name-"]');
-    let updated = 0;
-
-    for (let i = 0; i < items.length; i++) {
-        const name = document.getElementById('sync-missing-name-' + i).value;
-        const price = parseFloat(document.getElementById('sync-missing-price-' + i).value);
-        const qty = parseFloat(document.getElementById('sync-missing-qty-' + i).value);
-        const unit = document.getElementById('sync-missing-unit-' + i).value;
-
-        if (!isNaN(price) && !isNaN(qty) && qty > 0 && price >= 0) {
-            const mat = materials.find(m =>
-                m.name.toLowerCase().trim() === name.toLowerCase().trim()
-            );
-            if (mat) {
-                mat.price = price;
-                mat.qty = qty;
-                mat.unit = unit;
-                mat.pending = false;
-                mat.priceHistory = [{ date: new Date().toISOString().slice(0, 10), price: price }];
-                updated++;
-
-                recipes.forEach(r => {
-                    (r.ingredients || []).forEach(ing => {
-                        if (ing.name.toLowerCase().trim() === name.toLowerCase().trim()) {
-                            ing.matId = String(mat.id);
-                            ing.pending = false;
-                            ing.cost = calculateIngredientCost(mat, ing.qty, ing.unit);
-                        }
-                    });
-                    (r.decorations || []).forEach(d => {
-                        if (d.name.toLowerCase().trim() === name.toLowerCase().trim()) {
-                            d.matId = String(mat.id);
-                            d.pending = false;
-                            d.cost = calculateIngredientCost(mat, d.qty, d.unit);
-                        }
-                    });
-                });
-            }
-        }
-    }
-
-    saveMaterialsToStorage();
-    saveRecipesToStorage();
-    recalculateAllRecipes();
-    renderMaterials();
-    updateMaterialSelect();
-    updateDecorationSelect();
-    updateRecipesView();
-
-    closeModal('modal-sync-missing');
-
-    if (updated > 0) {
-        showToast(updated + ' material' + (updated > 1 ? 'es' : '') + ' actualizado' + (updated > 1 ? 's' : '') + '! ✅');
-    } else {
-        showToast('Materiales dejados como pendientes');
-    }
-}
-
 function syncModuleUpload() {
     const mod = modules.find(m => String(m.id) === String(currentSyncModuleId));
     if (!mod) return;
@@ -4230,19 +4171,19 @@ function syncModuleUpload() {
     const moduleClasses = [];
     moduleCourses.forEach(course => {
         (course.classes || []).forEach(cls => {
-                moduleClasses.push({
-                    classId: cls.id,
-                    className: cls.name,
-                    courseId: course.id,
-                    courseName: course.name,
-                    date: cls.date,
-                    moduleClassName: cls.moduleClassName || cls.name || '',
-                    tips: cls.tips || '',
-                    photos: cls.photos || [],
-                    linkedRecipe: cls.linkedRecipe || null,
-                    linkedRecipes: cls.linkedRecipes || [],
-                    blockCode: cls.blockCode || '',
-                    codeExpiry: cls.codeExpiry || 0,
+            moduleClasses.push({
+                classId: cls.id,
+                className: cls.name,
+                courseId: course.id,
+                courseName: course.name,
+                date: cls.date,
+                moduleClassName: cls.moduleClassName || cls.name || '',
+                tips: cls.tips || '',
+                photos: cls.photos || [],
+                linkedRecipe: cls.linkedRecipe || null,
+                linkedRecipes: cls.linkedRecipes || [],
+                blockCode: cls.blockCode || '',
+                codeExpiry: cls.codeExpiry || 0,
                 attendance: (cls.attendance || []).map(a => ({
                     studentId: a.studentId,
                     studentName: a.studentName,
@@ -4271,7 +4212,10 @@ function syncModuleUpload() {
             extraSubcategory: r.extraSubcategory || null,
             extraCost: r.extraCost || 0,
             totalCost: r.totalCost,
-            portions: r.portions || 1
+            portions: r.portions || 1,
+            recipePhoto: r.recipePhoto || null,
+            recipeTips: r.recipeTips || '',
+            moduleClass: r.moduleClass || ''
         })),
         courses: moduleCourses.map(c => ({
             id: c.id,
@@ -4337,20 +4281,17 @@ function syncModuleDownload() {
                 return;
             }
 
-            // Actualizar módulo
             const modIdx = modules.findIndex(m => String(m.id) === String(currentSyncModuleId));
             if (modIdx !== -1) {
                 modules[modIdx].name = data.module.name;
                 modules[modIdx].prefix = data.module.prefix;
             }
 
-            // Quitar recetas viejas del módulo
             recipes = recipes.filter(r =>
                 !(r.recipeFolder === mod.name &&
                 (r.recipeSource === 'module' || r.recipeSource === 'class'))
             );
 
-            // Juntar TODOS los materiales faltantes
             const allMissing = [];
 
             (data.recipes || []).forEach(r => {
@@ -4371,12 +4312,10 @@ function syncModuleDownload() {
                 });
             });
 
-            // Crear materiales pendientes por ahora
             allMissing.forEach(mm => {
                 createPendingMaterial(mm.name, mm.category);
             });
 
-            // Agregar recetas con matId actualizados
             (data.recipes || []).forEach(r => {
                 r.ingredients = (r.ingredients || []).map(i => {
                     const found = materials.find(m =>
@@ -4425,7 +4364,6 @@ function syncModuleDownload() {
                 });
             });
 
-            // Actualizar cursos
             (data.courses || []).forEach(courseData => {
                 const existingCourse = courses.find(c =>
                     String(c.moduleId) === String(currentSyncModuleId) &&
@@ -4440,7 +4378,11 @@ function syncModuleDownload() {
                         moduleName: data.module.name,
                         day: courseData.day || 'Lunes',
                         schedule: courseData.schedule || '',
-                        students: courseData.students || [],
+                        students: (courseData.students || []).map(s => ({
+                            id: s.id || Date.now().toString(),
+                            name: s.name,
+                            studentCode: s.studentCode || '00'
+                        })),
                         classes: []
                     };
 
@@ -4453,10 +4395,20 @@ function syncModuleDownload() {
                                 tips: cls.tips || '',
                                 photos: cls.photos || [],
                                 linkedRecipe: cls.linkedRecipe || null,
-                                linkedRecipeId: cls.linkedRecipe ? cls.linkedRecipe.id : null,
+                                linkedRecipes: cls.linkedRecipes || [],
                                 blockCode: cls.blockCode || generateClassBlockCode(),
                                 codeExpiry: cls.codeExpiry || 0,
-                                attendance: cls.attendance || [],
+                                attendance: (cls.attendance || []).map(a => ({
+                                    studentId: a.studentId,
+                                    studentName: a.studentName,
+                                    studentCode: a.studentCode || '00',
+                                    present: a.present || false,
+                                    code: null,
+                                    shortCode: a.shortCode || '',
+                                    codeData: null,
+                                    codeUsed: false,
+                                    activatedAt: null
+                                })),
                                 codesGenerated: false
                             });
                         }
@@ -4466,7 +4418,6 @@ function syncModuleDownload() {
                 }
             });
 
-            // Guardar todo
             saveModules();
             saveRecipesToStorage();
             saveCourses();
@@ -4480,7 +4431,6 @@ function syncModuleDownload() {
             showSyncStatus('✅ Módulo actualizado correctamente');
             closeModal('modal-sync-module');
 
-            // Si hay materiales faltantes, mostrar modal
             if (allMissing.length > 0) {
                 showSyncMissingModal(allMissing);
                 showToast('Módulo cargado! ⚠️ ' + allMissing.length + ' materiales pendientes');
