@@ -228,32 +228,22 @@
         <i class='bx bxs-school' style="font-size:48px; color:var(--secondary-color); margin-bottom:16px;"></i>
         <h3 style="font-size:18px; margin-bottom:8px;">Bienvenido/a</h3>
         <p style="font-size:14px; color:var(--text-muted); margin-bottom:24px;">
-            Para comenzar, ingresa el código del módulo que te dio tu profesor.
+            Ingresa tu nombre y el prefijo del curso para acceder a tus clases.
         </p>
 
         <div class="form-group" style="text-align:left;">
-            <label>Prefijo del módulo</label>
-            <div style="display:flex; gap:8px;">
-                <input type="text" id="student-login-prefix" placeholder="Prefijo" style="text-transform:uppercase;">
-                <button class="btn-primary" onclick="searchModuleForLogin()" style="width:auto;">
-                    <i class='bx bx-search'></i>
-                </button>
-            </div>
+            <label>Tu nombre y apellido</label>
+            <input type="text" id="student-login-name-input" placeholder="Ej: María González">
         </div>
 
-        <div id="student-login-step2" style="display:none; text-align:left; margin-top:16px;">
-            <div class="form-group">
-                <label>Selecciona tu Curso</label>
-                <select id="student-login-course" onchange="onLoginCourseChange()"></select>
-            </div>
-            <div class="form-group">
-                <label>Selecciona tu Nombre</label>
-                <select id="student-login-name"></select>
-            </div>
-            <button class="btn-submit" onclick="confirmStudentLogin()">
-                <i class='bx bx-check'></i> ¡Soy yo!
-            </button>
+        <div class="form-group" style="text-align:left;">
+            <label>Prefijo del módulo</label>
+            <input type="text" id="student-login-prefix-input" placeholder="Ej: PA1" style="text-transform:uppercase;">
         </div>
+
+        <button class="btn-submit" onclick="loginStudentFromScratch()" style="margin-top:24px;">
+            <i class='bx bx-log-in'></i> Ingresar
+        </button>
     </div>
 
     <!-- ESTADO 2: REGISTRADO -->
@@ -264,6 +254,9 @@
                 <i class='bx bx-plus'></i>
             </button>
         </div>
+
+        <div id="student-modules-list" class="list-container" style="margin-bottom:20px;"></div>
+    </div>
 
         <div id="student-modules-list" class="list-container" style="margin-bottom:20px;"></div>
 
@@ -891,6 +884,31 @@
             </div>
         </div>
 
+        <!-- Modal Login Alumno (+) -->
+        <div class="modal-overlay" id="modal-student-add-module" onclick="closeModal('modal-student-add-module')">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width:420px;">
+                <div class="modal-header">
+                    <h3>📚 Agregar Módulo</h3>
+                    <button class="btn-close" type="button" onclick="closeModal('modal-student-add-module')">
+                        <i class='bx bx-x'></i>
+                    </button>
+                </div>
+
+                <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+                    Buscaremos tu nombre (<strong id="modal-add-module-student-name" style="color:var(--text-main);"></strong>) en este módulo.
+                </p>
+
+                <div class="form-group">
+                    <label>Prefijo del módulo</label>
+                    <input type="text" id="student-modal-login-prefix" placeholder="Ej: BA1" style="text-transform:uppercase;">
+                </div>
+
+                <button class="btn-submit" onclick="addModuleForExistingStudent()">
+                    <i class='bx bx-search'></i> Buscar y Agregar
+                </button>
+            </div>
+        </div>
+    
         <!-- Modal Cargar Módulo en Clases -->
         <div class="modal-overlay" id="modal-load-module-classes" onclick="closeModal('modal-load-module-classes')">
             <div class="modal-content large-modal" onclick="event.stopPropagation()">
