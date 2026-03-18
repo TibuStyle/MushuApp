@@ -2822,14 +2822,26 @@ function completeClassImport(decoded) {
         }
     });
 
-    saveRecipesToStorage();
-    renderImportedClasses();
-    renderStudentClassesByFolders();
+        saveRecipesToStorage();
+    
+    // Actualizar toda la información en las 3 pestañas
+    renderMaterials();
     updateRecipesView();
-    closeModal('modal-import-class');
-
-    // Refrescar la vista de clases
     updateClassesView();
+    
+    // Auto-abrir la carpeta del curso en el dashboard del alumno
+    // Usamos setTimeout para esperar que updateClassesView termine de pintar el HTML
+    setTimeout(() => {
+        if (decoded.moduleId) {
+            const folderId = 'student-mod-' + decoded.moduleId.replace(/[^a-zA-Z0-9]/g, '_');
+            const bodyElement = document.getElementById(`${folderId}-body-main`);
+            if (bodyElement) {
+                bodyElement.classList.add('open');
+            }
+        }
+    }, 100);
+    
+    closeModal('modal-import-class');
 
     if (decoded.present) {
         showToast('Clase importada! 🎓');
