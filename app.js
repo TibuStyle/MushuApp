@@ -2688,7 +2688,7 @@ function importClassFromShortCode(code) {
 function showMissingMaterialsModal(missing) {
     const list = document.getElementById('missing-materials-list');
     list.innerHTML = missing.map((m, i) => {
-        const catLabel = m.category === 'decoracion' ? 'Decoración' : (m.category === 'extra' ? 'Extra' : 'Producto');
+       const catLabel = m.category === 'decoracion' ? 'Decoración' : (m.category === 'extra' ? 'Extra' : 'Ingrediente');
         
         return `
         <div class="missing-material-item">
