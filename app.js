@@ -4069,16 +4069,19 @@ function importRecipeFromFile(event) {
 }
 
 // === LOGIN ALUMNO ===
-let loginModuleData = null;
+function loginStudentFromScratch() {
+    const inputName = document.getElementById('student-login-name-input').value.trim();
+    const inputPrefix = document.getElementById('student-login-prefix-input').value.trim().toUpperCase();
 
-function searchModuleForLogin() {
-    const prefix = document.getElementById('student-login-prefix').value.trim().toUpperCase();
-    if (!prefix) { showToast('Ingresa un prefijo', true); return; }
+    if (!inputName || !inputPrefix) {
+        showToast('Completa ambos campos', true);
+        return;
+    }
 
-    const fileName = prefix.toLowerCase() + '-module.json';
+    const fileName = inputPrefix.toLowerCase() + '-module.json';
     const url = 'https://tibustyle.github.io/MushuApp/modules/' + fileName + '?v=' + Date.now();
 
-    showToast('⏳ Buscando curso...');
+    showToast('⏳ Verificando tus datos...', false);
 
     fetch(url)
         .then(response => {
@@ -4087,85 +4090,135 @@ function searchModuleForLogin() {
         })
         .then(data => {
             if (!data.courses || data.courses.length === 0) {
-                showToast('Este módulo no tiene cursos', true);
+                showToast('Módulo sin cursos activos', true);
                 return;
             }
-            loginModuleData = data;
+
+            let foundStudent = null;
+            let foundCourse = null;
+
+            // Buscar en todos los cursos del módulo
+            for (const course of data.courses) {
+                const student = (course.students || []).find(s => 
+                    normalizeText(s.name) === normalizeText(inputName)
+                );
+                if (student) {
+                    foundStudent = student;
+                    foundCourse = course;
+                    break;
+                }
+            }
+
+            if (!foundStudent) {
+                showToast('Nombre no encontrado. Contacta a tu profesor/a.', true);
+                return;
+            }
+
+            const totalClasses = (data.classes || []).filter(cl => cl.courseId === foundCourse.id).length;
+
+            const newProfile = {
+                name: foundStudent.name, // Guardar cómo lo escribió el profe
+                id: foundStudent.id,
+                code: foundStudent.studentCode,
+                courseId: foundCourse.id,
+                courseName: foundCourse.name,
+                moduleId: data.module.id,
+                modulePrefix: data.module.prefix,
+                totalClassesInModule: totalClasses
+            };
+
+            studentProfiles.push(newProfile);
+            localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
+            studentName = foundStudent.name; // Nombre global
             
-            const courseSelect = document.getElementById('student-login-course');
-            courseSelect.innerHTML = '<option value="">Selecciona...</option>' + 
-                data.courses.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-            
-            document.getElementById('student-login-step2').style.display = 'block';
-            document.getElementById('student-login-name').innerHTML = '<option value="">Primero elige curso</option>';
+            updateClassesView();
+            showToast('¡Hola ' + foundStudent.name + '! 👋');
         })
         .catch(err => {
-            showToast('No se encontró el curso "' + prefix + '"', true);
+            showToast('No se encontró el módulo "' + inputPrefix + '"', true);
         });
 }
 
-function onLoginCourseChange() {
-    const courseId = document.getElementById('student-login-course').value;
-    const nameSelect = document.getElementById('student-login-name');
-    
-    if (!courseId || !loginModuleData) {
-        nameSelect.innerHTML = '<option value="">Primero elige curso</option>';
-        return;
-    }
-
-    const course = loginModuleData.courses.find(c => c.id === courseId);
-    if (!course || !course.students || course.students.length === 0) {
-        nameSelect.innerHTML = '<option value="">Sin alumnos</option>';
-        return;
-    }
-
-    nameSelect.innerHTML = '<option value="">Selecciona tu nombre...</option>' +
-        course.students.map(s => `<option value="${s.id}" data-code="${s.studentCode}">${s.name}</option>`).join('');
+function showAddModuleModal() {
+    document.getElementById('student-modal-login-prefix').value = '';
+    document.getElementById('modal-add-module-student-name').textContent = studentName;
+    document.getElementById('modal-student-add-module').classList.add('active');
 }
 
-function confirmStudentLogin() {
-    const courseId = document.getElementById('student-login-course').value;
-    const nameSelect = document.getElementById('student-login-name');
-    const studentId = nameSelect.value;
-    
-    if (!courseId || !studentId) {
-        showToast('Selecciona todos los datos', true);
+function addModuleForExistingStudent() {
+    const inputPrefix = document.getElementById('student-modal-login-prefix').value.trim().toUpperCase();
+
+    if (!inputPrefix) {
+        showToast('Ingresa un prefijo', true);
         return;
     }
 
-    const course = loginModuleData.courses.find(c => c.id === courseId);
-    const student = course.students.find(s => s.id === studentId);
-    const totalClasses = (loginModuleData.classes || []).filter(cl => cl.courseId === courseId).length;
-
-    // Verificar si ya tiene este módulo
-    const exists = studentProfiles.find(p => p.moduleId === loginModuleData.module.id);
+    // Verificar si ya lo tiene
+    const exists = studentProfiles.find(p => p.modulePrefix.toUpperCase() === inputPrefix);
     if (exists) {
-        showToast('Ya tienes agregado este módulo', true);
-        updateClassesView();
+        showToast('Ya estás en este módulo', true);
         return;
     }
 
-    const newProfile = {
-        name: student.name,
-        id: student.id,
-        code: student.studentCode,
-        courseId: course.id,
-        courseName: course.name,
-        moduleId: loginModuleData.module.id,
-        modulePrefix: loginModuleData.module.prefix,
-        totalClassesInModule: totalClasses
-    };
+    const fileName = inputPrefix.toLowerCase() + '-module.json';
+    const url = 'https://tibustyle.github.io/MushuApp/modules/' + fileName + '?v=' + Date.now();
 
-    studentProfiles.push(newProfile);
-    localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
-    
-    // Actualizar nombre global si es el primero
-    if (studentProfiles.length === 1) {
-        studentName = student.name;
-    }
-    
-    updateClassesView();
-    showToast('Módulo agregado! ✅');
+    showToast('⏳ Buscando en ' + inputPrefix + '...', false);
+
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('No encontrado');
+            return response.json();
+        })
+        .then(data => {
+            if (!data.courses || data.courses.length === 0) {
+                showToast('Módulo sin cursos activos', true);
+                return;
+            }
+
+            let foundStudent = null;
+            let foundCourse = null;
+
+            // Buscar por el nombre global (studentName)
+            for (const course of data.courses) {
+                const student = (course.students || []).find(s => 
+                    normalizeText(s.name) === normalizeText(studentName)
+                );
+                if (student) {
+                    foundStudent = student;
+                    foundCourse = course;
+                    break;
+                }
+            }
+
+            if (!foundStudent) {
+                showToast('No te encontramos en ' + inputPrefix + '. Contacta a tu profesor/a.', true);
+                return;
+            }
+
+            const totalClasses = (data.classes || []).filter(cl => cl.courseId === foundCourse.id).length;
+
+            const newProfile = {
+                name: foundStudent.name,
+                id: foundStudent.id,
+                code: foundStudent.studentCode,
+                courseId: foundCourse.id,
+                courseName: foundCourse.name,
+                moduleId: data.module.id,
+                modulePrefix: data.module.prefix,
+                totalClassesInModule: totalClasses
+            };
+
+            studentProfiles.push(newProfile);
+            localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
+            
+            closeModal('modal-student-add-module');
+            updateClassesView();
+            showToast('¡Módulo ' + inputPrefix + ' agregado! ✅');
+        })
+        .catch(err => {
+            showToast('No se encontró el módulo "' + inputPrefix + '"', true);
+        });
 }
 
 function logoutStudent() {
