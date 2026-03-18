@@ -533,6 +533,16 @@
                         </label>
                     </div>
                 </div>
+
+                <div class="settings-section">
+                    <h4><i class='bx bx-trending-up'></i> Margen de Ganancia</h4>
+                    <p class="settings-desc">Multiplicador para el precio de venta sugerido</p>
+                    <div class="settings-row">
+                        <span>Multiplicar costo por:</span>
+                        <input type="number" id="profit-margin" value="2" min="1" max="10" step="0.1" class="input-small" onchange="saveProfitMargin()">
+                    </div>
+                    <p style="font-size:11px; color:var(--text-muted); margin-top:8px; opacity:0.7;">Ej: 2 = duplicar, 2.5 = x2.5, 3 = triplicar</p>
+                </div>
                 
                 <div class="settings-section">
                     <h4><i class='bx bx-data'></i> Respaldo de Datos</h4>
