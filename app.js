@@ -2687,9 +2687,12 @@ function importClassFromShortCode(code) {
 
 function showMissingMaterialsModal(missing) {
     const list = document.getElementById('missing-materials-list');
-    list.innerHTML = missing.map((m, i) => `
+    list.innerHTML = missing.map((m, i) => {
+        const catLabel = m.category === 'decoracion' ? 'Decoración' : (m.category === 'extra' ? 'Extra' : 'Producto');
+        
+        return `
         <div class="missing-material-item">
-            <h4><i class='bx bx-error-circle'></i> ${sanitizeHTML(m.name)}</h4>
+            <h4><i class='bx bx-error-circle'></i> ${catLabel}: ${sanitizeHTML(m.name)}</h4>
             <div class="form-row">
                 <div class="form-group">
                     <label>Precio (CLP)</label>
@@ -2715,7 +2718,8 @@ function showMissingMaterialsModal(missing) {
             <input type="hidden" id="missing-name-${i}" value="${m.name}">
             <input type="hidden" id="missing-category-${i}" value="${m.category}">
         </div>
-    `).join('');
+        `;
+    }).join('');
     document.getElementById('modal-missing-materials').classList.add('active');
 }
 
@@ -4485,11 +4489,12 @@ function showSyncStatus(text) {
 
 function showSyncMissingModal(missingList) {
     const list = document.getElementById('sync-missing-list');
-    list.innerHTML = missingList.map((m, i) => `
+    list.innerHTML = missingList.map((m, i) => {
+        const catLabel = m.category === 'decoracion' ? 'Decoración' : (m.category === 'extra' ? 'Extra' : 'Producto');
+        
+        return `
         <div class="missing-material-item">
-            <h4><i class='bx bx-error-circle'></i> ${sanitizeHTML(m.name)}
-                <span style="font-size:11px; font-weight:400; color:var(--text-muted);"> (${m.category})</span>
-            </h4>
+            <h4><i class='bx bx-error-circle'></i> ${catLabel}: ${sanitizeHTML(m.name)}</h4>
             <div class="form-row">
                 <div class="form-group">
                     <label>Precio (CLP)</label>
@@ -4515,7 +4520,8 @@ function showSyncMissingModal(missingList) {
             <input type="hidden" id="sync-missing-name-${i}" value="${m.name}">
             <input type="hidden" id="sync-missing-category-${i}" value="${m.category}">
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     document.getElementById('modal-sync-missing').classList.add('active');
 }
