@@ -203,7 +203,9 @@
 
             <!-- SECTION: CLASES -->
             <section id="view-clases" class="view">
-                    <div id="teacher-classes-view" style="display:none;">
+                
+                <!-- Vista Profesor -->
+                <div id="teacher-classes-view" style="display:none;">
                     <div class="section-header-recipes">
                         <h2>🎓 Clases</h2>
                         <div class="recipe-header-buttons">
@@ -218,60 +220,59 @@
                     <div id="courses-list" class="list-container"></div>
                 </div>
 
-<div id="student-classes-view" style="display:none;">
-    <div class="section-header-recipes">
-        <h2>🎓 Mis Clases</h2>
-    </div>
+                <!-- Vista Alumno -->
+                <div id="student-classes-view" style="display:none;">
+                    <div class="section-header-recipes">
+                        <h2>🎓 Mis Clases</h2>
+                    </div>
 
-    <!-- ESTADO 1: NO REGISTRADO -->
-    <div id="student-login-container" style="text-align:center; padding:20px;">
-        <i class='bx bxs-school' style="font-size:48px; color:var(--secondary-color); margin-bottom:16px;"></i>
-        <h3 style="font-size:18px; margin-bottom:8px;">Bienvenido/a</h3>
-        <p style="font-size:14px; color:var(--text-muted); margin-bottom:24px;">
-            Ingresa tu nombre y el prefijo del curso para acceder a tus clases.
-        </p>
+                    <!-- ESTADO 1: NO REGISTRADO -->
+                    <div id="student-login-container" style="text-align:center; padding:20px;">
+                        <i class='bx bxs-school' style="font-size:48px; color:var(--secondary-color); margin-bottom:16px;"></i>
+                        <h3 style="font-size:18px; margin-bottom:8px;">Bienvenido/a</h3>
+                        <p style="font-size:14px; color:var(--text-muted); margin-bottom:24px;">
+                            Ingresa tu nombre y el prefijo del curso para acceder a tus clases.
+                        </p>
 
-        <div class="form-group" style="text-align:left;">
-            <label>Tu nombre y apellido</label>
-            <input type="text" id="student-login-name-input" placeholder="Ej: María González">
-        </div>
+                        <div class="form-group" style="text-align:left;">
+                            <label>Tu nombre y apellido</label>
+                            <input type="text" id="student-login-name-input" placeholder="Ej: María González">
+                        </div>
 
-        <div class="form-group" style="text-align:left;">
-            <label>Prefijo del módulo</label>
-            <input type="text" id="student-login-prefix-input" placeholder="Ej: PA1" style="text-transform:uppercase;">
-        </div>
+                        <div class="form-group" style="text-align:left;">
+                            <label>Prefijo del módulo</label>
+                            <input type="text" id="student-login-prefix-input" placeholder="Ej: PA1" style="text-transform:uppercase;">
+                        </div>
 
-        <button class="btn-submit" onclick="loginStudentFromScratch()" style="margin-top:24px;">
-            <i class='bx bx-log-in'></i> Ingresar
-        </button>
-    </div>
+                        <button class="btn-submit" onclick="loginStudentFromScratch()" style="margin-top:24px;">
+                            <i class='bx bx-log-in'></i> Ingresar
+                        </button>
+                    </div>
 
-    <!-- ESTADO 2: REGISTRADO -->
-    <div id="student-dashboard-container" style="display:none;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-            <h3 style="font-size:16px; margin:0;">Mis Módulos</h3>
-            <button class="btn-add-small" onclick="showAddModuleModal()">
-                <i class='bx bx-plus'></i>
-            </button>
-        </div>
+                    <!-- ESTADO 2: REGISTRADO -->
+                    <div id="student-dashboard-container" style="display:none;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                            <h3 style="font-size:16px; margin:0;">Mis Módulos</h3>
+                            <button class="btn-add-small" onclick="showAddModuleModal()">
+                                <i class='bx bx-plus'></i>
+                            </button>
+                        </div>
 
-        <div id="student-modules-list" class="list-container" style="margin-bottom:20px;"></div>
-    </div>
+                        <div id="student-modules-list" class="list-container" style="margin-bottom:20px;"></div>
+                    </div>
+                </div>
 
-        <div id="student-modules-list" class="list-container" style="margin-bottom:20px;"></div>
+                <!-- Vista Sin Modo (Por si acaso) -->
+                <div id="no-mode-classes-view" style="display:none;">
+                    <div class="section-header-recipes">
+                        <h2>🎓 Clases</h2>
+                    </div>
+                    <div class="empty-state">
+                        <i class='bx bxs-graduation' style="font-size: 48px; color: var(--secondary-color); display: block; margin-bottom: 12px;"></i>
+                        <p style="font-weight: 600;">Configura tu modo</p>
+                    </div>
+                </div>
 
-        <!-- Botón Ingresar Código -->
-        <button class="btn-submit" onclick="showImportClassModal()" style="margin-bottom:20px;">
-            <i class='bx bx-key'></i> Ingresar Código de Clase
-        </button>
-
-        <!-- Lista de Clases -->
-        <h4 style="font-size:14px; color:var(--text-muted); margin-bottom:10px;"></h4>
-        <div id="student-class-folders-list" class="list-container">
-            <div class="empty-state">No has desbloqueado ninguna clase aún.</div>
-        </div>
-    </div>
-</div>
             </section>
 
         </main>
