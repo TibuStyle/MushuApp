@@ -2756,11 +2756,16 @@ function saveMissingMaterialsAndContinue() {
     updateDecorationSelect();
     updateExtraSubcategorySelect();
 
-    closeModal('modal-missing-materials');
+        closeModal('modal-missing-materials');
 
     if (pendingImportClassData) {
         completeClassImport(pendingImportClassData);
         pendingImportClassData = null;
+        
+        // Refrescar la vista después de que completeClassImport termine
+        setTimeout(() => {
+            updateClassesView();
+        }, 100);
     }
 }
 
