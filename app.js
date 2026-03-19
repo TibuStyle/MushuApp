@@ -1370,17 +1370,21 @@ function renderRecipeCard(r, priceColor) {
     sl += `</div>`;
 
     let tipH = '';
-    if (teacherMode.active && r.recipeTips) {
-        tipH = `<div class="recipe-tip"><strong>💡 Tips del Profesor</strong>${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}</div>`;
-    } else {
+    
+    // Mostrar Tips del Profesor a todos (Profesores y Alumnos)
+    if (r.recipeTips) {
+        tipH = `<div class="recipe-tip"><strong>💡 Tips de la Profe</strong><br>${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}</div>`;
+    } 
+    // Si no hay Tips de la Profe, mostrar el tip automático del ingrediente caro
+    else {
         const tip = generateRecipeTip(r);
-        tipH = tip ? `<div class="recipe-tip"><strong>💡 Consejo</strong>${tip}</div>` : '';
+        tipH = tip ? `<div class="recipe-tip"><strong>💡 Consejo</strong><br>${tip}</div>` : '';
     }
 
     const recipePhotoH = (teacherMode.active && r.recipePhoto)
-        ? `<div style="margin-top:12px; border-radius:var(--radius-sm); overflow:hidden;">
-            <img src="${r.recipePhoto}" style="width:100%; display:block; border-radius:var(--radius-sm);">
-           </div>`
+        ? `<button class="btn-submit" style="margin-top:12px; background:var(--surface-hover); color:var(--secondary-color); border:1px dashed var(--secondary-color);" onclick="event.stopPropagation(); openPhotoFullscreen('${r.recipePhoto}', 'Vista Previa')">
+            <i class='bx bx-image'></i> Ver foto adjunta
+           </button>`
         : '';
 
     const sourceBadge = r.recipeSource === 'class'
@@ -4065,11 +4069,19 @@ function renderRecipePhotoPreview() {
         return;
     }
     preview.innerHTML = `
-        <div class="class-photo-container">
-            <img src="${currentRecipePhoto}" class="class-photo-thumb" style="width:100%; height:auto; max-height:200px;">
-            <button class="class-photo-remove" onclick="removeRecipePhoto()">
-                <i class='bx bx-x'></i>
-            </button>
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-hover); padding:10px 14px; border-radius:var(--radius-sm); border:1px dashed var(--secondary-color);">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <i class='bx bxs-image' style="font-size:20px; color:var(--secondary-color);"></i>
+                <span style="font-size:14px; font-weight:600;">Foto subida</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button type="button" class="btn-icon" style="width:36px; height:36px;" onclick="event.stopPropagation(); openPhotoFullscreen('${currentRecipePhoto}', 'Vista Previa')" title="Ver Foto">
+                    <i class='bx bx-search-alt-2'></i>
+                </button>
+                <button type="button" class="btn-icon danger" style="width:36px; height:36px;" onclick="removeRecipePhoto()" title="Borrar Foto">
+                    <i class='bx bx-trash'></i>
+                </button>
+            </div>
         </div>
     `;
 }
