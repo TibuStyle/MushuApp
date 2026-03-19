@@ -1233,39 +1233,43 @@ function renderModuleFolder(mod, recipesInModule) {
             .join('');
     }
 
-           return `
-            <div class="course-card">
-                <div class="course-card-header" onclick="toggleFolderBody('course-folder','${folderId}')">
-                    <div class="course-card-header-left">
-                        <i class='bx bxs-graduation' style="font-size:24px;color:var(--secondary-color);"></i>
-                        <div>
-                            <h3>${sanitizeHTML(course.name)}</h3>
-                            <div class="course-card-day">${course.day} • ${modulePrefix}</div>
-                            <div class="course-card-schedule">${course.schedule || ''} • ${course.students.length} alumnos • ${classCount} clase${classCount !== 1 ? 's' : ''}</div>
-                        </div>
-                    </div>
-                    <div class="action-buttons-group" onclick="event.stopPropagation()">
-                        <button class="btn-icon" onclick="showCreateCourseModal('${course.id}')"><i class='bx bx-edit'></i></button>
-                        <button class="btn-icon danger" onclick="deleteCourse('${course.id}')"><i class='bx bx-trash'></i></button>
+    return `
+        <div class="recipe-folder">
+            <div class="recipe-folder-header" onclick="toggleFolderBody('module-folder','${moduleId}')">
+                <div class="recipe-folder-header-left">
+                    <i class='bx bx-book' style="font-size:22px;color:var(--secondary-color);"></i>
+                    <div>
+                        <h3>${sanitizeHTML(mod.name)}</h3>
+                        <div class="recipe-folder-count">Prefijo: ${mod.prefix} • ${recipesInModule.length} receta${recipesInModule.length !== 1 ? 's' : ''}${classNames.length > 0 ? ' • ' + classNames.length + ' clase' + (classNames.length !== 1 ? 's' : '') : ''}</div>
                     </div>
                 </div>
-                <div class="course-card-body" id="course-folder-body-${folderId}">
-                    <div style="background:var(--surface-hover); border-radius:var(--radius-sm); padding:12px; margin-bottom:12px;">
-                        <h4 style="font-size:13px; color:var(--text-muted); margin:0 0 8px; display:flex; align-items:center; gap:6px;">
-                            <i class='bx bx-user' style="color:var(--secondary-color);"></i> Alumnos y Asistencia
-                        </h4>
-                        ${studentsHTML || '<p style="font-size:13px;color:var(--text-muted);">Sin alumnos</p>'}
-                    </div>
-
-                    ${classesHTML}
-
-                    <button class="btn-add-class" onclick="showCreateClassModal('${course.id}')">
-                        <i class='bx bx-plus'></i> Nueva Clase
-                    </button>
+                <div class="action-buttons-group" onclick="event.stopPropagation()">
+                    <button class="btn-icon" onclick="showCreateModuleModal('${mod.id}')"><i class='bx bx-edit'></i></button>
+                    <button class="btn-icon danger" onclick="deleteModule('${mod.id}')"><i class='bx bx-trash'></i></button>
+                    <i class='bx bx-chevron-down recipe-folder-chevron' id="module-folder-chevron-${moduleId}" style="transform:rotate(-90deg); margin-left:4px;"></i>
                 </div>
             </div>
-        `;
-    }).join('');
+
+            <div class="recipe-folder-body" id="module-folder-body-${moduleId}">
+                <div class="module-info-box">
+                    <strong>${sanitizeHTML(mod.name)}</strong>
+                    <p>Prefijo del módulo: ${mod.prefix}</p>
+                </div>
+
+                <div style="margin-top:10px;">
+                    <button class="btn-submit" style="margin-top:0;" onclick="createRecipeInModule('${mod.name}')">
+                        <i class='bx bx-plus'></i> Nueva receta del módulo
+                    </button>
+                </div>
+
+                ${recipesHTML || '<div class="empty-state" style="padding:20px;font-size:13px;margin-top:10px;">Este módulo no tiene recetas aún.</div>'}
+
+                <button class="btn-submit" style="margin-top:16px; background:linear-gradient(135deg, #6366f1, #8b5cf6);" onclick="showSyncModuleModal('${mod.id}')">
+                    <i class='bx bx-cloud'></i> Sincronizar
+                </button>
+            </div>
+        </div>
+    `;
 }
 
 function renderRecipes() {
@@ -1284,16 +1288,15 @@ function renderRecipeCard(r, priceColor) {
     const dc = (r.decorations || []).reduce((s, i) => s + i.cost, 0);
     const ec = r.extraCost || 0;
     const ti = (r.ingredients || []).length + (r.decorations || []).length;
-    
-        // Contar materiales pendientes
+    const se = Math.floor((r.totalCost * profitMargin) / 500) * 500;
+
+    // Contar materiales pendientes
     const pendingIngredients = (r.ingredients || []).filter(i => i.pending === true);
     const pendingDecorations = (r.decorations || []).filter(i => i.pending === true);
     const totalPending = pendingIngredients.length + pendingDecorations.length;
     const pendingWarning = totalPending > 0 
         ? `<div class="pending-alert"><i class='bx bx-error-circle'></i> ${totalPending} material${totalPending > 1 ? 'es' : ''} pendiente${totalPending > 1 ? 's' : ''}</div>` 
         : '';
-    
-    const se = Math.floor((r.totalCost * profitMargin) / 500) * 500;
 
     const pb = r.portions > 1
         ? `<div class="portions-badge"><i class='bx bx-cut'></i> ${r.portions} porciones • $${formatCLP(Math.round(dp / r.portions))} c/u</div>`
@@ -1303,24 +1306,25 @@ function renderRecipeCard(r, priceColor) {
     if ((r.ingredients || []).length > 0) {
         bd += `<div class="recipe-breakdown-section">
             <div class="recipe-breakdown-header"><span><i class='bx bx-package'></i> Ingredientes</span><span>$${formatCLP(ic)}</span></div>
-            ${r.ingredients.map(i => `<div class="recipe-breakdown-item"><span>${i.name} (${i.qty} ${i.unit})</span><span>$${formatCLP(i.cost)}</span></div>`).join('')}
+            ${r.ingredients.map(i => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(i.name)} (${i.qty} ${i.unit})</span><span>$${formatCLP(i.cost)}</span></div>`).join('')}
         </div>`;
     }
     if ((r.decorations || []).length > 0) {
         bd += `<div class="recipe-breakdown-section">
             <div class="recipe-breakdown-header"><span><i class='bx bx-palette'></i> Decoración</span><span>$${formatCLP(dc)}</span></div>
-            ${r.decorations.map(d => `<div class="recipe-breakdown-item"><span>${d.name} (${d.qty} ${d.unit})</span><span>$${formatCLP(d.cost)}</span></div>`).join('')}
+            ${r.decorations.map(d => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(d.name)} (${d.qty} ${d.unit})</span><span>$${formatCLP(d.cost)}</span></div>`).join('')}
         </div>`;
     }
     if (r.extraSubcategory && ec > 0) {
         const eis = materials.filter(m => m.category === 'extra' && m.subcategory === r.extraSubcategory);
         bd += `<div class="recipe-breakdown-section">
             <div class="recipe-breakdown-header"><span><i class='bx bx-star'></i> Extra</span><span>$${formatCLP(ec)}</span></div>
-            ${eis.map(m => `<div class="recipe-breakdown-item"><span>${m.name}</span><span>$${formatCLP(m.price)}</span></div>`).join('')}
+            ${eis.map(m => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(m.name)}</span><span>$${formatCLP(m.price)}</span></div>`).join('')}
         </div>`;
     }
     bd += `<div class="recipe-breakdown-total"><span>COSTO TOTAL</span><span>$${formatCLP(r.totalCost)}</span></div>`;
-        if (totalPending > 0) {
+
+    if (totalPending > 0) {
         bd += `<div style="background:rgba(245,158,11,0.1);border-left:3px solid var(--warning-color);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:12px 14px;margin-top:12px;">
             <strong style="color:var(--warning-color);font-size:13px;display:block;margin-bottom:6px;">⚠️ Materiales pendientes por completar:</strong>
             ${pendingIngredients.map(i => `<div style="font-size:13px;color:var(--text-muted);padding:2px 0;">• ${sanitizeHTML(i.name)} (${i.qty} ${i.unit})</div>`).join('')}
@@ -1357,7 +1361,7 @@ function renderRecipeCard(r, priceColor) {
 
     return `
         <div class="recipe-card">
-        <div class="recipe-card-header" onclick="toggleRecipeDetail('${r.id}')" style="cursor:pointer;">
+            <div class="recipe-card-header" onclick="toggleRecipeDetail('${r.id}')" style="cursor:pointer;">
                 <div class="recipe-card-info">
                     <h3>${sanitizeHTML(r.name)}</h3>
                     <p>${ti} Items${r.extraSubcategory ? ' + Extra' : ''}</p>
@@ -1375,9 +1379,9 @@ function renderRecipeCard(r, priceColor) {
             </div>
             <div class="recipe-card-detail" id="recipe-detail-${r.id}">
                 <div class="recipe-detail-content">
+                    ${recipePhotoH}
                     ${bd}
                     ${sl}
-                    ${recipePhotoH}
                     ${tipH}
                     ${r.sharedBy ? `
                     <div style="text-align:center; padding:10px 0; margin-top:12px; border-top:1px dashed rgba(0,0,0,0.08);">
@@ -1389,10 +1393,10 @@ function renderRecipeCard(r, priceColor) {
                             </strong>
                         </span>
                     </div>` : ''}
-                    <div style="display:flex;gap:10px;margin-top:16px;">
+                    <div class="action-buttons-group" style="margin-top:16px;">
                         <button class="btn-submit" style="margin-top:0;flex:1;" onclick="showAddRecipeModal('${r.id}')"><i class='bx bx-edit'></i> Editar</button>
-                        <button class="btn-icon" style="width:48px;height:48px;font-size:20px;background:var(--secondary-color);color:white;" onclick="shareRecipe('${r.id}')" title="Compartir"><i class='bx bx-share-alt'></i></button>
-                        <button class="btn-icon danger" style="width:48px;height:48px;font-size:20px;" onclick="deleteRecipe('${r.id}')"><i class='bx bx-trash'></i></button>
+                        <button class="btn-icon" style="background:var(--secondary-color);color:white;" onclick="shareRecipe('${r.id}')" title="Compartir"><i class='bx bx-share-alt'></i></button>
+                        <button class="btn-icon danger" onclick="deleteRecipe('${r.id}')"><i class='bx bx-trash'></i></button>
                     </div>
                 </div>
             </div>
@@ -1400,9 +1404,6 @@ function renderRecipeCard(r, priceColor) {
     `;
 }
 
-// ========================================
-// UTILS
-// ========================================
 function formatCLP(n) {
     return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
@@ -1413,9 +1414,6 @@ function formatDate(ds) {
     return `${d.getDate()} ${ms[d.getMonth()]} ${d.getFullYear()}`;
 }
 
-// ========================================
-// COURSES / CLASSES VIEW
-// ========================================
 function updateClassesView() {
     const teacherView = document.getElementById('teacher-classes-view');
     const studentView = document.getElementById('student-classes-view');
@@ -1445,145 +1443,6 @@ function updateClassesView() {
     }
 }
 
-function showCreateCourseModal(courseId = null) {
-    currentCourseStudents = [];
-    currentEditingCourseId = null;
-    document.getElementById('course-name').value = '';
-    document.getElementById('course-day').value = 'Lunes';
-    document.getElementById('course-schedule').value = '';
-    document.getElementById('modal-course-title').textContent = 'Crear Curso';
-
-    const moduleSelect = document.getElementById('course-module-select');
-    if (!modules.length) {
-        moduleSelect.innerHTML = '<option value="">No hay módulos</option>';
-    } else {
-        moduleSelect.innerHTML = modules.map(m =>
-            `<option value="${m.id}">${m.name} (${m.prefix})</option>`
-        ).join('');
-    }
-
-    if (courseId) {
-        const course = courses.find(c => String(c.id) === String(courseId));
-        if (course) {
-            currentEditingCourseId = String(course.id);
-            document.getElementById('course-name').value = course.name;
-            document.getElementById('course-day').value = course.day;
-            document.getElementById('course-schedule').value = course.schedule || '';
-            moduleSelect.value = course.moduleId || '';
-            currentCourseStudents = [...(course.students || [])];
-            document.getElementById('modal-course-title').textContent = 'Editar Curso';
-        }
-    }
-
-    renderCourseStudents();
-    document.getElementById('modal-course').classList.add('active');
-}
-
-function addStudentToCourse() {
-    const input = document.getElementById('course-add-student');
-    const name = input.value.trim();
-    if (!name) { showToast('Ingresa un nombre', true); return; }
-    if (currentCourseStudents.find(s => s.name.toLowerCase() === name.toLowerCase())) {
-        showToast('Alumno ya existe', true);
-        return;
-    }
-
-    const studentCode = String(currentCourseStudents.length + 1).padStart(2, '0');
-    currentCourseStudents.push({
-        id: Date.now().toString(),
-        name,
-        studentCode
-    });
-
-    input.value = '';
-    renderCourseStudents();
-}
-
-function removeStudentFromCourse(studentId) {
-    currentCourseStudents = currentCourseStudents.filter(s => String(s.id) !== String(studentId));
-    currentCourseStudents = currentCourseStudents.map((s, index) => ({
-        ...s,
-        studentCode: String(index + 1).padStart(2, '0')
-    }));
-    renderCourseStudents();
-}
-
-function renderCourseStudents() {
-    const list = document.getElementById('course-students-list');
-    if (!currentCourseStudents.length) {
-        list.innerHTML = '<div style="padding:10px;font-size:13px;color:var(--text-muted);text-align:center;">Sin alumnos aún</div>';
-        return;
-    }
-
-    list.innerHTML = currentCourseStudents.map(s => `
-        <div class="course-student-item">
-            <span>👤 ${sanitizeHTML(s.name)}</span>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span class="student-code-badge">${s.studentCode || '--'}</span>
-                <button onclick="removeStudentFromCourse('${s.id}')"><i class='bx bx-x'></i></button>
-            </div>
-        </div>
-    `).join('');
-}
-
-function saveCourse() {
-    const name = document.getElementById('course-name').value.trim();
-    const moduleId = document.getElementById('course-module-select').value;
-    const day = document.getElementById('course-day').value;
-    const schedule = document.getElementById('course-schedule').value.trim();
-
-    const mod = modules.find(m => String(m.id) === String(moduleId));
-
-    if (!name) { showToast('Ingresa nombre del curso', true); return; }
-    if (!moduleId || !mod) { showToast('Selecciona un módulo', true); return; }
-    if (!currentCourseStudents.length) { showToast('Agrega al menos un alumno', true); return; }
-
-    if (currentEditingCourseId) {
-        const idx = courses.findIndex(c => String(c.id) === String(currentEditingCourseId));
-        if (idx !== -1) {
-            courses[idx] = {
-                ...courses[idx],
-                name,
-                moduleId: mod.id,
-                moduleName: mod.name,
-                day,
-                schedule,
-                students: currentCourseStudents
-            };
-            showToast('Curso actualizado!');
-        }
-    } else {
-        courses.push({
-            id: Date.now().toString(),
-            name,
-            moduleId: mod.id,
-            moduleName: mod.name,
-            day,
-            schedule,
-            students: currentCourseStudents,
-            classes: []
-        });
-        showToast('Curso creado!');
-    }
-
-    saveCourses();
-    renderCourses();
-    closeModal('modal-course');
-}
-
-function deleteCourse(courseId) {
-    showConfirmModal(
-        'Eliminar curso',
-        '¿Eliminar este curso y todas sus clases?',
-        () => {
-            courses = courses.filter(c => String(c.id) !== String(courseId));
-            saveCourses();
-            renderCourses();
-            showToast('Curso eliminado');
-        }
-    );
-}
-
 function renderCourses() {
     const list = document.getElementById('courses-list');
     if (!courses.length) {
@@ -1596,7 +1455,6 @@ function renderCourses() {
         const modulePrefix = moduleData ? moduleData.prefix : '---';
         const totalClasses = course.totalClasses || 18;
 
-        // Calcular asistencia por alumno
         const studentStats = (course.students || []).map(student => {
             let attended = 0;
             let totalClassesHeld = (course.classes || []).length;
@@ -1622,7 +1480,6 @@ function renderCourses() {
             };
         });
 
-        // Clases HTML
         const classesHTML = (course.classes || [])
             .sort((a, b) => new Date(b.date) - new Date(a.date))
             .map(cls => {
@@ -1643,7 +1500,6 @@ function renderCourses() {
                 </div>`;
             }).join('');
 
-        // Alumnos HTML
         const studentsHTML = studentStats.map(s => {
             const barColor = s.warning ? 'var(--danger-color)' : s.percentage >= 80 ? 'var(--success-color)' : 'var(--warning-color)';
             const warningIcon = s.warning ? ' ⚠️' : '';
