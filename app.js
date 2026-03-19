@@ -2325,6 +2325,120 @@ function removeStudentModule(moduleId) {
     });
 }
 
+function refreshAllStudentClasses() {
+    if (!navigator.onLine) {
+        showToast('Necesitas internet para actualizar', true);
+        return;
+    }
+
+    if (studentProfiles.length === 0 || importedClasses.length === 0) {
+        showToast('No tienes clases para actualizar', true);
+        return;
+    }
+
+    showToast('⏳ Verificando actualizaciones...', false);
+
+    const uniquePrefixes = [...new Set(studentProfiles.map(p => p.modulePrefix))];
+    let updatedClassesCount = 0;
+    let fetchesCompleted = 0;
+
+    uniquePrefixes.forEach(prefix => {
+        const fileName = prefix.toLowerCase() + '-module.json';
+        const url = 'https://tibustyle.github.io/MushuApp/modules/' + fileName + '?v=' + Date.now();
+
+        fetch(url)
+            .then(response => {
+                if (!response.ok) throw new Error('No encontrado');
+                return response.json();
+            })
+            .then(data => {
+                if (!data.type || data.type !== 'module') throw new Error('Inválido');
+
+                importedClasses.forEach(ic => {
+                    if (ic.moduleName === data.module.name || data.module.prefix === prefix) {
+                        let githubClass = null;
+                        
+                        (data.classes || []).forEach(cls => {
+                            if (cls.classId === ic.classId || cls.blockCode === (ic.visibleCode || '').slice(-8, -3)) {
+                                githubClass = cls;
+                            }
+                        });
+
+                        if (githubClass) {
+                            ic.tips = githubClass.tips || '';
+                            ic.photos = githubClass.photos || [];
+                            ic.linkedRecipes = githubClass.linkedRecipes || [];
+                            ic.className = githubClass.className || ic.className;
+                            updatedClassesCount++;
+                            
+                            const recipesToUpdate = githubClass.linkedRecipes || (githubClass.linkedRecipe ? [githubClass.linkedRecipe] : []);
+                            
+                            recipesToUpdate.forEach(githubRecipe => {
+                                const localRecipe = recipes.find(r => 
+                                    r.name.toLowerCase().trim() === githubRecipe.name.toLowerCase().trim() && 
+                                    r.recipeSource === 'class'
+                                );
+                                
+                                if (localRecipe) {
+                                    localRecipe.recipeTips = githubRecipe.recipeTips || '';
+                                    localRecipe.recipePhoto = githubRecipe.recipePhoto || null;
+                                    localRecipe.portions = githubRecipe.portions || 1;
+                                    localRecipe.extraSubcategory = githubRecipe.extraSubcategory || null;
+                                    
+                                    localRecipe.ingredients = (githubRecipe.ingredients || []).map(i => {
+                                        const localMat = materials.find(m => normalizeText(m.name) === normalizeText(i.name));
+                                        return {
+                                            ...i,
+                                            id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
+                                            matId: localMat ? String(localMat.id) : '',
+                                            cost: (localMat && !localMat.pending) ? calculateIngredientCost(localMat, i.qty, i.unit) : 0,
+                                            pending: localMat ? (localMat.pending || false) : true
+                                        };
+                                    });
+
+                                    localRecipe.decorations = (githubRecipe.decorations || []).map(d => {
+                                        const localMat = materials.find(m => normalizeText(m.name) === normalizeText(d.name));
+                                        return {
+                                            ...d,
+                                            id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
+                                            matId: localMat ? String(localMat.id) : '',
+                                            cost: (localMat && !localMat.pending) ? calculateIngredientCost(localMat, d.qty, d.unit) : 0,
+                                            pending: localMat ? (localMat.pending || false) : true
+                                        };
+                                    });
+
+                                    const icCost = localRecipe.ingredients.reduce((s, i) => s + (i.cost || 0), 0);
+                                    const dcCost = localRecipe.decorations.reduce((s, d) => s + (d.cost || 0), 0);
+                                    let ecCost = 0;
+                                    if (localRecipe.extraSubcategory) {
+                                        const extraItems = materials.filter(m => m.category === 'extra' && m.subcategory === localRecipe.extraSubcategory);
+                                        ecCost = extraItems.reduce((s, m) => s + m.price, 0);
+                                    }
+                                    localRecipe.totalCost = icCost + dcCost + ecCost;
+                                }
+                            });
+                        }
+                    }
+                });
+            })
+            .catch(err => console.error(err))
+            .finally(() => {
+                fetchesCompleted++;
+                if (fetchesCompleted === uniquePrefixes.length) {
+                    if (updatedClassesCount > 0) {
+                        saveImportedClasses();
+                        saveRecipesToStorage();
+                        updateClassesView();
+                        updateRecipesView();
+                        showToast(`¡Actualizado! (${updatedClassesCount} clases sincronizadas) ✅`);
+                    } else {
+                        showToast('Tus clases ya están al día ✅');
+                    }
+                }
+            });
+    });
+}
+
 function renderImportedClasses() {
     renderStudentClassesByFolders();
 }
