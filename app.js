@@ -2956,7 +2956,7 @@ function completeClassImport(decoded) {
 
     const recipesToProcess = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
 
-       recipesToProcess.forEach(r => {
+    recipesToProcess.forEach(r => {
         const recipeCopy = JSON.parse(JSON.stringify(r));
         recipeCopy.id = Date.now().toString() + '-class-' + Math.random().toString(36).substr(2, 5);
         recipeCopy.recipeFolder = decoded.courseName;
@@ -3009,18 +3009,7 @@ function completeClassImport(decoded) {
         }
     });
 
-        const alreadyExists = recipes.find(rec =>
-            rec.name === recipeCopy.name &&
-            rec.recipeFolder === recipeCopy.recipeFolder &&
-            rec.sourceClassDate === recipeCopy.sourceClassDate
-        );
-
-        if (!alreadyExists) {
-            recipes.push(recipeCopy);
-        }
-    });
-
-        saveRecipesToStorage();
+    saveRecipesToStorage();
     
     // Actualizar toda la información en las 3 pestañas
     renderMaterials();
@@ -3028,7 +3017,6 @@ function completeClassImport(decoded) {
     updateClassesView();
     
     // Auto-abrir la carpeta del curso en el dashboard del alumno
-    // Usamos setTimeout para esperar que updateClassesView termine de pintar el HTML
     setTimeout(() => {
         if (decoded.moduleId) {
             const folderId = 'student-mod-' + decoded.moduleId.replace(/[^a-zA-Z0-9]/g, '_');
