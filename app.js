@@ -3245,6 +3245,41 @@ function addNewModuleClassDirectly(moduleName) {
     document.getElementById('modal-new-material-name').classList.add('active');
 }
 
+function editModuleClassName(moduleName, oldClassName) {
+    document.getElementById('new-mat-name-input').value = oldClassName;
+    document.getElementById('new-mat-name-label').textContent = 'Nuevo nombre de la clase';
+    document.getElementById('new-mat-name-input').placeholder = 'Ej: Clase 2';
+    document.querySelector('#modal-new-material-name h3').textContent = '✏️ Editar Nombre de Clase';
+    
+    newMaterialNameCallback = function(newClassName) {
+        if (!newClassName || !newClassName.trim()) return;
+        const finalNewName = newClassName.trim();
+        
+        if (finalNewName === oldClassName) {
+            return; // No cambió el nombre
+        }
+
+        // Cambiar el nombre de la clase en todas las recetas que la tengan
+        let updatedCount = 0;
+        recipes.forEach(r => {
+            if (r.recipeFolder === moduleName && r.moduleClass === oldClassName) {
+                r.moduleClass = finalNewName;
+                updatedCount++;
+            }
+        });
+
+        if (updatedCount > 0) {
+            saveRecipesToStorage();
+            updateRecipesView();
+            showToast('Nombre actualizado a "' + finalNewName + '" ✅');
+        } else {
+            showToast('No se encontraron recetas para actualizar', true);
+        }
+    };
+
+    document.getElementById('modal-new-material-name').classList.add('active');
+}
+
 function getOpenRecipeFolders() {
     const openFolders = [];
 
