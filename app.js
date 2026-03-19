@@ -1468,9 +1468,13 @@ function updateClassesView() {
             if (loginContainer) loginContainer.style.display = 'none';
             if (dashboardContainer) dashboardContainer.style.display = 'block';
             renderStudentDashboard();
+            document.getElementById('student-header-name-display').style.display = 'block';
+            document.getElementById('student-header-name-display').textContent = 'Hola, ' + studentName;
         } else {
+            // Si no se ha registrado
             if (loginContainer) loginContainer.style.display = 'block';
             if (dashboardContainer) dashboardContainer.style.display = 'none';
+            document.getElementById('student-header-name-display').style.display = 'none';
         }
     }
 }
