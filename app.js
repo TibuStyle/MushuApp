@@ -2327,20 +2327,21 @@ function removeStudentModule(moduleId) {
 
 function refreshAllStudentClasses() {
     if (!navigator.onLine) {
-        showToast('Necesitas internet para actualizar', true);
+        showToast('Necesitas internet para sincronizar', true);
         return;
     }
 
     if (studentProfiles.length === 0 || importedClasses.length === 0) {
-        showToast('No tienes clases para actualizar', true);
+        showToast('No tienes clases para sincronizar', true);
         return;
     }
 
-    showToast('⏳ Verificando actualizaciones...', false);
+    showToast('⏳ Sincronizando desde GitHub...', false);
 
     const uniquePrefixes = [...new Set(studentProfiles.map(p => p.modulePrefix))];
     let updatedClassesCount = 0;
     let fetchesCompleted = 0;
+    const allMissing = [];
 
     uniquePrefixes.forEach(prefix => {
         const fileName = prefix.toLowerCase() + '-module.json';
@@ -2367,16 +2368,18 @@ function refreshAllStudentClasses() {
                         if (githubClass) {
                             ic.tips = githubClass.tips || '';
                             ic.photos = githubClass.photos || [];
-                            ic.linkedRecipes = githubClass.linkedRecipes || [];
                             ic.className = githubClass.className || ic.className;
                             updatedClassesCount++;
                             
                             const recipesToUpdate = githubClass.linkedRecipes || (githubClass.linkedRecipe ? [githubClass.linkedRecipe] : []);
-                            
+                            ic.linkedRecipes = recipesToUpdate;
+
                             recipesToUpdate.forEach(githubRecipe => {
+                                // Buscar si el alumno ya tiene esta receta en su lista de Mis Recetas (por nombre y clase)
                                 const localRecipe = recipes.find(r => 
-                                    r.name.toLowerCase().trim() === githubRecipe.name.toLowerCase().trim() && 
-                                    r.recipeSource === 'class'
+                                    normalizeText(r.name) === normalizeText(githubRecipe.name) && 
+                                    r.recipeSource === 'class' &&
+                                    r.recipeFolder === ic.courseName
                                 );
                                 
                                 if (localRecipe) {
@@ -2385,6 +2388,16 @@ function refreshAllStudentClasses() {
                                     localRecipe.portions = githubRecipe.portions || 1;
                                     localRecipe.extraSubcategory = githubRecipe.extraSubcategory || null;
                                     
+                                    // Buscar si hay ingredientes faltantes nuevos
+                                    const allItems = [...(githubRecipe.ingredients || []), ...(githubRecipe.decorations || [])];
+                                    allItems.forEach(item => {
+                                        const found = materials.find(m => normalizeText(m.name) === normalizeText(item.name));
+                                        if (!found && !allMissing.find(mm => normalizeText(mm.name) === normalizeText(item.name))) {
+                                            const isDeco = (githubRecipe.decorations || []).some(d => normalizeText(d.name) === normalizeText(item.name));
+                                            allMissing.push({ name: item.name, category: isDeco ? 'decoracion' : 'productos' });
+                                        }
+                                    });
+
                                     localRecipe.ingredients = (githubRecipe.ingredients || []).map(i => {
                                         const localMat = materials.find(m => normalizeText(m.name) === normalizeText(i.name));
                                         return {
@@ -2425,12 +2438,17 @@ function refreshAllStudentClasses() {
             .finally(() => {
                 fetchesCompleted++;
                 if (fetchesCompleted === uniquePrefixes.length) {
+                    if (allMissing.length > 0) {
+                        showSyncMissingModal(allMissing);
+                    }
+                    
                     if (updatedClassesCount > 0) {
                         saveImportedClasses();
                         saveRecipesToStorage();
                         updateClassesView();
                         updateRecipesView();
-                        showToast(`¡Actualizado! (${updatedClassesCount} clases sincronizadas) ✅`);
+                        closeModal('modal-settings');
+                        showToast(`¡Sincronizado! (${updatedClassesCount} clases actualizadas) ✅`);
                     } else {
                         showToast('Tus clases ya están al día ✅');
                     }
