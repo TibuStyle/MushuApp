@@ -2956,7 +2956,7 @@ function completeClassImport(decoded) {
 
     const recipesToProcess = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
 
-    recipesToProcess.forEach(r => {
+       recipesToProcess.forEach(r => {
         const recipeCopy = JSON.parse(JSON.stringify(r));
         recipeCopy.id = Date.now().toString() + '-class-' + Math.random().toString(36).substr(2, 5);
         recipeCopy.recipeFolder = decoded.courseName;
@@ -2964,15 +2964,50 @@ function completeClassImport(decoded) {
         recipeCopy.sourceCourseName = decoded.courseName;
         recipeCopy.sourceClassDate = decoded.date;
 
-        // Actualizar IDs de materiales con los locales
+        // Actualizar IDs y RECALCULAR COSTOS de los ingredientes
         (recipeCopy.ingredients || []).forEach(i => {
             const localMat = materials.find(m => normalizeText(m.name) === normalizeText(i.name));
-            if (localMat) i.matId = String(localMat.id);
+            if (localMat) {
+                i.matId = String(localMat.id);
+                i.pending = localMat.pending || false;
+                if (!localMat.pending) {
+                    i.cost = calculateIngredientCost(localMat, i.qty, i.unit);
+                }
+            }
         });
+
+        // Actualizar IDs y RECALCULAR COSTOS de las decoraciones
         (recipeCopy.decorations || []).forEach(d => {
             const localMat = materials.find(m => normalizeText(m.name) === normalizeText(d.name));
-            if (localMat) d.matId = String(localMat.id);
+            if (localMat) {
+                d.matId = String(localMat.id);
+                d.pending = localMat.pending || false;
+                if (!localMat.pending) {
+                    d.cost = calculateIngredientCost(localMat, d.qty, d.unit);
+                }
+            }
         });
+
+        // Recalcular el costo extra y el costo total de la receta final
+        const ic = (recipeCopy.ingredients || []).reduce((s, i) => s + (i.cost || 0), 0);
+        const dc = (recipeCopy.decorations || []).reduce((s, d) => s + (d.cost || 0), 0);
+        let ec = 0;
+        if (recipeCopy.extraSubcategory) {
+            const extraItems = materials.filter(m => m.category === 'extra' && m.subcategory === recipeCopy.extraSubcategory);
+            ec = extraItems.reduce((s, m) => s + m.price, 0);
+        }
+        recipeCopy.totalCost = ic + dc + ec;
+
+        const alreadyExists = recipes.find(rec =>
+            rec.name === recipeCopy.name &&
+            rec.recipeFolder === recipeCopy.recipeFolder &&
+            rec.sourceClassDate === recipeCopy.sourceClassDate
+        );
+
+        if (!alreadyExists) {
+            recipes.push(recipeCopy);
+        }
+    });
 
         const alreadyExists = recipes.find(rec =>
             rec.name === recipeCopy.name &&
