@@ -255,15 +255,36 @@ body {
 .category-body.open { max-height: 50000px; padding: 0 16px 16px; }
 /* --- Extra --- */
 .extra-subcat { margin-bottom: 10px; }
+/* === SUBCATEGORÍAS EXTRA MEJORADAS === */
 .extra-subcat-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 4px;
-    font-size: 13px; font-weight: 600;
-    color: var(--text-muted);
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-    cursor: pointer; user-select: none;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    padding: 12px 14px;
+    font-size: 15px; 
+    font-weight: 600;
+    color: var(--text-main);
+    background: var(--surface-color);
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    cursor: pointer; 
+    user-select: none;
+    transition: all 0.2s;
 }
-.extra-subcat-header:hover { background: var(--surface-hover); border-radius: var(--radius-sm); }
+.extra-subcat-header:hover { 
+    background: var(--surface-hover); 
+    border-color: var(--secondary-color);
+}
+.extra-subcat-header span {
+    font-size: 15px;
+    font-weight: 600;
+}
+.extra-subcat-header i.bx-folder { 
+    font-size: 20px; 
+    color: var(--secondary-color); 
+    margin-right: 6px; 
+}
 .extra-subcat-header i { color: var(--secondary-color); margin-right: 4px; }
 .extra-subcat-body { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.35s ease; padding: 0; }
 .extra-subcat-body.open { max-height: 50000px; padding: 8px 0; }
