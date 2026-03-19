@@ -1,7 +1,7 @@
 {
   "version": "4.1",
   "type": "module",
-  "exportDate": "2026-03-19T05:37:26.398Z",
+  "exportDate": "2026-03-19T05:43:18.637Z",
   "module": {
     "id": "1773457125845",
     "name": "Pasteleria 1",
@@ -12,7 +12,7 @@
       "name": "Galletas mantequilla",
       "ingredients": [
         {
-          "id": "1773777391387-ntyu8",
+          "id": "1773898710937-ytfhz",
           "matId": "1773263777308",
           "name": "Harina",
           "qty": 230,
@@ -21,7 +21,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-ulome",
+          "id": "1773898710937-e25c4",
           "matId": "1773273706640",
           "name": "Mantequilla",
           "qty": 115,
@@ -30,7 +30,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-yjn7f",
+          "id": "1773898710937-55f18",
           "matId": "1773263818769",
           "name": "Huevos",
           "qty": 2,
@@ -39,7 +39,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-6xbwh",
+          "id": "1773898710937-lc585",
           "matId": "1773464409379-22-i6elqo1o",
           "name": "Azucar glass",
           "qty": 90,
@@ -48,7 +48,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-hj59b",
+          "id": "1773898710937-9iwx9",
           "matId": "1773464409379-23-2yczhtau",
           "name": "Vainilla",
           "qty": 5,
@@ -57,7 +57,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-x4l2w",
+          "id": "1773898710937-hzddf",
           "matId": "1773273731096",
           "name": "maicena",
           "qty": 15,
@@ -68,7 +68,7 @@
       ],
       "decorations": [
         {
-          "id": "1773777391387-mgj5n",
+          "id": "1773898710937-4fqdp",
           "matId": "1773433134208-pending",
           "name": "Chocolate",
           "qty": 100,
@@ -89,7 +89,7 @@
       "name": "Galleta ojo de buey",
       "ingredients": [
         {
-          "id": "1773777391387-sdnge",
+          "id": "1773898710937-82nnc",
           "matId": "1773263777308",
           "name": "Harina",
           "qty": 200,
@@ -98,7 +98,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-abd6m",
+          "id": "1773898710937-bx061",
           "matId": "1773273706640",
           "name": "Mantequilla",
           "qty": 60,
@@ -107,7 +107,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-08sby",
+          "id": "1773898710937-0swy2",
           "matId": "1773263818769",
           "name": "Huevos",
           "qty": 2,
@@ -116,7 +116,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-r1a8v",
+          "id": "1773898710937-onfcd",
           "matId": "1773263979319",
           "name": "Mermelada",
           "qty": 200,
@@ -125,7 +125,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-2gyjo",
+          "id": "1773898710937-mtfnc",
           "matId": "1773464409379-22-i6elqo1o",
           "name": "Azucar glass",
           "qty": 90,
@@ -134,7 +134,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-fdzp4",
+          "id": "1773898710937-69tbx",
           "matId": "1773464409379-24-2fk3a9bb",
           "name": "Margarina",
           "qty": 60,
@@ -145,7 +145,7 @@
       ],
       "decorations": [
         {
-          "id": "1773777391387-jx8uc",
+          "id": "1773898710937-uehgw",
           "matId": "1773464409379-22-i6elqo1o",
           "name": "Azucar glass",
           "qty": 50,
@@ -166,7 +166,7 @@
       "name": "Lengua de gato",
       "ingredients": [
         {
-          "id": "1773777391387-j6e58",
+          "id": "1773898710937-69mxv",
           "matId": "1773263818769",
           "name": "Huevos",
           "qty": 3,
@@ -175,7 +175,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-ezhnx",
+          "id": "1773898710937-qhrs6",
           "matId": "1773263777308",
           "name": "Harina",
           "qty": 120,
@@ -184,7 +184,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-2gqf8",
+          "id": "1773898710937-iagy4",
           "matId": "1773273731096",
           "name": "Maicena",
           "qty": 30,
@@ -193,7 +193,7 @@
           "pending": false
         },
         {
-          "id": "1773777391387-1stkf",
+          "id": "1773898710937-i37qy",
           "matId": "1773463829111-pending",
           "name": "Azucar granulada",
           "qty": 150,
@@ -204,7 +204,7 @@
       ],
       "decorations": [
         {
-          "id": "1773777391387-50r3j",
+          "id": "1773898710937-p408o",
           "matId": "1773463829111-pending",
           "name": "Azucar granulada",
           "qty": 100,
@@ -224,7 +224,7 @@
   ],
   "courses": [
     {
-      "id": "1773778674090-7jih2",
+      "id": "1773898945957-yb50r",
       "name": "Pasteleria 1 Lunes",
       "day": "Sábado",
       "schedule": "10:30 - 1:30",
@@ -242,7 +242,7 @@
       ]
     },
     {
-      "id": "1773778674090-h1lu5",
+      "id": "1773898945957-3nm1r",
       "name": "Pasteleria 1 Jueves",
       "day": "Jueves",
       "schedule": "10:30 - 13:30",
@@ -272,9 +272,9 @@
   ],
   "classes": [
     {
-      "classId": "1773778674090-cprb1",
+      "classId": "1773898945957-zgspa",
       "className": "Clase 1",
-      "courseId": "1773778674090-7jih2",
+      "courseId": "1773898945957-yb50r",
       "courseName": "Pasteleria 1 Lunes",
       "date": "2026-03-17",
       "moduleClassName": "Clase 1",
@@ -604,9 +604,9 @@
       ]
     },
     {
-      "classId": "1773778674090-cc2rv",
+      "classId": "1773898945957-08jph",
       "className": "Clase 1",
-      "courseId": "1773778674090-h1lu5",
+      "courseId": "1773898945957-3nm1r",
       "courseName": "Pasteleria 1 Jueves",
       "date": "2026-03-17",
       "moduleClassName": "Clase 1",
