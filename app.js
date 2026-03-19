@@ -1243,12 +1243,11 @@ function renderModuleFolder(mod, recipesInModule) {
                         <div class="recipe-folder-count">Prefijo: ${mod.prefix} • ${recipesInModule.length} receta${recipesInModule.length !== 1 ? 's' : ''}${classNames.length > 0 ? ' • ' + classNames.length + ' clase' + (classNames.length !== 1 ? 's' : '') : ''}</div>
                     </div>
                 </div>
-                <div style="display:flex; align-items:center; gap:6px;" onclick="event.stopPropagation()">
-                    <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showCreateModuleModal('${mod.id}')"><i class='bx bx-edit'></i></button>
-                    <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteModule('${mod.id}')"><i class='bx bx-trash'></i></button>
-                    <i class='bx bx-chevron-down recipe-folder-chevron' id="module-folder-chevron-${moduleId}" style="transform:rotate(-90deg);"></i>
+                <div class="action-buttons-group" onclick="event.stopPropagation()">
+                    <button class="btn-icon" onclick="showCreateModuleModal('${mod.id}')"><i class='bx bx-edit'></i></button>
+                    <button class="btn-icon danger" onclick="deleteModule('${mod.id}')"><i class='bx bx-trash'></i></button>
+                    <i class='bx bx-chevron-down recipe-folder-chevron' id="module-folder-chevron-${moduleId}" style="transform:rotate(-90deg); margin-left:4px;"></i>
                 </div>
-            </div>
 
             <div class="recipe-folder-body" id="module-folder-body-${moduleId}">
                 <div class="module-info-box">
@@ -1610,10 +1609,10 @@ function renderCourses() {
                         <h4>${cls.name}</h4>
                         <p>📅 ${formatDate(cls.date)} • Código clase: ${cls.blockCode || '----'} • ✅ ${present}/${total}</p>
                     </div>
-                    <div class="class-item-actions">
-                        <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showEditClassModal('${course.id}','${cls.id}')"><i class='bx bx-edit'></i></button>
-                        <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showAttendanceModal('${course.id}','${cls.id}')"><i class='bx bx-clipboard'></i></button>
-                        <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteClass('${course.id}','${cls.id}')"><i class='bx bx-trash'></i></button>
+                    <div class="action-buttons-group">
+                        <button class="btn-icon" onclick="showEditClassModal('${course.id}','${cls.id}')"><i class='bx bx-edit'></i></button>
+                        <button class="btn-icon" onclick="showAttendanceModal('${course.id}','${cls.id}')"><i class='bx bx-clipboard'></i></button>
+                        <button class="btn-icon danger" onclick="deleteClass('${course.id}','${cls.id}')"><i class='bx bx-trash'></i></button>
                     </div>
                 </div>`;
         }).join('');
@@ -1631,9 +1630,9 @@ function renderCourses() {
                             <div class="course-card-schedule">${course.schedule || ''} • ${course.students.length} alumnos</div>
                         </div>
                     </div>
-                    <div class="course-card-actions" onclick="event.stopPropagation()">
-                        <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showCreateCourseModal('${course.id}')"><i class='bx bx-edit'></i></button>
-                        <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteCourse('${course.id}')"><i class='bx bx-trash'></i></button>
+                    <div class="action-buttons-group" onclick="event.stopPropagation()">
+                        <button class="btn-icon" onclick="showCreateCourseModal('${course.id}')"><i class='bx bx-edit'></i></button>
+                        <button class="btn-icon danger" onclick="deleteCourse('${course.id}')"><i class='bx bx-trash'></i></button>
                     </div>
                 </div>
                 <div class="course-card-body ${bodyOpen}" id="course-folder-body-${folderId}">
