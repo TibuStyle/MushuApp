@@ -1069,9 +1069,11 @@
     <input type="file" id="import-recipe-file" accept=".json" style="display:none;" onchange="importRecipeFromFile(event)">
 
     <!-- Photo Fullscreen Viewer -->
-    <div id="photo-fullscreen" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:9000; justify-content:center; align-items:center; cursor:pointer;" onclick="closePhotoFullscreen()">
-        <img id="photo-fullscreen-img" src="" style="max-width:95%; max-height:90%; object-fit:contain; border-radius:8px;">
-        <div id="photo-fullscreen-watermark" style="position:absolute; bottom:20px; right:20px; color:rgba(255,255,255,0.4); font-size:14px; font-weight:700; pointer-events:none;"></div>
+    <div id="photo-fullscreen" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:9000; justify-content:center; align-items:center; cursor:pointer; overflow:hidden;" onclick="closePhotoFullscreen()">
+        <div style="position:relative; max-width:95%; max-height:90%; display:flex; justify-content:center; align-items:center;">
+            <img id="photo-fullscreen-img" src="" style="max-width:100%; max-height:100%; object-fit:contain; border-radius:8px;">
+            <div id="photo-fullscreen-watermark" class="watermark-overlay" style="font-size:32px;"></div>
+        </div>
         <button style="position:absolute; top:20px; right:20px; background:rgba(255,255,255,0.2); border:none; color:white; width:40px; height:40px; border-radius:50%; font-size:24px; cursor:pointer; display:flex; align-items:center; justify-content:center;" onclick="closePhotoFullscreen()">
             <i class='bx bx-x'></i>
         </button>
