@@ -1233,42 +1233,39 @@ function renderModuleFolder(mod, recipesInModule) {
             .join('');
     }
 
-    return `
-        <div class="recipe-folder">
-            <div class="recipe-folder-header" onclick="toggleFolderBody('module-folder','${moduleId}')">
-                <div class="recipe-folder-header-left">
-                    <i class='bx bx-book' style="font-size:22px;color:var(--secondary-color);"></i>
-                    <div>
-                        <h3>${sanitizeHTML(mod.name)}</h3>
-                        <div class="recipe-folder-count">Prefijo: ${mod.prefix} • ${recipesInModule.length} receta${recipesInModule.length !== 1 ? 's' : ''}${classNames.length > 0 ? ' • ' + classNames.length + ' clase' + (classNames.length !== 1 ? 's' : '') : ''}</div>
+           return `
+            <div class="course-card">
+                <div class="course-card-header" onclick="toggleFolderBody('course-folder','${folderId}')">
+                    <div class="course-card-header-left">
+                        <i class='bx bxs-graduation' style="font-size:24px;color:var(--secondary-color);"></i>
+                        <div>
+                            <h3>${sanitizeHTML(course.name)}</h3>
+                            <div class="course-card-day">${course.day} • ${modulePrefix}</div>
+                            <div class="course-card-schedule">${course.schedule || ''} • ${course.students.length} alumnos • ${classCount} clase${classCount !== 1 ? 's' : ''}</div>
+                        </div>
+                    </div>
+                    <div class="action-buttons-group" onclick="event.stopPropagation()">
+                        <button class="btn-icon" onclick="showCreateCourseModal('${course.id}')"><i class='bx bx-edit'></i></button>
+                        <button class="btn-icon danger" onclick="deleteCourse('${course.id}')"><i class='bx bx-trash'></i></button>
                     </div>
                 </div>
-                <div class="action-buttons-group" onclick="event.stopPropagation()">
-                    <button class="btn-icon" onclick="showCreateModuleModal('${mod.id}')"><i class='bx bx-edit'></i></button>
-                    <button class="btn-icon danger" onclick="deleteModule('${mod.id}')"><i class='bx bx-trash'></i></button>
-                    <i class='bx bx-chevron-down recipe-folder-chevron' id="module-folder-chevron-${moduleId}" style="transform:rotate(-90deg); margin-left:4px;"></i>
-                </div>
+                <div class="course-card-body" id="course-folder-body-${folderId}">
+                    <div style="background:var(--surface-hover); border-radius:var(--radius-sm); padding:12px; margin-bottom:12px;">
+                        <h4 style="font-size:13px; color:var(--text-muted); margin:0 0 8px; display:flex; align-items:center; gap:6px;">
+                            <i class='bx bx-user' style="color:var(--secondary-color);"></i> Alumnos y Asistencia
+                        </h4>
+                        ${studentsHTML || '<p style="font-size:13px;color:var(--text-muted);">Sin alumnos</p>'}
+                    </div>
 
-            <div class="recipe-folder-body" id="module-folder-body-${moduleId}">
-                <div class="module-info-box">
-                    <strong>${sanitizeHTML(mod.name)}</strong>
-                    <p>Prefijo del módulo: ${mod.prefix}</p>
-                </div>
+                    ${classesHTML}
 
-                <div style="margin-top:10px;">
-                    <button class="btn-submit" style="margin-top:0;" onclick="createRecipeInModule('${mod.name}')">
-                        <i class='bx bx-plus'></i> Nueva receta del módulo
+                    <button class="btn-add-class" onclick="showCreateClassModal('${course.id}')">
+                        <i class='bx bx-plus'></i> Nueva Clase
                     </button>
                 </div>
-
-                ${recipesHTML || '<div class="empty-state" style="padding:20px;font-size:13px;margin-top:10px;">Este módulo no tiene recetas aún.</div>'}
-
-                <button class="btn-submit" style="margin-top:16px; background:linear-gradient(135deg, #6366f1, #8b5cf6);" onclick="showSyncModuleModal('${mod.id}')">
-                    <i class='bx bx-cloud'></i> Sincronizar
-                </button>
             </div>
-        </div>
-    `;
+        `;
+    }).join('');
 }
 
 function renderRecipes() {
