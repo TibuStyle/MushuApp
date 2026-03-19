@@ -1475,11 +1475,12 @@ function renderRecipeCard(r, priceColor) {
                             </strong>
                         </span>
                     </div>` : ''}
+                    ${(r.recipeSource !== 'class' && r.recipeSource !== 'module') || teacherMode.active ? `
                     <div class="action-buttons-group" style="margin-top:16px;">
                         <button class="btn-submit" style="margin-top:0;flex:1;" onclick="showAddRecipeModal('${r.id}')"><i class='bx bx-edit'></i> Editar</button>
                         <button class="btn-icon" style="background:var(--secondary-color);color:white;" onclick="shareRecipe('${r.id}')" title="Compartir"><i class='bx bx-share-alt'></i></button>
                         <button class="btn-icon danger" onclick="deleteRecipe('${r.id}')"><i class='bx bx-trash'></i></button>
-                    </div>
+                    </div>` : ''}
                 </div>
             </div>
         </div>
@@ -2587,8 +2588,15 @@ function viewImportedClass(classId) {
                 </div>`;
             }
 
+            if (r.recipeTips) {
+                html += `<div class="class-content-tips" style="margin-bottom:12px; margin-top:8px;">
+                            <strong style="color:var(--secondary-color); font-size:13px; display:block; margin-bottom:4px;">💡 Tips de la Profe:</strong>
+                            ${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}
+                         </div>`;
+            }
+
             if (recipeId) {
-                html += `<button class="btn-submit" style="margin-top:8px; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" 
+                html += `<button class="btn-submit" style="margin-top:0; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" 
                          onclick="closeModal('modal-view-class'); openRecipeFromClass('${recipeId}')">
                     <i class='bx bx-book-open'></i> Ver costo de receta
                 </button>`;
@@ -3838,8 +3846,15 @@ function previewClassAsStudent(courseId, classId) {
                 </div>`;
             }
 
+            if (r.recipeTips) {
+                html += `<div class="class-content-tips" style="margin-bottom:12px; margin-top:8px;">
+                            <strong style="color:var(--secondary-color); font-size:13px; display:block; margin-bottom:4px;">💡 Tips de la Profe:</strong>
+                            ${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}
+                         </div>`;
+            }
+
             if (recipeId) {
-                html += `<button class="btn-submit" style="margin-top:8px; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" 
+                html += `<button class="btn-submit" style="margin-top:0; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" 
                          onclick="closeModal('modal-view-class'); openRecipeFromClass('${recipeId}')">
                     <i class='bx bx-book-open'></i> Ver costo de receta
                 </button>`;
@@ -4003,15 +4018,6 @@ function openRecipeFromClass(recipeId) {
             </div>` : ''}
         </div>
     </div>`;
-
-    if (r.recipeTips) {
-        html += `<div class="class-content-section">
-            <h4><i class='bx bx-bulb'></i> Tips del Profesor</h4>
-            <div class="class-content-tips">
-                ${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}
-            </div>
-        </div>`;
-    }
 
     const autoTip = generateRecipeTip(r);
     if (autoTip) {
