@@ -1529,3 +1529,8 @@ input:checked + .slider:before { transform: translateX(16px); }
 #modal-enter-prefix-load {
     z-index: 460;
 }
+
+/* === MODAL AGREGAR MATERIAL SIEMPRE ARRIBA === */
+#modal-material {
+    z-index: 500;
+}
