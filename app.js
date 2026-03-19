@@ -1217,7 +1217,15 @@ function renderModuleFolder(mod, recipesInModule) {
                             <div class="recipe-folder-count">${classRecipes.length} receta${classRecipes.length !== 1 ? 's' : ''}</div>
                         </div>
                     </div>
-                    <i class='bx bx-chevron-down recipe-folder-chevron' id="module-class-chevron-${classId}" style="transform:rotate(-90deg);"></i>
+                    <div class="action-buttons-group" onclick="event.stopPropagation()">
+                        <button class="btn-icon" style="width:32px; height:32px;" onclick="editModuleClassName('${mod.name}', '${className}')">
+                            <i class='bx bx-edit' style="font-size:16px;"></i>
+                        </button>
+                        <button class="btn-icon danger" style="width:32px; height:32px;" onclick="deleteModuleClass('${mod.name}', '${className}')">
+                            <i class='bx bx-trash' style="font-size:16px;"></i>
+                        </button>
+                    </div>
+                    <i class='bx bx-chevron-down recipe-folder-chevron' id="module-class-chevron-${classId}" style="transform:rotate(-90deg); margin-left:4px;"></i>
                 </div>
                 <div class="recipe-folder-body" id="module-class-body-${classId}">
                     ${classRecipes.map(r => renderRecipeCard(r, priceColor)).join('')}
@@ -3280,6 +3288,32 @@ function editModuleClassName(moduleName, oldClassName) {
     document.getElementById('modal-new-material-name').classList.add('active');
 }
 
+function deleteModuleClass(moduleName, className) {
+    const classRecipesCount = recipes.filter(r => 
+        r.recipeFolder === moduleName && 
+        r.moduleClass === className
+    ).length;
+
+    let warningText = `¿Estás seguro de eliminar "${className}"?`;
+    if (classRecipesCount > 0) {
+        warningText += `\n⚠️ Se eliminarán ${classRecipesCount} receta(s) que están adentro.`;
+    }
+
+    showConfirmModal(
+        'Eliminar Clase',
+        warningText,
+        () => {
+            recipes = recipes.filter(r => 
+                !(r.recipeFolder === moduleName && r.moduleClass === className)
+            );
+            
+            saveRecipesToStorage();
+            updateRecipesView();
+            showToast(`Clase "${className}" eliminada 🗑️`);
+        }
+    );
+}
+    
 function getOpenRecipeFolders() {
     const openFolders = [];
 
