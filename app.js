@@ -1221,6 +1221,9 @@ function renderModuleFolder(mod, recipesInModule) {
                 </div>
                 <div class="recipe-folder-body" id="module-class-body-${classId}">
                     ${classRecipes.map(r => renderRecipeCard(r, priceColor)).join('')}
+                    <button class="btn-add-class" style="margin-top:12px;" onclick="createRecipeInModuleClass('${mod.name}', '${className}')">
+                        <i class='bx bx-plus'></i> Agregar receta a esta clase
+                    </button>
                 </div>
             </div>
         `;
@@ -1251,21 +1254,10 @@ function renderModuleFolder(mod, recipesInModule) {
             </div>
 
             <div class="recipe-folder-body" id="module-folder-body-${moduleId}">
-                <div class="module-info-box">
-                    <strong>${sanitizeHTML(mod.name)}</strong>
-                    <p>Prefijo del módulo: ${mod.prefix}</p>
-                </div>
+                ${recipesHTML}
 
-                <div style="margin-top:10px;">
-                    <button class="btn-submit" style="margin-top:0;" onclick="createRecipeInModule('${mod.name}')">
-                        <i class='bx bx-plus'></i> Nueva receta del módulo
-                    </button>
-                </div>
-
-                ${recipesHTML || '<div class="empty-state" style="padding:20px;font-size:13px;margin-top:10px;">Este módulo no tiene recetas aún.</div>'}
-
-                <button class="btn-submit" style="margin-top:16px; background:linear-gradient(135deg, #6366f1, #8b5cf6);" onclick="showSyncModuleModal('${mod.id}')">
-                    <i class='bx bx-cloud'></i> Sincronizar
+                <button class="btn-add-class" style="margin-top:16px; border:2px dashed var(--secondary-color); background:transparent;" onclick="addNewModuleClassDirectly('${mod.name}')">
+                    <i class='bx bx-plus'></i> Crear Nueva Clase
                 </button>
             </div>
         </div>
@@ -4389,22 +4381,43 @@ function showSyncMissingModal(missingList) {
     document.getElementById('modal-sync-missing').classList.add('active');
 }
 
+// === SINCRONIZAR MÓDULO ===
+function showGlobalSyncModal() {
+    const select = document.getElementById('global-sync-module-select');
+    if (modules.length === 0) {
+        showToast('No tienes módulos creados', true);
+        return;
+    }
+    
+    select.innerHTML = modules.map(m => 
+        `<option value="${m.id}">${m.name} (${m.prefix})</option>`
+    ).join('');
+    
+    document.getElementById('sync-status').style.display = 'none';
+    document.getElementById('modal-sync-module').classList.add('active');
+}
+
+function showSyncStatus(text) {
+    const statusDiv = document.getElementById('sync-status');
+    const statusText = document.getElementById('sync-status-text');
+    statusDiv.style.display = 'block';
+    statusText.textContent = text;
+}
+
 function syncModuleUpload() {
-    const mod = modules.find(m => String(m.id) === String(currentSyncModuleId));
+    const selectedId = document.getElementById('global-sync-module-select').value;
+    const mod = modules.find(m => String(m.id) === String(selectedId));
     if (!mod) return;
 
-    // Juntar recetas del módulo
     const moduleRecipes = recipes.filter(r =>
         (r.recipeFolder || '') === mod.name &&
         (r.recipeSource === 'module' || r.recipeSource === 'class')
     );
 
-    // Juntar cursos del módulo
     const moduleCourses = courses.filter(c =>
         String(c.moduleId) === String(mod.id)
     );
 
-    // Juntar clases con todo su contenido
     const moduleClasses = [];
     moduleCourses.forEach(course => {
         (course.classes || []).forEach(cls => {
@@ -4432,7 +4445,6 @@ function syncModuleUpload() {
         });
     });
 
-    // Crear JSON del módulo
     const moduleData = {
         version: '4.1',
         type: 'module',
@@ -4468,11 +4480,9 @@ function syncModuleUpload() {
         classes: moduleClasses
     };
 
-    // Nombre del archivo
     const fileName = mod.prefix.toLowerCase() + '-module.json';
     const jsonString = JSON.stringify(moduleData, null, 2);
 
-    // Descargar archivo
     if (window.AndroidShare) {
         window.AndroidShare.shareFile(jsonString, fileName);
     } else {
@@ -4486,7 +4496,6 @@ function syncModuleUpload() {
         document.body.removeChild(a);
     }
 
-    // Abrir GitHub en la carpeta modules
     setTimeout(() => {
         window.open('https://github.com/TibuStyle/MushuApp/tree/main/modules', '_blank');
     }, 1000);
@@ -4496,7 +4505,8 @@ function syncModuleUpload() {
 }
 
 function syncModuleDownload() {
-    const mod = modules.find(m => String(m.id) === String(currentSyncModuleId));
+    const selectedId = document.getElementById('global-sync-module-select').value;
+    const mod = modules.find(m => String(m.id) === String(selectedId));
     if (!mod) return;
 
     const fileName = mod.prefix.toLowerCase() + '-module.json';
@@ -4518,7 +4528,7 @@ function syncModuleDownload() {
                 return;
             }
 
-            const modIdx = modules.findIndex(m => String(m.id) === String(currentSyncModuleId));
+            const modIdx = modules.findIndex(m => String(m.id) === String(selectedId));
             if (modIdx !== -1) {
                 modules[modIdx].name = data.module.name;
                 modules[modIdx].prefix = data.module.prefix;
@@ -4603,7 +4613,7 @@ function syncModuleDownload() {
 
             (data.courses || []).forEach(courseData => {
                 const existingCourse = courses.find(c =>
-                    String(c.moduleId) === String(currentSyncModuleId) &&
+                    String(c.moduleId) === String(selectedId) &&
                     c.name === courseData.name
                 );
 
@@ -4611,7 +4621,7 @@ function syncModuleDownload() {
                     const newCourse = {
                         id: courseData.id || Date.now().toString(),
                         name: courseData.name,
-                        moduleId: currentSyncModuleId,
+                        moduleId: selectedId,
                         moduleName: data.module.name,
                         day: courseData.day || 'Lunes',
                         schedule: courseData.schedule || '',
