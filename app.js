@@ -4865,15 +4865,18 @@ function syncModuleUpload() {
     const mod = modules.find(m => String(m.id) === String(selectedId));
     if (!mod) return;
 
+    // Juntar recetas del módulo
     const moduleRecipes = recipes.filter(r =>
         (r.recipeFolder || '') === mod.name &&
         (r.recipeSource === 'module' || r.recipeSource === 'class')
     );
 
+    // Juntar cursos del módulo (buscar por ID o por Nombre por seguridad)
     const moduleCourses = courses.filter(c =>
-        String(c.moduleId) === String(mod.id)
+        String(c.moduleId) === String(mod.id) || c.moduleName === mod.name
     );
 
+    // Juntar clases con todo su contenido
     const moduleClasses = [];
     moduleCourses.forEach(course => {
         (course.classes || []).forEach(cls => {
@@ -4901,6 +4904,7 @@ function syncModuleUpload() {
         });
     });
 
+    // Crear JSON del módulo
     const moduleData = {
         version: '4.1',
         type: 'module',
@@ -4936,9 +4940,11 @@ function syncModuleUpload() {
         classes: moduleClasses
     };
 
+    // Nombre del archivo
     const fileName = mod.prefix.toLowerCase() + '-module.json';
     const jsonString = JSON.stringify(moduleData, null, 2);
 
+    // Descargar archivo
     if (window.AndroidShare) {
         window.AndroidShare.shareFile(jsonString, fileName);
     } else {
@@ -4952,6 +4958,7 @@ function syncModuleUpload() {
         document.body.removeChild(a);
     }
 
+    // Abrir GitHub en la carpeta modules
     setTimeout(() => {
         window.open('https://github.com/TibuStyle/MushuApp/tree/main/modules', '_blank');
     }, 1000);
