@@ -2417,12 +2417,10 @@ function refreshAllStudentClasses() {
         showToast('Necesitas internet para sincronizar', true);
         return;
     }
-
     if (studentProfiles.length === 0 || importedClasses.length === 0) {
         showToast('No tienes clases para sincronizar', true);
         return;
     }
-
     showToast('⏳ Sincronizando desde GitHub...', false);
 
     const uniquePrefixes = [...new Set(studentProfiles.map(p => p.modulePrefix))];
@@ -2435,17 +2433,13 @@ function refreshAllStudentClasses() {
         const url = 'https://tibustyle.github.io/MushuApp/modules/' + fileName + '?v=' + Date.now();
 
         fetch(url)
-            .then(response => {
-                if (!response.ok) throw new Error('No encontrado');
-                return response.json();
-            })
+            .then(response => { if (!response.ok) throw new Error('No encontrado'); return response.json(); })
             .then(data => {
                 if (!data.type || data.type !== 'module') throw new Error('Inválido');
 
                 importedClasses.forEach(ic => {
                     if (ic.moduleName === data.module.name || data.module.prefix === prefix) {
                         let githubClass = null;
-                        
                         (data.classes || []).forEach(cls => {
                             if (cls.classId === ic.classId || cls.blockCode === (ic.visibleCode || '').slice(-8, -3)) {
                                 githubClass = cls;
@@ -2462,11 +2456,9 @@ function refreshAllStudentClasses() {
                             ic.linkedRecipes = recipesToUpdate;
 
                             recipesToUpdate.forEach(githubRecipe => {
-                                // Buscar si el alumno ya tiene esta receta en su lista de Mis Recetas (por nombre y clase)
                                 const localRecipe = recipes.find(r => 
                                     normalizeText(r.name) === normalizeText(githubRecipe.name) && 
-                                    r.recipeSource === 'class' &&
-                                    r.recipeFolder === ic.courseName
+                                    r.recipeSource === 'class' && r.recipeFolder === ic.courseName
                                 );
                                 
                                 if (localRecipe) {
@@ -2474,8 +2466,8 @@ function refreshAllStudentClasses() {
                                     localRecipe.recipePhoto = githubRecipe.recipePhoto || null;
                                     localRecipe.portions = githubRecipe.portions || 1;
                                     localRecipe.extraSubcategory = githubRecipe.extraSubcategory || null;
+                                    localRecipe.moduleClass = githubRecipe.moduleClass || '';
                                     
-                                    // Buscar si hay ingredientes faltantes nuevos
                                     const allItems = [...(githubRecipe.ingredients || []), ...(githubRecipe.decorations || [])];
                                     allItems.forEach(item => {
                                         const found = materials.find(m => normalizeText(m.name) === normalizeText(item.name));
@@ -2485,26 +2477,22 @@ function refreshAllStudentClasses() {
                                         }
                                     });
 
+                                    // ¡Buscando Extras faltantes!
+                                    if (githubRecipe.extraSubcategory) {
+                                        const extraFound = materials.find(m => m.category === 'extra' && normalizeText(m.subcategory) === normalizeText(githubRecipe.extraSubcategory));
+                                        if (!extraFound && !allMissing.find(mm => normalizeText(mm.name) === normalizeText(githubRecipe.extraSubcategory))) {
+                                            allMissing.push({ name: githubRecipe.extraSubcategory, category: 'extra' });
+                                        }
+                                    }
+
                                     localRecipe.ingredients = (githubRecipe.ingredients || []).map(i => {
                                         const localMat = materials.find(m => normalizeText(m.name) === normalizeText(i.name));
-                                        return {
-                                            ...i,
-                                            id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
-                                            matId: localMat ? String(localMat.id) : '',
-                                            cost: (localMat && !localMat.pending) ? calculateIngredientCost(localMat, i.qty, i.unit) : 0,
-                                            pending: localMat ? (localMat.pending || false) : true
-                                        };
+                                        return { ...i, id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5), matId: localMat ? String(localMat.id) : '', cost: (localMat && !localMat.pending) ? calculateIngredientCost(localMat, i.qty, i.unit) : 0, pending: localMat ? (localMat.pending || false) : true };
                                     });
 
                                     localRecipe.decorations = (githubRecipe.decorations || []).map(d => {
                                         const localMat = materials.find(m => normalizeText(m.name) === normalizeText(d.name));
-                                        return {
-                                            ...d,
-                                            id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5),
-                                            matId: localMat ? String(localMat.id) : '',
-                                            cost: (localMat && !localMat.pending) ? calculateIngredientCost(localMat, d.qty, d.unit) : 0,
-                                            pending: localMat ? (localMat.pending || false) : true
-                                        };
+                                        return { ...d, id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5), matId: localMat ? String(localMat.id) : '', cost: (localMat && !localMat.pending) ? calculateIngredientCost(localMat, d.qty, d.unit) : 0, pending: localMat ? (localMat.pending || false) : true };
                                     });
 
                                     const icCost = localRecipe.ingredients.reduce((s, i) => s + (i.cost || 0), 0);
@@ -2526,9 +2514,8 @@ function refreshAllStudentClasses() {
                 fetchesCompleted++;
                 if (fetchesCompleted === uniquePrefixes.length) {
                     if (allMissing.length > 0) {
-                        showSyncMissingModal(allMissing);
+                        showMissingMaterialsModal(allMissing);
                     }
-                    
                     if (updatedClassesCount > 0) {
                         saveImportedClasses();
                         saveRecipesToStorage();
