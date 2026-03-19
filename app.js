@@ -4518,14 +4518,18 @@ function showSyncMissingModal(missingList) {
 // === SINCRONIZAR MÓDULO ===
 function showGlobalSyncModal() {
     const select = document.getElementById('global-sync-module-select');
-    if (modules.length === 0) {
-        showToast('No tienes módulos creados', true);
-        return;
-    }
     
-    select.innerHTML = modules.map(m => 
-        `<option value="${m.id}">${m.name} (${m.prefix})</option>`
-    ).join('');
+    // Llenar el select con los módulos disponibles (si los hay)
+    if (modules.length > 0) {
+        select.innerHTML = modules.map(m => 
+            `<option value="${m.id}">${m.name} (${m.prefix})</option>`
+        ).join('');
+        select.disabled = false;
+    } else {
+        // Si no hay módulos, mostrar opción vacía para que igual puedan "Cargar"
+        select.innerHTML = `<option value="">No hay módulos locales (Puedes Cargar)</option>`;
+        select.disabled = true;
+    }
     
     document.getElementById('sync-status').style.display = 'none';
     document.getElementById('modal-sync-module').classList.add('active');
@@ -4540,6 +4544,11 @@ function showSyncStatus(text) {
 
 function syncModuleUpload() {
     const selectedId = document.getElementById('global-sync-module-select').value;
+    if (!selectedId) {
+        showToast('No tienes módulos para subir', true);
+        return;
+    }
+    
     const mod = modules.find(m => String(m.id) === String(selectedId));
     if (!mod) return;
 
@@ -4639,14 +4648,14 @@ function syncModuleUpload() {
 }
 
 function syncModuleDownload() {
-    const selectedId = document.getElementById('global-sync-module-select').value;
-    const mod = modules.find(m => String(m.id) === String(selectedId));
-    if (!mod) return;
-
-    const fileName = mod.prefix.toLowerCase() + '-module.json';
+    const prefix = prompt('Ingresa el PREFIJO del módulo a cargar de GitHub (ej: PA1):');
+    if (!prefix || !prefix.trim()) return;
+    
+    const cleanPrefix = prefix.trim().toUpperCase();
+    const fileName = cleanPrefix.toLowerCase() + '-module.json';
     const url = 'https://tibustyle.github.io/MushuApp/modules/' + fileName + '?v=' + Date.now();
 
-    showSyncStatus('⏳ Buscando módulo en GitHub...');
+    showSyncStatus('⏳ Buscando módulo ' + cleanPrefix + ' en GitHub...');
 
     fetch(url)
         .then(response => {
@@ -4662,14 +4671,25 @@ function syncModuleDownload() {
                 return;
             }
 
-            const modIdx = modules.findIndex(m => String(m.id) === String(selectedId));
+            // Actualizar módulo si existe, o crearlo si es nuevo
+            let modIdx = modules.findIndex(m => m.prefix.toUpperCase() === data.module.prefix.toUpperCase());
+            let currentModId;
+            
             if (modIdx !== -1) {
                 modules[modIdx].name = data.module.name;
-                modules[modIdx].prefix = data.module.prefix;
+                currentModId = modules[modIdx].id;
+            } else {
+                currentModId = Date.now().toString();
+                modules.push({
+                    id: currentModId,
+                    name: data.module.name,
+                    prefix: data.module.prefix
+                });
             }
 
+            // Quitar recetas viejas del módulo
             recipes = recipes.filter(r =>
-                !(r.recipeFolder === mod.name &&
+                !(r.recipeFolder === data.module.name &&
                 (r.recipeSource === 'module' || r.recipeSource === 'class'))
             );
 
@@ -4679,11 +4699,11 @@ function syncModuleDownload() {
                 const allItems = [...(r.ingredients || []), ...(r.decorations || [])];
                 allItems.forEach(item => {
                     const found = materials.find(m =>
-                        m.name.toLowerCase().trim() === item.name.toLowerCase().trim()
+                        normalizeText(m.name) === normalizeText(item.name)
                     );
-                    if (!found && !allMissing.find(mm => mm.name.toLowerCase() === item.name.toLowerCase())) {
+                    if (!found && !allMissing.find(mm => normalizeText(mm.name) === normalizeText(item.name))) {
                         const isDeco = (r.decorations || []).some(d =>
-                            d.name.toLowerCase().trim() === item.name.toLowerCase().trim()
+                            normalizeText(d.name) === normalizeText(item.name)
                         );
                         allMissing.push({
                             name: item.name,
@@ -4700,7 +4720,7 @@ function syncModuleDownload() {
             (data.recipes || []).forEach(r => {
                 r.ingredients = (r.ingredients || []).map(i => {
                     const found = materials.find(m =>
-                        m.name.toLowerCase().trim() === i.name.toLowerCase().trim()
+                        normalizeText(m.name) === normalizeText(i.name)
                     );
                     return {
                         ...i,
@@ -4713,7 +4733,7 @@ function syncModuleDownload() {
 
                 r.decorations = (r.decorations || []).map(d => {
                     const found = materials.find(m =>
-                        m.name.toLowerCase().trim() === d.name.toLowerCase().trim()
+                        normalizeText(m.name) === normalizeText(d.name)
                     );
                     return {
                         ...d,
@@ -4747,7 +4767,7 @@ function syncModuleDownload() {
 
             (data.courses || []).forEach(courseData => {
                 const existingCourse = courses.find(c =>
-                    String(c.moduleId) === String(selectedId) &&
+                    String(c.moduleId) === String(currentModId) &&
                     c.name === courseData.name
                 );
 
@@ -4755,7 +4775,7 @@ function syncModuleDownload() {
                     const newCourse = {
                         id: courseData.id || Date.now().toString(),
                         name: courseData.name,
-                        moduleId: selectedId,
+                        moduleId: currentModId,
                         moduleName: data.module.name,
                         day: courseData.day || 'Lunes',
                         schedule: courseData.schedule || '',
@@ -4821,7 +4841,7 @@ function syncModuleDownload() {
         })
         .catch(err => {
             console.error(err);
-            showSyncStatus('❌ No se encontró el módulo. ¿Ya lo subiste a GitHub?');
+            showSyncStatus('❌ No se encontró el módulo ' + cleanPrefix + '. ¿Ya lo subieron a GitHub?');
             showToast('No se pudo cargar el módulo', true);
         });
 }
