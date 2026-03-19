@@ -1603,6 +1603,53 @@ function showCreateCourseModal(courseId = null) {
     document.getElementById('modal-course').classList.add('active');
 }
 
+function addStudentToCourse() {
+    const input = document.getElementById('course-add-student');
+    const name = input.value.trim();
+    if (!name) { showToast('Ingresa un nombre', true); return; }
+    if (currentCourseStudents.find(s => s.name.toLowerCase() === name.toLowerCase())) {
+        showToast('Alumno ya existe', true);
+        return;
+    }
+
+    const studentCode = String(currentCourseStudents.length + 1).padStart(2, '0');
+    currentCourseStudents.push({
+        id: Date.now().toString(),
+        name,
+        studentCode
+    });
+
+    input.value = '';
+    renderCourseStudents();
+}
+
+function removeStudentFromCourse(studentId) {
+    currentCourseStudents = currentCourseStudents.filter(s => String(s.id) !== String(studentId));
+    currentCourseStudents = currentCourseStudents.map((s, index) => ({
+        ...s,
+        studentCode: String(index + 1).padStart(2, '0')
+    }));
+    renderCourseStudents();
+}
+
+function renderCourseStudents() {
+    const list = document.getElementById('course-students-list');
+    if (!currentCourseStudents.length) {
+        list.innerHTML = '<div style="padding:10px;font-size:13px;color:var(--text-muted);text-align:center;">Sin alumnos aún</div>';
+        return;
+    }
+
+    list.innerHTML = currentCourseStudents.map(s => `
+        <div class="course-student-item">
+            <span>👤 ${sanitizeHTML(s.name)}</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span class="student-code-badge">${s.studentCode || '--'}</span>
+                <button type="button" onclick="removeStudentFromCourse('${s.id}')"><i class='bx bx-x'></i></button>
+            </div>
+        </div>
+    `).join('');
+}
+
 function saveCourse() {
     const name = document.getElementById('course-name').value.trim();
     const moduleId = document.getElementById('course-module-select').value;
