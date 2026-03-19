@@ -1524,3 +1524,8 @@ input:checked + .slider:before { transform: translateX(16px); }
     -webkit-user-select: none;
     -webkit-touch-callout: none;
 }
+
+/* === MODAL INGRESAR PREFIJO CARGAR === */
+#modal-enter-prefix-load {
+    z-index: 460;
+}
