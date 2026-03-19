@@ -1192,20 +1192,70 @@ function renderRecipeFoldersInto(container, recipeList) {
 
 function renderRecipeGroupFolder(folderName, folderId, folderRecipes, openFirst = false) {
     const priceColor = showMinSellingPrice ? 'var(--secondary-color)' : 'var(--primary-color)';
+
+    // Separar recetas por clase (subcarpeta)
+    const classGroups = {};
+    const noClassRecipes = [];
+
+    folderRecipes.forEach(r => {
+        if (r.moduleClass) {
+            if (!classGroups[r.moduleClass]) classGroups[r.moduleClass] = [];
+            classGroups[r.moduleClass].push(r);
+        } else {
+            noClassRecipes.push(r);
+        }
+    });
+
+    const classNames = Object.keys(classGroups).sort((a, b) => a.localeCompare(b));
+
+    let recipesHTML = '';
+
+    // Dibujar las subcarpetas (Clase 1, Clase 2...)
+    classNames.forEach(className => {
+        const classRecipes = classGroups[className].sort((a, b) => a.name.localeCompare(b.name));
+        const classSubId = className.replace(/[^a-zA-Z0-9]/g, '_') + '_' + folderId;
+
+        recipesHTML += `
+            <div class="recipe-folder" style="margin-top:10px;">
+                <div class="recipe-folder-header" onclick="toggleFolderBody('student-class','${classSubId}')">
+                    <div class="recipe-folder-header-left">
+                        <i class='bx bx-book-open' style="font-size:18px;color:var(--secondary-color);"></i>
+                        <div>
+                            <h3 style="font-size:14px;">${sanitizeHTML(className)}</h3>
+                            <div class="recipe-folder-count">${classRecipes.length} receta${classRecipes.length !== 1 ? 's' : ''}</div>
+                        </div>
+                    </div>
+                    <i class='bx bx-chevron-down recipe-folder-chevron' id="student-class-chevron-${classSubId}" style="transform:rotate(-90deg);"></i>
+                </div>
+                <div class="recipe-folder-body" id="student-class-body-${classSubId}">
+                    ${classRecipes.map(r => renderRecipeCard(r, priceColor)).join('')}
+                </div>
+            </div>
+        `;
+    });
+
+    // Dibujar las recetas sueltas (como las de "Mis Recetas")
+    if (noClassRecipes.length > 0) {
+        recipesHTML += noClassRecipes
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(r => renderRecipeCard(r, priceColor))
+            .join('');
+    }
+
     return `
         <div class="recipe-folder">
             <div class="recipe-folder-header" onclick="toggleFolderBody('recipe-folder','${folderId}')">
                 <div class="recipe-folder-header-left">
                     <i class='bx bx-folder-open' style="font-size:22px;color:var(--secondary-color);"></i>
                     <div>
-                        <h3>${folderName}</h3>
+                        <h3>${sanitizeHTML(folderName)}</h3>
                         <div class="recipe-folder-count">${folderRecipes.length} receta${folderRecipes.length !== 1 ? 's' : ''}</div>
                     </div>
                 </div>
                 <i class='bx bx-chevron-down recipe-folder-chevron' id="recipe-folder-chevron-${folderId}" style="transform:rotate(-90deg);"></i>
             </div>
             <div class="recipe-folder-body" id="recipe-folder-body-${folderId}">
-                ${folderRecipes.map(r => renderRecipeCard(r, priceColor)).join('')}
+                ${recipesHTML}
             </div>
         </div>
     `;
