@@ -4901,14 +4901,28 @@ function syncModuleUpload() {
 }
 
 function syncModuleDownload() {
-    const prefix = prompt('Ingresa el PREFIJO del módulo a cargar de GitHub (ej: PA1):');
-    if (!prefix || !prefix.trim()) return;
+    // Cerrar el modal principal de sincronización primero
+    closeModal('modal-sync-module');
     
-    const cleanPrefix = prefix.trim().toUpperCase();
+    // Abrir el modal bonito para pedir el prefijo
+    document.getElementById('sync-load-prefix-input').value = '';
+    document.getElementById('modal-enter-prefix-load').classList.add('active');
+}
+
+function confirmSyncModuleDownload() {
+    const prefixInput = document.getElementById('sync-load-prefix-input').value;
+    if (!prefixInput || !prefixInput.trim()) {
+        showToast('Por favor, ingresa un prefijo', true);
+        return;
+    }
+    
+    closeModal('modal-enter-prefix-load');
+    
+    const cleanPrefix = prefixInput.trim().toUpperCase();
     const fileName = cleanPrefix.toLowerCase() + '-module.json';
     const url = 'https://tibustyle.github.io/MushuApp/modules/' + fileName + '?v=' + Date.now();
 
-    showSyncStatus('⏳ Buscando módulo ' + cleanPrefix + ' en GitHub...');
+    showToast('⏳ Buscando módulo ' + cleanPrefix + ' en GitHub...', false);
 
     fetch(url)
         .then(response => {
@@ -4919,8 +4933,7 @@ function syncModuleDownload() {
         })
         .then(data => {
             if (!data.type || data.type !== 'module' || !data.module) {
-                showSyncStatus('❌ El archivo no es un módulo válido');
-                showToast('Archivo no válido', true);
+                showToast('❌ El archivo no es un módulo válido', true);
                 return;
             }
 
@@ -5025,7 +5038,6 @@ function syncModuleDownload() {
                 );
 
                 if (!existingCourse) {
-                    // Si el curso no existe, lo creamos
                     existingCourse = {
                         id: courseData.id || Date.now().toString(),
                         name: courseData.name,
@@ -5042,11 +5054,9 @@ function syncModuleDownload() {
                     };
                     courses.push(existingCourse);
                 } else {
-                    // Si ya existe, actualizamos día, horario y alumnos por si cambiaron
                     existingCourse.day = courseData.day || existingCourse.day;
                     existingCourse.schedule = courseData.schedule || existingCourse.schedule;
                     
-                    // Actualizar alumnos (solo agregar nuevos o actualizar código, no borrar)
                     (courseData.students || []).forEach(s => {
                         const existingStudent = existingCourse.students.find(es => normalizeText(es.name) === normalizeText(s.name));
                         if (!existingStudent) {
@@ -5061,13 +5071,11 @@ function syncModuleDownload() {
                     });
                 }
 
-                // Sincronizar las clases de este curso
                 (data.classes || []).forEach(cls => {
                     if (cls.courseId === courseData.id) {
                         const existingClass = existingCourse.classes.find(ec => ec.blockCode === cls.blockCode || ec.id === cls.classId);
 
                         if (!existingClass) {
-                            // Si la clase no existe, la agregamos
                             existingCourse.classes.push({
                                 id: cls.classId || Date.now().toString(),
                                 name: cls.className,
@@ -5092,17 +5100,14 @@ function syncModuleDownload() {
                                 codesGenerated: cls.codesGenerated || false
                             });
                         } else {
-                            // Si YA EXISTE, ACTUALIZAMOS LOS NOMBRES Y RECETAS (Aquí estaba el bug)
                             existingClass.name = cls.className;
                             existingClass.date = cls.date;
                             existingClass.tips = cls.tips || existingClass.tips;
                             
-                            // Si vienen fotos nuevas desde GitHub, las agregamos (sin borrar las viejas del profe local si tenía)
                             if (cls.photos && cls.photos.length > 0) {
                                 existingClass.photos = cls.photos; 
                             }
 
-                            // Actualizamos las recetas vinculadas siempre a la última versión
                             existingClass.linkedRecipe = cls.linkedRecipe || existingClass.linkedRecipe;
                             existingClass.linkedRecipes = cls.linkedRecipes && cls.linkedRecipes.length > 0 ? cls.linkedRecipes : existingClass.linkedRecipes;
                         }
@@ -5120,9 +5125,6 @@ function syncModuleDownload() {
             updateRecipesView();
             updateClassesView();
 
-            showSyncStatus('✅ Módulo actualizado correctamente');
-            closeModal('modal-sync-module');
-
             if (allMissing.length > 0) {
                 showSyncMissingModal(allMissing);
                 showToast('Módulo cargado! ⚠️ ' + allMissing.length + ' materiales pendientes');
@@ -5132,8 +5134,7 @@ function syncModuleDownload() {
         })
         .catch(err => {
             console.error(err);
-            showSyncStatus('❌ No se encontró el módulo ' + cleanPrefix + '. ¿Ya lo subieron a GitHub?');
-            showToast('No se pudo cargar el módulo', true);
+            showToast('❌ No se encontró el módulo ' + cleanPrefix + '. ¿Ya lo subieron a GitHub?', true);
         });
 }
     
