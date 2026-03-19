@@ -1569,6 +1569,98 @@ function renderCourses() {
     }).join('');
 }
 
+function showCreateCourseModal(courseId = null) {
+    currentCourseStudents = [];
+    currentEditingCourseId = null;
+    document.getElementById('course-name').value = '';
+    document.getElementById('course-day').value = 'Lunes';
+    document.getElementById('course-schedule').value = '';
+    document.getElementById('modal-course-title').textContent = 'Crear Curso';
+
+    const moduleSelect = document.getElementById('course-module-select');
+    if (!modules.length) {
+        moduleSelect.innerHTML = '<option value="">No hay módulos</option>';
+    } else {
+        moduleSelect.innerHTML = modules.map(m =>
+            `<option value="${m.id}">${m.name} (${m.prefix})</option>`
+        ).join('');
+    }
+
+    if (courseId) {
+        const course = courses.find(c => String(c.id) === String(courseId));
+        if (course) {
+            currentEditingCourseId = String(course.id);
+            document.getElementById('course-name').value = course.name;
+            document.getElementById('course-day').value = course.day;
+            document.getElementById('course-schedule').value = course.schedule || '';
+            moduleSelect.value = course.moduleId || '';
+            currentCourseStudents = [...(course.students || [])];
+            document.getElementById('modal-course-title').textContent = 'Editar Curso';
+        }
+    }
+
+    renderCourseStudents();
+    document.getElementById('modal-course').classList.add('active');
+}
+
+function saveCourse() {
+    const name = document.getElementById('course-name').value.trim();
+    const moduleId = document.getElementById('course-module-select').value;
+    const day = document.getElementById('course-day').value;
+    const schedule = document.getElementById('course-schedule').value.trim();
+
+    const mod = modules.find(m => String(m.id) === String(moduleId));
+
+    if (!name) { showToast('Ingresa nombre del curso', true); return; }
+    if (!moduleId || !mod) { showToast('Selecciona un módulo', true); return; }
+    if (!currentCourseStudents.length) { showToast('Agrega al menos un alumno', true); return; }
+
+    if (currentEditingCourseId) {
+        const idx = courses.findIndex(c => String(c.id) === String(currentEditingCourseId));
+        if (idx !== -1) {
+            courses[idx] = {
+                ...courses[idx],
+                name,
+                moduleId: mod.id,
+                moduleName: mod.name,
+                day,
+                schedule,
+                students: currentCourseStudents
+            };
+            showToast('Curso actualizado!');
+        }
+    } else {
+        courses.push({
+            id: Date.now().toString(),
+            name,
+            moduleId: mod.id,
+            moduleName: mod.name,
+            day,
+            schedule,
+            students: currentCourseStudents,
+            classes: []
+        });
+        showToast('Curso creado!');
+    }
+
+    saveCourses();
+    renderCourses();
+    closeModal('modal-course');
+}
+
+function deleteCourse(courseId) {
+    showConfirmModal(
+        'Eliminar curso',
+        '¿Eliminar este curso y todas sus clases?',
+        () => {
+            courses = courses.filter(c => String(c.id) !== String(courseId));
+            saveCourses();
+            renderCourses();
+            showToast('Curso eliminado');
+        }
+    );
+}
+
 function showCreateClassModal(courseId) {
     currentEditingClassId = null;
     currentClassPhotos = [];
