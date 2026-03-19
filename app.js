@@ -2885,45 +2885,73 @@ function saveMissingMaterialsAndContinue() {
     const items = document.querySelectorAll('[id^="missing-name-"]');
 
     for (let i = 0; i < items.length; i++) {
-        const name = document.getElementById('missing-name-' + i).value;
+        const rawName = document.getElementById('missing-name-' + i).value.trim();
         const category = document.getElementById('missing-category-' + i).value;
         const price = parseFloat(document.getElementById('missing-price-' + i).value);
         const qty = parseFloat(document.getElementById('missing-qty-' + i).value);
         const unit = document.getElementById('missing-unit-' + i).value;
 
-        if (!name || isNaN(price) || isNaN(qty) || qty <= 0) {
+        if (!rawName || isNaN(price) || isNaN(qty) || qty <= 0) {
             showToast('Completa todos los materiales faltantes', true);
             return;
         }
 
-        materials.push({
-            id: Date.now().toString() + '-' + i + '-' + Math.random().toString(36).substr(2, 5),
-            name: name,
-            price: price,
-            qty: qty,
-            unit: unit,
-            category: category,
-            subcategory: '',
-            priceHistory: [{ date: new Date().toISOString().slice(0, 10), price: price }]
-        });
+        const exists = materials.find(m => normalizeText(m.name) === normalizeText(rawName) && m.category === category);
+        
+        if (exists) {
+            if (exists.pending) {
+                exists.price = price;
+                exists.qty = qty;
+                exists.unit = unit;
+                exists.pending = false;
+                if (category === 'extra') {
+                    exists.subcategory = rawName;
+                }
+                exists.priceHistory = [{ date: new Date().toISOString().slice(0, 10), price: price }];
+            }
+        } else {
+            materials.push({
+                id: Date.now().toString() + '-' + i + '-' + Math.random().toString(36).substr(2, 5),
+                name: rawName,
+                price: price,
+                qty: qty,
+                unit: unit,
+                category: category,
+                subcategory: category === 'extra' ? rawName : '',
+                priceHistory: [{ date: new Date().toISOString().slice(0, 10), price: price }]
+            });
+        }
     }
 
+    // Asegurarnos de que las subcategorías extra globales se actualicen
+    const extraItems = materials.filter(m => m.category === 'extra');
+    let extraSubcategories = JSON.parse(localStorage.getItem('mushu_extra_subcategories')) || [];
+    extraItems.forEach(m => {
+        if (m.subcategory && !extraSubcategories.includes(m.subcategory)) {
+            extraSubcategories.push(m.subcategory);
+        }
+    });
+    localStorage.setItem('mushu_extra_subcategories', JSON.stringify(extraSubcategories));
+
     saveMaterialsToStorage();
+    recalculateAllRecipes();
     renderMaterials();
     updateMaterialSelect();
     updateDecorationSelect();
     updateExtraSubcategorySelect();
 
-        closeModal('modal-missing-materials');
+    closeModal('modal-missing-materials');
 
     if (pendingImportClassData) {
         completeClassImport(pendingImportClassData);
         pendingImportClassData = null;
-        
-        // Refrescar la vista después de que completeClassImport termine
         setTimeout(() => {
             updateClassesView();
         }, 100);
+    } else {
+        // Si venía del botón de sincronizar en Ajustes (no de una clase importada en el momento)
+        showToast('Materiales guardados y clases actualizadas ✅');
+        updateClassesView();
     }
 }
 
@@ -4932,24 +4960,28 @@ function saveSyncMissingMaterials() {
     let updated = 0;
 
     for (let i = 0; i < items.length; i++) {
-        const name = document.getElementById('sync-missing-name-' + i).value;
+        const name = document.getElementById('sync-missing-name-' + i).value.trim();
+        const category = document.getElementById('sync-missing-category-' + i).value;
         const price = parseFloat(document.getElementById('sync-missing-price-' + i).value);
         const qty = parseFloat(document.getElementById('sync-missing-qty-' + i).value);
         const unit = document.getElementById('sync-missing-unit-' + i).value;
 
         if (!isNaN(price) && !isNaN(qty) && qty > 0 && price >= 0) {
             const mat = materials.find(m =>
-                normalizeText(m.name) === normalizeText(name)
+                normalizeText(m.name) === normalizeText(name) && m.category === category
             );
             if (mat) {
                 mat.price = price;
                 mat.qty = qty;
                 mat.unit = unit;
                 mat.pending = false;
+                // ¡AQUÍ ESTÁ LA MAGIA! Si es extra, el nombre es la subcategoría
+                if (category === 'extra') {
+                    mat.subcategory = name;
+                }
                 mat.priceHistory = [{ date: new Date().toISOString().slice(0, 10), price: price }];
                 updated++;
 
-                // Reasignar matId en todas las recetas que usen este material y recalcular
                 recipes.forEach(r => {
                     (r.ingredients || []).forEach(ing => {
                         if (normalizeText(ing.name) === normalizeText(name)) {
@@ -4965,6 +4997,14 @@ function saveSyncMissingMaterials() {
                             d.cost = calculateIngredientCost(mat, d.qty, d.unit);
                         }
                     });
+                    // Recalcular el extra total de la receta
+                    if (r.extraSubcategory && normalizeText(r.extraSubcategory) === normalizeText(name)) {
+                        const extraItems = materials.filter(m => m.category === 'extra' && normalizeText(m.subcategory) === normalizeText(name));
+                        r.extraCost = extraItems.reduce((s, m) => s + m.price, 0);
+                        const icCost = r.ingredients.reduce((s, i) => s + (i.cost || 0), 0);
+                        const dcCost = r.decorations.reduce((s, d) => s + (d.cost || 0), 0);
+                        r.totalCost = icCost + dcCost + r.extraCost;
+                    }
                 });
             }
         }
@@ -4976,6 +5016,7 @@ function saveSyncMissingMaterials() {
     renderMaterials();
     updateMaterialSelect();
     updateDecorationSelect();
+    updateExtraSubcategorySelect();
     updateRecipesView();
 
     closeModal('modal-sync-missing');
