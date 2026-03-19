@@ -181,7 +181,8 @@ body {
 .action-buttons-group {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 8px; /* Separación entre botones */
+    flex-shrink: 0; /* EVITA QUE LOS BOTONES SE APLASTEN */
 }
 
 .btn-submit {
