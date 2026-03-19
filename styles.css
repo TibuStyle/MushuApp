@@ -1506,3 +1506,20 @@ input:checked + .slider:before { transform: translateX(16px); }
     text-transform: uppercase;
     letter-spacing: 2px;
 }
+
+/* === BLOQUEAR DESCARGA DE IMÁGENES === */
+.no-save-img {
+    pointer-events: auto; /* Permite el click para abrir el fullscreen */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none; /* Bloquea arrastrar la imagen */
+}
+
+/* En fullscreen, bloqueamos TODO para la imagen en sí */
+#photo-fullscreen-img {
+    pointer-events: none; /* Desactiva mantener pulsado sobre la imagen */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
