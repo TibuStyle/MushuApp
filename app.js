@@ -2419,7 +2419,6 @@ function viewImportedClass(classId) {
                     <img src="${r.recipePhoto}" alt="Foto de receta" 
                          onclick="event.stopPropagation(); openPhotoFullscreen('${r.recipePhoto}', '${sanitizeHTML(watermarkName)}')" 
                          style="cursor:pointer; width:100%; display:block;">
-                    <div class="watermark-overlay">${sanitizeHTML(watermarkName)}</div>
                 </div>`;
             }
 
@@ -2446,7 +2445,6 @@ function viewImportedClass(classId) {
                 ${ic.photos.map(p => `
                     <div class="class-content-photo" style="position:relative; overflow:hidden; margin-bottom:8px;">
                         <img src="${p}" alt="Foto de clase" onclick="event.stopPropagation(); openPhotoFullscreen('${p}', '${sanitizeHTML(watermarkName)}')" style="cursor:pointer; width:100%; display:block;">
-                        <div class="watermark-overlay">${sanitizeHTML(watermarkName)}</div>
                     </div>
                 `).join('')}
             </div>
