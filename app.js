@@ -570,7 +570,7 @@ function recalculateAllRecipes() {
 
         if (r.extraSubcategory) {
             const ne = materials
-                .filter(m => m.category === 'extra' && m.subcategory === r.extraSubcategory)
+                .filter(m => m.category === 'extra' && normalizeText(m.subcategory) === normalizeText(r.extraSubcategory))
                 .reduce((s, m) => s + m.price, 0);
             if (ne !== r.extraCost) {
                 r.extraCost = ne;
@@ -2653,6 +2653,19 @@ function getMissingMaterialsForRecipe(recipe) {
         }
     });
 
+    // ¡NUEVO! Detectar si falta el Extra
+    if (recipe.extraSubcategory) {
+        const extraExists = materials.some(m => 
+            m.category === 'extra' && normalizeText(m.subcategory) === normalizeText(recipe.extraSubcategory)
+        );
+        if (!extraExists && !needed.find(n => normalizeText(n.name) === normalizeText(recipe.extraSubcategory))) {
+            needed.push({
+                name: recipe.extraSubcategory,
+                category: 'extra'
+            });
+        }
+    }
+
     return needed;
 }
 
@@ -3962,9 +3975,10 @@ function openRecipeFromClass(recipeId) {
     const ec = r.extraCost || 0;
     
     let currentExtraCost = ec;
+    let extraItemsList = [];
     if (r.extraSubcategory) {
-        const extraItems = materials.filter(m => m.category === 'extra' && m.subcategory === r.extraSubcategory);
-        currentExtraCost = extraItems.reduce((s, m) => s + m.price, 0);
+        extraItemsList = materials.filter(m => m.category === 'extra' && normalizeText(m.subcategory) === normalizeText(r.extraSubcategory));
+        currentExtraCost = extraItemsList.reduce((s, m) => s + m.price, 0);
     }
 
     const totalCost = ic + dc + currentExtraCost;
@@ -4002,11 +4016,10 @@ function openRecipeFromClass(recipeId) {
     }
 
     if (r.extraSubcategory && currentExtraCost > 0) {
-        const extraItems = materials.filter(m => m.category === 'extra' && m.subcategory === r.extraSubcategory);
         html += `<div class="class-content-section">
-            <h4><i class='bx bx-star'></i> Extra</h4>
+            <h4><i class='bx bx-star'></i> Extra: ${sanitizeHTML(r.extraSubcategory)}</h4>
             <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;">
-                ${extraItems.map(m => `
+                ${extraItemsList.map(m => `
                     <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
                         <span>${sanitizeHTML(m.name)}</span>
                         <span style="font-weight:500;">$${formatCLP(m.price)}</span>
