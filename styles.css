@@ -1478,3 +1478,21 @@ input:checked + .slider:before { transform: translateX(16px); }
 #view-class-content {
     padding-bottom: 20px;
 }
+
+/* === MARCA DE AGUA CRUZADA PARA FOTOS === */
+.watermark-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-30deg);
+    font-size: 24px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.4);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+    user-select: none;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
