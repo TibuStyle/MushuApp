@@ -3145,52 +3145,56 @@ function fillRecipeFolderSelect() {
     select.innerHTML = options.join('');
 }
 
-function createRecipeInModule(moduleName) {
-    window.currentModuleRecipeMode = true;
-
-    currentEditingRecipeId = null;
-    currentRecipeIngredients = [];
-    currentRecipeDecorations = [];
-    currentRecipeExtra = null;
-
-    document.getElementById('recipe-name').value = '';
-    document.getElementById('recipe-portions').value = '';
-    document.getElementById('recipe-add-qty').value = '';
-    document.getElementById('recipe-add-deco-qty').value = '';
-
-    const folderGroup = document.getElementById('recipe-folder-group');
-    const folderSelect = document.getElementById('recipe-folder-input');
-
-    if (folderGroup) folderGroup.style.display = 'block';
-
-    fillRecipeFolderSelect();
-    folderSelect.value = moduleName;
-
-    renderCurrentRecipeIngredients();
-    renderCurrentRecipeDecorations();
-    updateMaterialSelect();
-    updateDecorationSelect();
-    updateExtraSubcategorySelect();
-    renderExtraInRecipe();
-    updateRecipeTotal();
-
-    // Mostrar campos de módulo
-    const moduleExtras = document.getElementById('module-recipe-extras');
-    if (moduleExtras) moduleExtras.style.display = 'block';
+function createRecipeInModuleClass(moduleName, className) {
+    createRecipeInModule(moduleName);
     
-    updateModuleClassSelect(moduleName);
-    currentRecipeModuleClass = '';
+    // Auto-seleccionar la clase recién creada
+    setTimeout(() => {
+        const select = document.getElementById('recipe-module-class-select');
+        if (select) {
+            select.value = className;
+            currentRecipeModuleClass = className;
+        }
+    }, 100);
+}
 
-    // Limpiar foto y tips
-    currentRecipePhoto = null;
-    currentRecipeTips = '';
-    const tipsInput = document.getElementById('recipe-tips-input');
-    if (tipsInput) tipsInput.value = '';
-    const photoPreview = document.getElementById('recipe-photo-preview');
-    if (photoPreview) photoPreview.innerHTML = '';
+function addNewModuleClassDirectly(moduleName) {
+    // Usamos el mismo modal bonito de "Nueva Clase" en vez de un prompt feo
+    document.getElementById('new-mat-name-input').value = '';
+    document.getElementById('new-mat-name-label').textContent = 'Nombre de la clase';
+    document.getElementById('new-mat-name-input').placeholder = 'Ej: Clase 1';
+    document.querySelector('#modal-new-material-name h3').textContent = '📁 Crear Nueva Clase';
     
-    document.querySelector('#modal-recipe h3').textContent = "Crear Receta del Módulo";
-    document.getElementById('modal-recipe').classList.add('active');
+    newMaterialNameCallback = function(className) {
+        if (!className || !className.trim()) return;
+
+        // Crear una receta temporal vacía para que se cree la clase en el módulo
+        const tempId = Date.now().toString();
+        recipes.push({
+            id: tempId,
+            name: "Nueva receta sin título",
+            ingredients: [],
+            decorations: [],
+            totalCost: 0,
+            portions: 1,
+            recipeFolder: moduleName,
+            recipeSource: 'module',
+            moduleClass: className.trim(),
+            recipePhoto: null,
+            recipeTips: ''
+        });
+
+        saveRecipesToStorage();
+        updateRecipesView();
+        showToast('Clase "' + className.trim() + '" creada');
+
+        // Abrir la creación de receta al instante en esa clase
+        setTimeout(() => {
+            showAddRecipeModal(tempId);
+        }, 300);
+    };
+
+    document.getElementById('modal-new-material-name').classList.add('active');
 }
 
 function getOpenRecipeFolders() {
