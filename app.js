@@ -3007,11 +3007,15 @@ function showSettingsModal() {
     const tt = document.getElementById('toggle-teacher-mode');
     if (tt) tt.checked = teacherMode.active;
 
-    const sns = document.getElementById('student-name-section');
-    if (sns) sns.style.display = teacherMode.active ? 'none' : 'block';
-
-    const sni = document.getElementById('student-name-input');
-    if (sni) sni.value = studentName;
+    // Mostrar sección de Actualizar Clases solo para alumnos con al menos un perfil
+    const updateClassesSection = document.getElementById('student-update-classes-section');
+    if (updateClassesSection) {
+        if (!teacherMode.active && studentProfiles && studentProfiles.length > 0) {
+            updateClassesSection.style.display = 'block';
+        } else {
+            updateClassesSection.style.display = 'none';
+        }
+    }
 
     document.getElementById('modal-settings').classList.add('active');
 }
