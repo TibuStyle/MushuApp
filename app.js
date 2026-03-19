@@ -4795,6 +4795,66 @@ function showSyncStatus(text) {
     statusText.textContent = text;
 }
 
+function saveSyncMissingMaterials() {
+    const items = document.querySelectorAll('[id^="sync-missing-name-"]');
+    let updated = 0;
+
+    for (let i = 0; i < items.length; i++) {
+        const name = document.getElementById('sync-missing-name-' + i).value;
+        const price = parseFloat(document.getElementById('sync-missing-price-' + i).value);
+        const qty = parseFloat(document.getElementById('sync-missing-qty-' + i).value);
+        const unit = document.getElementById('sync-missing-unit-' + i).value;
+
+        if (!isNaN(price) && !isNaN(qty) && qty > 0 && price >= 0) {
+            const mat = materials.find(m =>
+                normalizeText(m.name) === normalizeText(name)
+            );
+            if (mat) {
+                mat.price = price;
+                mat.qty = qty;
+                mat.unit = unit;
+                mat.pending = false;
+                mat.priceHistory = [{ date: new Date().toISOString().slice(0, 10), price: price }];
+                updated++;
+
+                // Reasignar matId en todas las recetas que usen este material y recalcular
+                recipes.forEach(r => {
+                    (r.ingredients || []).forEach(ing => {
+                        if (normalizeText(ing.name) === normalizeText(name)) {
+                            ing.matId = String(mat.id);
+                            ing.pending = false;
+                            ing.cost = calculateIngredientCost(mat, ing.qty, ing.unit);
+                        }
+                    });
+                    (r.decorations || []).forEach(d => {
+                        if (normalizeText(d.name) === normalizeText(name)) {
+                            d.matId = String(mat.id);
+                            d.pending = false;
+                            d.cost = calculateIngredientCost(mat, d.qty, d.unit);
+                        }
+                    });
+                });
+            }
+        }
+    }
+
+    saveMaterialsToStorage();
+    saveRecipesToStorage();
+    recalculateAllRecipes();
+    renderMaterials();
+    updateMaterialSelect();
+    updateDecorationSelect();
+    updateRecipesView();
+
+    closeModal('modal-sync-missing');
+
+    if (updated > 0) {
+        showToast(updated + ' material' + (updated > 1 ? 'es' : '') + ' actualizado' + (updated > 1 ? 's' : '') + '! ✅');
+    } else {
+        showToast('Materiales dejados como pendientes');
+    }
+}
+
 function syncModuleUpload() {
     const selectedId = document.getElementById('global-sync-module-select').value;
     if (!selectedId) {
