@@ -1591,65 +1591,6 @@ function renderCourses() {
         return;
     }
 
-    list.innerHTML = courses.map((course, idx) => {
-        const bodyOpen = idx === 0 ? 'open' : '';
-        const moduleData = modules.find(m => String(m.id) === String(course.moduleId));
-        const modulePrefix = moduleData ? moduleData.prefix : '---';
-
-        const classesHTML = (course.classes || []).sort((a, b) => new Date(b.date) - new Date(a.date)).map(cls => {
-            const att = cls.attendance || [];
-            const present = att.filter(a => a.present).length;
-            const total = att.length;
-            return `
-                <div class="class-item">
-                        <div class="class-item-info" onclick="previewClassAsStudent('${course.id}', '${cls.id}')">
-                        <h4>${cls.name}</h4>
-                        <p>📅 ${formatDate(cls.date)} • Código clase: ${cls.blockCode || '----'} • ✅ ${present}/${total}</p>
-                    </div>
-                    <div class="action-buttons-group">
-                        <button class="btn-icon" onclick="showEditClassModal('${course.id}','${cls.id}')"><i class='bx bx-edit'></i></button>
-                        <button class="btn-icon" onclick="showAttendanceModal('${course.id}','${cls.id}')"><i class='bx bx-clipboard'></i></button>
-                        <button class="btn-icon danger" onclick="deleteClass('${course.id}','${cls.id}')"><i class='bx bx-trash'></i></button>
-                    </div>
-                </div>`;
-        }).join('');
-
-        const folderId = course.id;
-
-        return `
-            <div class="course-card">
-                <div class="course-card-header" onclick="toggleFolderBody('course-folder','${folderId}')">
-                    <div class="course-card-header-left">
-                        <i class='bx bxs-graduation' style="font-size:24px;color:var(--secondary-color);"></i>
-                        <div>
-                            <h3>${course.name}</h3>
-                            <div class="course-card-day">${course.day} • Módulo: ${course.moduleName} (${modulePrefix})</div>
-                            <div class="course-card-schedule">${course.schedule || ''} • ${course.students.length} alumnos</div>
-                        </div>
-                    </div>
-                    <div class="action-buttons-group" onclick="event.stopPropagation()">
-                        <button class="btn-icon" onclick="showCreateCourseModal('${course.id}')"><i class='bx bx-edit'></i></button>
-                        <button class="btn-icon danger" onclick="deleteCourse('${course.id}')"><i class='bx bx-trash'></i></button>
-                    </div>
-                </div>
-                <div class="course-card-body ${bodyOpen}" id="course-folder-body-${folderId}">
-                    ${classesHTML}
-                    <button class="btn-add-class" onclick="showCreateClassModal('${course.id}')">
-                        <i class='bx bx-plus'></i> Nueva Clase
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function renderCourses() {
-    const list = document.getElementById('courses-list');
-    if (!courses.length) {
-        list.innerHTML = '<div class="empty-state">No hay cursos. Crea tu primer curso.</div>';
-        return;
-    }
-
     list.innerHTML = courses.map((course) => {
         const moduleData = modules.find(m => String(m.id) === String(course.moduleId));
         const modulePrefix = moduleData ? moduleData.prefix : '---';
@@ -1694,10 +1635,10 @@ function renderCourses() {
                         <h4>${sanitizeHTML(cls.name)}</h4>
                         <p>📅 ${formatDate(cls.date)} • ${cls.blockCode || '----'} • ✅ ${present}/${total}</p>
                     </div>
-                    <div class="class-item-actions">
-                        <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showEditClassModal('${course.id}','${cls.id}')"><i class='bx bx-edit'></i></button>
-                        <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showAttendanceModal('${course.id}','${cls.id}')"><i class='bx bx-clipboard'></i></button>
-                        <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteClass('${course.id}','${cls.id}')"><i class='bx bx-trash'></i></button>
+                    <div class="action-buttons-group">
+                        <button class="btn-icon" onclick="showEditClassModal('${course.id}','${cls.id}')"><i class='bx bx-edit'></i></button>
+                        <button class="btn-icon" onclick="showAttendanceModal('${course.id}','${cls.id}')"><i class='bx bx-clipboard'></i></button>
+                        <button class="btn-icon danger" onclick="deleteClass('${course.id}','${cls.id}')"><i class='bx bx-trash'></i></button>
                     </div>
                 </div>`;
             }).join('');
@@ -1735,9 +1676,9 @@ function renderCourses() {
                             <div class="course-card-schedule">${course.schedule || ''} • ${course.students.length} alumnos • ${classCount} clase${classCount !== 1 ? 's' : ''}</div>
                         </div>
                     </div>
-                    <div class="course-card-actions" onclick="event.stopPropagation()">
-                        <button class="btn-icon" style="width:28px;height:28px;font-size:14px;" onclick="showCreateCourseModal('${course.id}')"><i class='bx bx-edit'></i></button>
-                        <button class="btn-icon danger" style="width:28px;height:28px;font-size:14px;" onclick="deleteCourse('${course.id}')"><i class='bx bx-trash'></i></button>
+                    <div class="action-buttons-group" onclick="event.stopPropagation()">
+                        <button class="btn-icon" onclick="showCreateCourseModal('${course.id}')"><i class='bx bx-edit'></i></button>
+                        <button class="btn-icon danger" onclick="deleteCourse('${course.id}')"><i class='bx bx-trash'></i></button>
                     </div>
                 </div>
                 <div class="course-card-body" id="course-folder-body-${folderId}">
