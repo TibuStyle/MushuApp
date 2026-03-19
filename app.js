@@ -1443,6 +1443,19 @@ function updateClassesView() {
     }
 }
 
+function deleteCourse(courseId) {
+    showConfirmModal(
+        'Eliminar curso',
+        '¿Eliminar este curso y todas sus clases?',
+        () => {
+            courses = courses.filter(c => String(c.id) !== String(courseId));
+            saveCourses();
+            renderCourses();
+            showToast('Curso eliminado');
+        }
+    );
+}
+
 function renderCourses() {
     const list = document.getElementById('courses-list');
     if (!courses.length) {
