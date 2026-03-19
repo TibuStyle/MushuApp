@@ -165,14 +165,24 @@ body {
     background-color: var(--surface-hover);
     color: var(--text-main);
     border: none;
-    width: 36px; height: 36px;
+    width: 44px;
+    height: 44px;
     border-radius: var(--radius-sm);
     display: flex; justify-content: center; align-items: center;
     cursor: pointer;
     transition: all 0.2s;
 }
+.btn-icon i {
+    font-size: 20px;
+}
 .btn-icon:hover { background-color: var(--primary-color); color: white; }
 .btn-icon.danger:hover { background-color: var(--danger-color); color: white; }
+
+.action-buttons-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
 .btn-submit {
     background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
