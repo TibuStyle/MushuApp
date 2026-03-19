@@ -4766,13 +4766,14 @@ function syncModuleDownload() {
             });
 
             (data.courses || []).forEach(courseData => {
-                const existingCourse = courses.find(c =>
+                let existingCourse = courses.find(c =>
                     String(c.moduleId) === String(currentModId) &&
                     c.name === courseData.name
                 );
 
                 if (!existingCourse) {
-                    const newCourse = {
+                    // Si el curso no existe, lo creamos
+                    existingCourse = {
                         id: courseData.id || Date.now().toString(),
                         name: courseData.name,
                         moduleId: currentModId,
@@ -4786,10 +4787,35 @@ function syncModuleDownload() {
                         })),
                         classes: []
                     };
+                    courses.push(existingCourse);
+                } else {
+                    // Si ya existe, actualizamos día, horario y alumnos por si cambiaron
+                    existingCourse.day = courseData.day || existingCourse.day;
+                    existingCourse.schedule = courseData.schedule || existingCourse.schedule;
+                    
+                    // Actualizar alumnos (solo agregar nuevos o actualizar código, no borrar)
+                    (courseData.students || []).forEach(s => {
+                        const existingStudent = existingCourse.students.find(es => normalizeText(es.name) === normalizeText(s.name));
+                        if (!existingStudent) {
+                            existingCourse.students.push({
+                                id: s.id || Date.now().toString(),
+                                name: s.name,
+                                studentCode: s.studentCode || '00'
+                            });
+                        } else {
+                            existingStudent.studentCode = s.studentCode || existingStudent.studentCode;
+                        }
+                    });
+                }
 
-                    (data.classes || []).forEach(cls => {
-                        if (cls.courseId === courseData.id) {
-                            newCourse.classes.push({
+                // Sincronizar las clases de este curso
+                (data.classes || []).forEach(cls => {
+                    if (cls.courseId === courseData.id) {
+                        const existingClass = existingCourse.classes.find(ec => ec.blockCode === cls.blockCode || ec.id === cls.classId);
+
+                        if (!existingClass) {
+                            // Si la clase no existe, la agregamos
+                            existingCourse.classes.push({
                                 id: cls.classId || Date.now().toString(),
                                 name: cls.className,
                                 date: cls.date,
@@ -4810,13 +4836,25 @@ function syncModuleDownload() {
                                     codeUsed: false,
                                     activatedAt: null
                                 })),
-                                codesGenerated: false
+                                codesGenerated: cls.codesGenerated || false
                             });
-                        }
-                    });
+                        } else {
+                            // Si YA EXISTE, ACTUALIZAMOS LOS NOMBRES Y RECETAS (Aquí estaba el bug)
+                            existingClass.name = cls.className;
+                            existingClass.date = cls.date;
+                            existingClass.tips = cls.tips || existingClass.tips;
+                            
+                            // Si vienen fotos nuevas desde GitHub, las agregamos (sin borrar las viejas del profe local si tenía)
+                            if (cls.photos && cls.photos.length > 0) {
+                                existingClass.photos = cls.photos; 
+                            }
 
-                    courses.push(newCourse);
-                }
+                            // Actualizamos las recetas vinculadas siempre a la última versión
+                            existingClass.linkedRecipe = cls.linkedRecipe || existingClass.linkedRecipe;
+                            existingClass.linkedRecipes = cls.linkedRecipes && cls.linkedRecipes.length > 0 ? cls.linkedRecipes : existingClass.linkedRecipes;
+                        }
+                    }
+                });
             });
 
             saveModules();
