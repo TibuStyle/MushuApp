@@ -968,6 +968,34 @@ function saveRecipe(recipeFolder = null, recipeSource = 'personal', sourceCourse
         }
     }
     
+    // ¡NUEVO! Sincronizar esta receta actualizada con las clases que ya la están usando
+    if (currentEditingRecipeId) {
+        const updatedRecipe = recipes.find(r => String(r.id) === String(currentEditingRecipeId));
+        if (updatedRecipe) {
+            let coursesUpdated = false;
+            courses.forEach(c => {
+                (c.classes || []).forEach(cls => {
+                    // Actualizar en linkedRecipes (array nuevo)
+                    if (cls.linkedRecipes) {
+                        const idx = cls.linkedRecipes.findIndex(lr => String(lr.id) === String(currentEditingRecipeId));
+                        if (idx !== -1) {
+                            cls.linkedRecipes[idx] = JSON.parse(JSON.stringify(updatedRecipe));
+                            coursesUpdated = true;
+                        }
+                    }
+                    // Actualizar en linkedRecipe (versión antigua por compatibilidad)
+                    if (cls.linkedRecipe && String(cls.linkedRecipe.id) === String(currentEditingRecipeId)) {
+                        cls.linkedRecipe = JSON.parse(JSON.stringify(updatedRecipe));
+                        coursesUpdated = true;
+                    }
+                });
+            });
+            if (coursesUpdated) {
+                saveCourses();
+            }
+        }
+    }
+
     saveRecipesToStorage();
     updateRecipesView();
     closeModal('modal-recipe');
