@@ -35,6 +35,7 @@ let currentRecipeExtra = null;
 let currentRecipePhoto = null;
 let currentRecipeTips = '';
 let currentRecipeModuleClass = '';
+let currentRecipeIsRestricted = false;
 let currentEditingRecipeId = null;
 let currentEditingMaterialId = null;
 let currentMaterialCategory = 'productos';
@@ -690,6 +691,11 @@ function renderCurrentRecipeIngredients() {
             ? '<span class="ingredient-cost" style="color:var(--warning-color);">⚠️ Pendiente</span>' 
             : `<span class="ingredient-cost">$${formatCLP(i.cost)}</span>`;
 
+        const trashBtn = currentRecipeIsRestricted ? '' : `
+            <button class="btn-icon danger" onclick="removeIngredientFromRecipe('${i.id}')" style="width:28px;height:28px;font-size:16px;">
+                <i class='bx bx-trash'></i>
+            </button>`;
+
         return `
         <div class="ingredient-item" style="${isPending ? 'border:1px dashed var(--warning-color);' : ''}">
             <div class="ingredient-details">
@@ -698,9 +704,7 @@ function renderCurrentRecipeIngredients() {
             </div>
             <div style="display:flex;align-items:center;gap:10px;">
                 ${costDisplay}
-                <button class="btn-icon danger" onclick="removeIngredientFromRecipe('${i.id}')" style="width:28px;height:28px;font-size:16px;">
-                    <i class='bx bx-trash'></i>
-                </button>
+                ${trashBtn}
             </div>
         </div>
     `;
@@ -1356,8 +1360,19 @@ function renderRecipes() {
 
 function renderRecipeCard(r, priceColor) {
     const scale = r.scale || 1;
-    let baseTotal = r.totalCost || 0;
-    let scaledTotal = baseTotal * scale;
+    
+    // Toggles de exclusión
+    const includeDeco = !r.excludeDecorations;
+    const includeExtra = !r.excludeExtra;
+
+    const ic = (r.ingredients || []).reduce((s, i) => s + i.cost, 0) * scale;
+    const rawDc = (r.decorations || []).reduce((s, i) => s + i.cost, 0) * scale;
+    const rawEc = (r.extraCost || 0) * scale;
+    
+    const dc = includeDeco ? rawDc : 0;
+    const ec = includeExtra ? rawEc : 0;
+    
+    const scaledTotal = ic + dc + ec;
     
     let dp = scaledTotal;
     let pl = "Precio costo:";
@@ -1366,9 +1381,6 @@ function renderRecipeCard(r, priceColor) {
         pl = `Sugerido (x${profitMargin}):`;
     }
 
-    const ic = (r.ingredients || []).reduce((s, i) => s + i.cost, 0) * scale;
-    const dc = (r.decorations || []).reduce((s, i) => s + i.cost, 0) * scale;
-    const ec = (r.extraCost || 0) * scale;
     const ti = (r.ingredients || []).length + (r.decorations || []).length;
     const se = Math.floor((scaledTotal * profitMargin) / 500) * 500;
     const scaledPortions = (r.portions || 1) * scale;
@@ -1386,18 +1398,14 @@ function renderRecipeCard(r, priceColor) {
 
     let bd = '';
     
-    // Select de Multiplicador
     bd += `
     <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-color); padding:8px 12px; border-radius:var(--radius-sm); margin-bottom:12px; border:1px solid rgba(0,0,0,0.05);">
         <span style="font-size:13px; font-weight:600;"><i class='bx bx-math'></i> Multiplicar receta:</span>
-        <select onchange="changeRecipeScale('${r.id}', this.value)" style="width:auto; padding:4px 8px; font-size:13px; min-height:auto; border-color:var(--secondary-color);">
+        <select onchange="changeRecipeScale('${r.id}', this.value)" onclick="event.stopPropagation()" style="width:auto; padding:4px 8px; font-size:13px; min-height:auto; border-color:var(--secondary-color);">
             <option value="0.5" ${scale === 0.5 ? 'selected' : ''}>x0.5 (Mitad)</option>
             <option value="1" ${scale === 1 ? 'selected' : ''}>x1 (Normal)</option>
             <option value="2" ${scale === 2 ? 'selected' : ''}>x2 (Doble)</option>
             <option value="3" ${scale === 3 ? 'selected' : ''}>x3 (Triple)</option>
-            <option value="4" ${scale === 4 ? 'selected' : ''}>x4</option>
-            <option value="5" ${scale === 5 ? 'selected' : ''}>x5</option>
-            <option value="10" ${scale === 10 ? 'selected' : ''}>x10</option>
         </select>
     </div>`;
 
@@ -1409,15 +1417,33 @@ function renderRecipeCard(r, priceColor) {
     }
     if ((r.decorations || []).length > 0) {
         bd += `<div class="recipe-breakdown-section">
-            <div class="recipe-breakdown-header"><span><i class='bx bx-palette'></i> Decoración</span><span>$${formatCLP(dc)}</span></div>
-            ${r.decorations.map(d => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(d.name)} (${formatQty(d.qty * scale)} ${d.unit})</span><span>$${formatCLP(d.cost * scale)}</span></div>`).join('')}
+            <div class="recipe-breakdown-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class='bx bx-palette'></i> Decoración
+                    <label class="switch" style="width:28px; height:16px; margin:0;">
+                        <input type="checkbox" ${includeDeco ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleRecipeSection('${r.id}', 'deco', this.checked)">
+                        <span class="slider round" style="border-radius:16px;"></span>
+                    </label>
+                </div>
+                <span style="${!includeDeco ? 'text-decoration:line-through; opacity:0.5;' : ''}">$${formatCLP(rawDc)}</span>
+            </div>
+            ${includeDeco ? r.decorations.map(d => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(d.name)} (${formatQty(d.qty * scale)} ${d.unit})</span><span>$${formatCLP(d.cost * scale)}</span></div>`).join('') : ''}
         </div>`;
     }
-    if (r.extraSubcategory && ec > 0) {
+    if (r.extraSubcategory && rawEc > 0) {
         const eis = materials.filter(m => m.category === 'extra' && normalizeText(m.subcategory) === normalizeText(r.extraSubcategory));
         bd += `<div class="recipe-breakdown-section">
-            <div class="recipe-breakdown-header"><span><i class='bx bx-star'></i> Extra</span><span>$${formatCLP(ec)}</span></div>
-            ${eis.map(m => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(m.name)}</span><span>$${formatCLP(m.price * scale)}</span></div>`).join('')}
+            <div class="recipe-breakdown-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i class='bx bx-star'></i> Extra
+                    <label class="switch" style="width:28px; height:16px; margin:0;">
+                        <input type="checkbox" ${includeExtra ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleRecipeSection('${r.id}', 'extra', this.checked)">
+                        <span class="slider round" style="border-radius:16px;"></span>
+                    </label>
+                </div>
+                <span style="${!includeExtra ? 'text-decoration:line-through; opacity:0.5;' : ''}">$${formatCLP(rawEc)}</span>
+            </div>
+            ${includeExtra ? eis.map(m => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(m.name)}</span><span>$${formatCLP(m.price * scale)}</span></div>`).join('') : ''}
         </div>`;
     }
     bd += `<div class="recipe-breakdown-total"><span>COSTO TOTAL</span><span>$${formatCLP(scaledTotal)}</span></div>`;
@@ -1440,8 +1466,6 @@ function renderRecipeCard(r, priceColor) {
     sl += `</div>`;
 
     let tipH = '';
-    
-    // El tip se muestra a todos en la pestaña Recetas, menos a los alumnos en recetas importadas (que lo ven en la clase)
     if (r.recipeSource !== 'class' || teacherMode.active) {
         if (r.recipeTips) {
             tipH = `<div class="recipe-tip"><strong>💡 Tips de la Profe</strong><br>${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}</div>`;
@@ -1450,6 +1474,71 @@ function renderRecipeCard(r, priceColor) {
             tipH = tip ? `<div class="recipe-tip"><strong>💡 Consejo</strong><br>${tip}</div>` : '';
         }
     }
+
+    const recipePhotoH = (teacherMode.active && r.recipePhoto)
+        ? `<button class="btn-submit" style="margin-top:12px; background:var(--surface-hover); color:var(--secondary-color); border:1px dashed var(--secondary-color);" onclick="event.stopPropagation(); openPhotoFullscreen('${r.recipePhoto}', 'Vista Previa')">
+            <i class='bx bx-image'></i> Ver foto adjunta
+           </button>`
+        : '';
+
+    const sourceBadge = r.recipeSource === 'class'
+        ? `<div class="module-badge"><i class='bx bx-book'></i> Receta de módulo</div>`
+        : '';
+
+    // ¡BOTÓN PERSONALIZAR PARA ALUMNOS!
+    const actionButtons = ((r.recipeSource !== 'class' && r.recipeSource !== 'module') || teacherMode.active) ? `
+        <div class="action-buttons-group" style="margin-top:16px;">
+            <button class="btn-submit" style="margin-top:0;flex:1;" onclick="showAddRecipeModal('${r.id}')"><i class='bx bx-edit'></i> Editar</button>
+            <button class="btn-icon" style="background:var(--secondary-color);color:white;" onclick="shareRecipe('${r.id}')" title="Compartir"><i class='bx bx-share-alt'></i></button>
+            <button class="btn-icon danger" onclick="deleteRecipe('${r.id}')"><i class='bx bx-trash'></i></button>
+        </div>` : `
+        <div class="action-buttons-group" style="margin-top:16px;">
+            <button class="btn-submit" style="margin-top:0;flex:1; background:var(--surface-hover); color:var(--text-main); border:1px dashed var(--secondary-color);" onclick="showAddRecipeModal('${r.id}')">
+                <i class='bx bx-slider-alt' style="color:var(--secondary-color);"></i> Personalizar
+            </button>
+            <button class="btn-icon" style="background:var(--secondary-color);color:white;" onclick="shareRecipe('${r.id}')" title="Compartir"><i class='bx bx-share-alt'></i></button>
+        </div>`;
+
+    return `
+        <div class="recipe-card">
+            <div class="recipe-card-header" onclick="toggleRecipeDetail('${r.id}')" style="cursor:pointer;">
+                <div class="recipe-card-info">
+                    <h3>${sanitizeHTML(r.name)}</h3>
+                    <p>${ti} Items${r.extraSubcategory ? ' + Extra' : ''}</p>
+                    ${sourceBadge}
+                    ${pendingWarning}
+                    ${pb}
+                </div>
+                <div class="recipe-card-price">
+                    <div class="recipe-card-price-label">${pl}</div>
+                    <div class="recipe-card-price-value" style="color:${priceColor};">$${formatCLP(dp)}</div>
+                </div>
+            </div>
+            <div class="recipe-card-toggle" id="recipe-toggle-${r.id}" onclick="toggleRecipeDetail('${r.id}')" style="cursor:pointer;">
+                <i class='bx bx-chevron-down'></i>
+            </div>
+            <div class="recipe-card-detail" id="recipe-detail-${r.id}">
+                <div class="recipe-detail-content">
+                    ${recipePhotoH}
+                    ${bd}
+                    ${sl}
+                    ${tipH}
+                    ${r.sharedBy ? `
+                    <div style="text-align:center; padding:10px 0; margin-top:12px; border-top:1px dashed rgba(0,0,0,0.08);">
+                        <span style="font-size:12px; color:var(--text-muted);">
+                            <i class='bx bx-share-alt' style="font-size:14px; vertical-align:middle; margin-right:4px; color:var(--secondary-color);"></i>
+                            Receta compartida por 
+                            <strong style="color:var(--secondary-color);">
+                                ${sanitizeHTML(r.sharedBy)}
+                            </strong>
+                        </span>
+                    </div>` : ''}
+                    ${actionButtons}
+                </div>
+            </div>
+        </div>
+    `;
+}
 
     const recipePhotoH = (teacherMode.active && r.recipePhoto)
         ? `<button class="btn-submit" style="margin-top:12px; background:var(--surface-hover); color:var(--secondary-color); border:1px dashed var(--secondary-color);" onclick="event.stopPropagation(); openPhotoFullscreen('${r.recipePhoto}', 'Vista Previa')">
@@ -3301,10 +3390,15 @@ function showAddRecipeModal(recipeId = null) {
     const folderGroup = document.getElementById('recipe-folder-group');
     const folderInput = document.getElementById('recipe-folder-input');
     
-    fillRecipeFolderSelect();
+    if (teacherMode.active) {
+        folderGroup.style.display = 'block';
+        fillRecipeFolderSelect();
+    } else {
+        folderGroup.style.display = 'none';
+    }
 
-    folderGroup.style.display = teacherMode.active ? 'block' : 'none';
     folderInput.value = '';
+    currentRecipeIsRestricted = false;
 
     if (recipeId) {
         const r = recipes.find(r => String(r.id) === String(recipeId));
@@ -3315,12 +3409,38 @@ function showAddRecipeModal(recipeId = null) {
             currentRecipeIngredients = JSON.parse(JSON.stringify(r.ingredients || []));
             currentRecipeDecorations = JSON.parse(JSON.stringify(r.decorations || []));
             currentRecipeExtra = r.extraSubcategory || null;
-            document.querySelector('#modal-recipe h3').textContent = "Editar Receta";
+            
+            // Verificar si es alumno editando una receta importada
+            currentRecipeIsRestricted = !teacherMode.active && (r.recipeSource === 'class' || r.recipeSource === 'module');
+            
+            document.querySelector('#modal-recipe h3').textContent = currentRecipeIsRestricted ? "🛠️ Personalizar Receta" : "Editar Receta";
             if (teacherMode.active) {
                 document.getElementById('recipe-folder-input').value = r.recipeFolder || '';
             }
             recalculateIngredientCosts();
             if (btnD) btnD.style.display = 'flex';
+
+            const moduleExtras = document.getElementById('module-recipe-extras');
+            const tipsInput = document.getElementById('recipe-tips-input');
+            const photoPreview = document.getElementById('recipe-photo-preview');
+            const folderValue = folderInput ? folderInput.value : '';
+            const isModuleRecipe = teacherMode.active && folderValue && folderValue !== 'Mis Recetas';
+            const isEditingModuleRecipe = recipeId && teacherMode.active && recipes.find(rec => String(rec.id) === String(recipeId) && rec.recipeFolder && rec.recipeFolder !== 'Mis Recetas');
+
+            if (isModuleRecipe || isEditingModuleRecipe || window.currentModuleRecipeMode) {
+                if(moduleExtras) moduleExtras.style.display = 'block';
+                currentRecipePhoto = r.recipePhoto || null;
+                currentRecipeTips = r.recipeTips || '';
+                if(tipsInput) tipsInput.value = currentRecipeTips;
+                renderRecipePhotoPreview();
+                currentRecipeModuleClass = r.moduleClass || '';
+                updateModuleClassSelect(r.recipeFolder);
+            } else {
+                if(moduleExtras) moduleExtras.style.display = 'none';
+                currentRecipePhoto = null;
+                currentRecipeTips = '';
+                currentRecipeModuleClass = '';
+            }
         }
     } else {
         currentEditingRecipeId = null;
@@ -3331,7 +3451,19 @@ function showAddRecipeModal(recipeId = null) {
         currentRecipeExtra = null;
         document.querySelector('#modal-recipe h3').textContent = "Crear Receta";
         if (btnD) btnD.style.display = 'none';
+        
+        const moduleExtras = document.getElementById('module-recipe-extras');
+        if(moduleExtras) moduleExtras.style.display = window.currentModuleRecipeMode ? 'block' : 'none';
+        currentRecipePhoto = null;
+        currentRecipeTips = '';
+        currentRecipeModuleClass = '';
     }
+
+    // Aplicar restricciones visuales si es alumno
+    document.getElementById('recipe-name').disabled = currentRecipeIsRestricted;
+    document.getElementById('recipe-portions').disabled = currentRecipeIsRestricted;
+    const addIngForm = document.getElementById('recipe-ingredients-list').nextElementSibling;
+    if (addIngForm) addIngForm.style.display = currentRecipeIsRestricted ? 'none' : 'block';
 
     renderCurrentRecipeIngredients();
     renderCurrentRecipeDecorations();
@@ -3348,39 +3480,6 @@ function showAddRecipeModal(recipeId = null) {
         document.getElementById('recipe-extra-subcat').value = currentRecipeExtra;
     }
 
-    // Mostrar campos extra solo para recetas de módulo
-    const moduleExtras = document.getElementById('module-recipe-extras');
-    const tipsInput = document.getElementById('recipe-tips-input');
-    const photoPreview = document.getElementById('recipe-photo-preview');
-
-    const folderValue = folderInput ? folderInput.value : '';
-    const isModuleRecipe = teacherMode.active && folderValue && folderValue !== 'Mis Recetas';
-    const isEditingModuleRecipe = recipeId && teacherMode.active && recipes.find(r => String(r.id) === String(recipeId) && r.recipeFolder && r.recipeFolder !== 'Mis Recetas');
-
-    if (isModuleRecipe || isEditingModuleRecipe || window.currentModuleRecipeMode) {
-        moduleExtras.style.display = 'block';
-        if (recipeId) {
-            const recipeData = recipes.find(r => String(r.id) === String(recipeId));
-            if (recipeData) {
-                currentRecipePhoto = recipeData.recipePhoto || null;
-                currentRecipeTips = recipeData.recipeTips || '';
-                tipsInput.value = currentRecipeTips;
-                renderRecipePhotoPreview();
-                currentRecipeModuleClass = recipeData.moduleClass || '';
-                updateModuleClassSelect(recipeData.recipeFolder);
-            }
-        } else {
-            currentRecipePhoto = null;
-            currentRecipeTips = '';
-            tipsInput.value = '';
-            photoPreview.innerHTML = '';
-        }
-    } else {
-        moduleExtras.style.display = 'none';
-        currentRecipePhoto = null;
-        currentRecipeTips = '';
-    }
-    
     document.getElementById('modal-recipe').classList.add('active');
 }
 
@@ -4003,6 +4102,26 @@ function changeRecipeScaleFromClass(recipeId, scaleStr) {
     }
 }
 
+function toggleRecipeSection(recipeId, section, isChecked) {
+    const r = recipes.find(x => String(x.id) === String(recipeId));
+    if (r) {
+        if (section === 'deco') r.excludeDecorations = !isChecked;
+        if (section === 'extra') r.excludeExtra = !isChecked;
+        saveRecipesToStorage();
+        updateRecipesView();
+    }
+}
+
+function toggleRecipeSectionFromClass(recipeId, section, isChecked) {
+    const r = recipes.find(x => String(x.id) === String(recipeId));
+    if (r) {
+        if (section === 'deco') r.excludeDecorations = !isChecked;
+        if (section === 'extra') r.excludeExtra = !isChecked;
+        saveRecipesToStorage();
+        openRecipeFromClass(recipeId); // Refresca el modal en vivo
+    }
+}
+
 // === ABRIR RECETA DESDE CLASE ===
 function findRecipeByName(recipeName) {
     const r = recipes.find(x =>
@@ -4019,8 +4138,11 @@ function openRecipeFromClass(recipeId) {
     }
 
     const scale = r.scale || 1;
+    const includeDeco = !r.excludeDecorations;
+    const includeExtra = !r.excludeExtra;
+
     let ic = 0;
-    let dc = 0;
+    let rawDc = 0;
 
     const ingredientsHTML = (r.ingredients || []).map(i => {
         const m = materials.find(x => String(x.id) === String(i.matId));
@@ -4045,7 +4167,7 @@ function openRecipeFromClass(recipeId) {
             cost = calculateIngredientCost(m, d.qty, d.unit);
         }
         cost = cost * scale;
-        dc += cost;
+        rawDc += cost;
         return `
             <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
                 <span>${sanitizeHTML(d.name)} (${formatQty(d.qty * scale)} ${d.unit})</span>
@@ -4055,15 +4177,18 @@ function openRecipeFromClass(recipeId) {
     }).join('');
 
     const ec = r.extraCost || 0;
-    let currentExtraCost = ec;
+    let rawEc = ec;
     let extraItemsList = [];
     if (r.extraSubcategory) {
         extraItemsList = materials.filter(m => m.category === 'extra' && normalizeText(m.subcategory) === normalizeText(r.extraSubcategory));
-        currentExtraCost = extraItemsList.reduce((s, m) => s + m.price, 0);
+        rawEc = extraItemsList.reduce((s, m) => s + m.price, 0);
     }
-    currentExtraCost = currentExtraCost * scale;
+    rawEc = rawEc * scale;
 
-    const totalCost = ic + dc + currentExtraCost;
+    const dc = includeDeco ? rawDc : 0;
+    const finalEc = includeExtra ? rawEc : 0;
+
+    const totalCost = ic + dc + finalEc;
     const se = Math.floor((totalCost * profitMargin) / 500) * 500;
     const scaledPortions = (r.portions || 1) * scale;
 
@@ -4091,41 +4216,53 @@ function openRecipeFromClass(recipeId) {
 
     if ((r.ingredients || []).length > 0) {
         html += `<div class="class-content-section">
-            <h4><i class='bx bx-package'></i> Ingredientes</h4>
             <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;">
-                ${ingredientsHTML}
-                <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:600;">
-                    <span>Subtotal</span><span>$${formatCLP(ic)}</span>
+                <div style="display:flex; justify-content:space-between; font-weight:600; font-size:14px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid rgba(0,0,0,0.05);">
+                    <span><i class='bx bx-package' style="color:var(--secondary-color);"></i> Ingredientes</span>
+                    <span>$${formatCLP(ic)}</span>
                 </div>
+                ${ingredientsHTML}
             </div>
         </div>`;
     }
 
     if ((r.decorations || []).length > 0) {
         html += `<div class="class-content-section">
-            <h4><i class='bx bx-palette'></i> Decoración</h4>
             <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;">
-                ${decorationsHTML}
-                <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:600;">
-                    <span>Subtotal</span><span>$${formatCLP(dc)}</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-weight:600; font-size:14px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid rgba(0,0,0,0.05);">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <i class='bx bx-palette' style="color:var(--secondary-color);"></i> Decoración
+                        <label class="switch" style="width:28px; height:16px; margin:0;">
+                            <input type="checkbox" ${includeDeco ? 'checked' : ''} onchange="toggleRecipeSectionFromClass('${r.id}', 'deco', this.checked)">
+                            <span class="slider round" style="border-radius:16px;"></span>
+                        </label>
+                    </div>
+                    <span style="${!includeDeco ? 'text-decoration:line-through; opacity:0.5;' : ''}">$${formatCLP(rawDc)}</span>
                 </div>
+                ${includeDeco ? decorationsHTML : ''}
             </div>
         </div>`;
     }
 
-    if (r.extraSubcategory && currentExtraCost > 0) {
+    if (r.extraSubcategory && rawEc > 0) {
         html += `<div class="class-content-section">
-            <h4><i class='bx bx-star'></i> Extra: ${sanitizeHTML(r.extraSubcategory)}</h4>
             <div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;">
-                ${extraItemsList.map(m => `
+                <div style="display:flex; justify-content:space-between; align-items:center; font-weight:600; font-size:14px; margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid rgba(0,0,0,0.05);">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <i class='bx bx-star' style="color:var(--secondary-color);"></i> Extra
+                        <label class="switch" style="width:28px; height:16px; margin:0;">
+                            <input type="checkbox" ${includeExtra ? 'checked' : ''} onchange="toggleRecipeSectionFromClass('${r.id}', 'extra', this.checked)">
+                            <span class="slider round" style="border-radius:16px;"></span>
+                        </label>
+                    </div>
+                    <span style="${!includeExtra ? 'text-decoration:line-through; opacity:0.5;' : ''}">$${formatCLP(rawEc)}</span>
+                </div>
+                ${includeExtra ? extraItemsList.map(m => `
                     <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
                         <span>${sanitizeHTML(m.name)}</span>
                         <span style="font-weight:500;">$${formatCLP(m.price * scale)}</span>
                     </div>
-                `).join('')}
-                <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:600;">
-                    <span>Subtotal</span><span>$${formatCLP(currentExtraCost)}</span>
-                </div>
+                `).join('') : ''}
             </div>
         </div>`;
     }
