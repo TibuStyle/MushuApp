@@ -4988,35 +4988,46 @@ function saveSyncMissingMaterials() {
                 mat.qty = qty;
                 mat.unit = unit;
                 mat.pending = false;
-                // ¡AQUÍ ESTÁ LA MAGIA! Si es extra, el nombre es la subcategoría
+                
                 if (category === 'extra') {
                     mat.subcategory = name;
                 }
                 mat.priceHistory = [{ date: new Date().toISOString().slice(0, 10), price: price }];
                 updated++;
 
+                // Reasignar matId en todas las recetas que usen este material y recalcular
                 recipes.forEach(r => {
+                    let recetaCambiada = false;
+
                     (r.ingredients || []).forEach(ing => {
                         if (normalizeText(ing.name) === normalizeText(name)) {
                             ing.matId = String(mat.id);
                             ing.pending = false;
                             ing.cost = calculateIngredientCost(mat, ing.qty, ing.unit);
+                            recetaCambiada = true;
                         }
                     });
+
                     (r.decorations || []).forEach(d => {
                         if (normalizeText(d.name) === normalizeText(name)) {
                             d.matId = String(mat.id);
                             d.pending = false;
                             d.cost = calculateIngredientCost(mat, d.qty, d.unit);
+                            recetaCambiada = true;
                         }
                     });
-                    // Recalcular el extra total de la receta
+
                     if (r.extraSubcategory && normalizeText(r.extraSubcategory) === normalizeText(name)) {
                         const extraItems = materials.filter(m => m.category === 'extra' && normalizeText(m.subcategory) === normalizeText(name));
                         r.extraCost = extraItems.reduce((s, m) => s + m.price, 0);
-                        const icCost = r.ingredients.reduce((s, i) => s + (i.cost || 0), 0);
-                        const dcCost = r.decorations.reduce((s, d) => s + (d.cost || 0), 0);
-                        r.totalCost = icCost + dcCost + r.extraCost;
+                        recetaCambiada = true;
+                    }
+
+                    // ¡AQUÍ ESTABA EL ERROR! Faltaba guardar el total de la receta
+                    if (recetaCambiada) {
+                        const icCost = (r.ingredients || []).reduce((s, i) => s + (i.cost || 0), 0);
+                        const dcCost = (r.decorations || []).reduce((s, d) => s + (d.cost || 0), 0);
+                        r.totalCost = icCost + dcCost + (r.extraCost || 0);
                     }
                 });
             }
