@@ -1355,20 +1355,24 @@ function renderRecipes() {
 }
 
 function renderRecipeCard(r, priceColor) {
-    let dp = r.totalCost;
+    const scale = r.scale || 1;
+    let baseTotal = r.totalCost || 0;
+    let scaledTotal = baseTotal * scale;
+    
+    let dp = scaledTotal;
     let pl = "Precio costo:";
     if (showMinSellingPrice) {
-        dp = Math.floor((r.totalCost * profitMargin) / 500) * 500;
+        dp = Math.floor((scaledTotal * profitMargin) / 500) * 500;
         pl = `Sugerido (x${profitMargin}):`;
     }
 
-    const ic = (r.ingredients || []).reduce((s, i) => s + i.cost, 0);
-    const dc = (r.decorations || []).reduce((s, i) => s + i.cost, 0);
-    const ec = r.extraCost || 0;
+    const ic = (r.ingredients || []).reduce((s, i) => s + i.cost, 0) * scale;
+    const dc = (r.decorations || []).reduce((s, i) => s + i.cost, 0) * scale;
+    const ec = (r.extraCost || 0) * scale;
     const ti = (r.ingredients || []).length + (r.decorations || []).length;
-    const se = Math.floor((r.totalCost * profitMargin) / 500) * 500;
+    const se = Math.floor((scaledTotal * profitMargin) / 500) * 500;
+    const scaledPortions = (r.portions || 1) * scale;
 
-    // Contar materiales pendientes
     const pendingIngredients = (r.ingredients || []).filter(i => i.pending === true);
     const pendingDecorations = (r.decorations || []).filter(i => i.pending === true);
     const totalPending = pendingIngredients.length + pendingDecorations.length;
@@ -1376,59 +1380,75 @@ function renderRecipeCard(r, priceColor) {
         ? `<div class="pending-alert"><i class='bx bx-error-circle'></i> ${totalPending} material${totalPending > 1 ? 'es' : ''} pendiente${totalPending > 1 ? 's' : ''}</div>` 
         : '';
 
-    const pb = r.portions > 1
-        ? `<div class="portions-badge"><i class='bx bx-cut'></i> ${r.portions} porciones • $${formatCLP(Math.round(dp / r.portions))} c/u</div>`
+    const pb = scaledPortions > 1
+        ? `<div class="portions-badge"><i class='bx bx-cut'></i> ${formatQty(scaledPortions)} porciones • $${formatCLP(Math.round(dp / scaledPortions))} c/u</div>`
         : '';
 
     let bd = '';
+    
+    // Select de Multiplicador
+    bd += `
+    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-color); padding:8px 12px; border-radius:var(--radius-sm); margin-bottom:12px; border:1px solid rgba(0,0,0,0.05);">
+        <span style="font-size:13px; font-weight:600;"><i class='bx bx-math'></i> Multiplicar receta:</span>
+        <select onchange="changeRecipeScale('${r.id}', this.value)" style="width:auto; padding:4px 8px; font-size:13px; min-height:auto; border-color:var(--secondary-color);">
+            <option value="0.5" ${scale === 0.5 ? 'selected' : ''}>x0.5 (Mitad)</option>
+            <option value="1" ${scale === 1 ? 'selected' : ''}>x1 (Normal)</option>
+            <option value="2" ${scale === 2 ? 'selected' : ''}>x2 (Doble)</option>
+            <option value="3" ${scale === 3 ? 'selected' : ''}>x3 (Triple)</option>
+            <option value="4" ${scale === 4 ? 'selected' : ''}>x4</option>
+            <option value="5" ${scale === 5 ? 'selected' : ''}>x5</option>
+            <option value="10" ${scale === 10 ? 'selected' : ''}>x10</option>
+        </select>
+    </div>`;
+
     if ((r.ingredients || []).length > 0) {
         bd += `<div class="recipe-breakdown-section">
             <div class="recipe-breakdown-header"><span><i class='bx bx-package'></i> Ingredientes</span><span>$${formatCLP(ic)}</span></div>
-            ${r.ingredients.map(i => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(i.name)} (${i.qty} ${i.unit})</span><span>$${formatCLP(i.cost)}</span></div>`).join('')}
+            ${r.ingredients.map(i => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(i.name)} (${formatQty(i.qty * scale)} ${i.unit})</span><span>$${formatCLP(i.cost * scale)}</span></div>`).join('')}
         </div>`;
     }
     if ((r.decorations || []).length > 0) {
         bd += `<div class="recipe-breakdown-section">
             <div class="recipe-breakdown-header"><span><i class='bx bx-palette'></i> Decoración</span><span>$${formatCLP(dc)}</span></div>
-            ${r.decorations.map(d => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(d.name)} (${d.qty} ${d.unit})</span><span>$${formatCLP(d.cost)}</span></div>`).join('')}
+            ${r.decorations.map(d => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(d.name)} (${formatQty(d.qty * scale)} ${d.unit})</span><span>$${formatCLP(d.cost * scale)}</span></div>`).join('')}
         </div>`;
     }
     if (r.extraSubcategory && ec > 0) {
-        const eis = materials.filter(m => m.category === 'extra' && m.subcategory === r.extraSubcategory);
+        const eis = materials.filter(m => m.category === 'extra' && normalizeText(m.subcategory) === normalizeText(r.extraSubcategory));
         bd += `<div class="recipe-breakdown-section">
             <div class="recipe-breakdown-header"><span><i class='bx bx-star'></i> Extra</span><span>$${formatCLP(ec)}</span></div>
-            ${eis.map(m => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(m.name)}</span><span>$${formatCLP(m.price)}</span></div>`).join('')}
+            ${eis.map(m => `<div class="recipe-breakdown-item"><span>${sanitizeHTML(m.name)}</span><span>$${formatCLP(m.price * scale)}</span></div>`).join('')}
         </div>`;
     }
-    bd += `<div class="recipe-breakdown-total"><span>COSTO TOTAL</span><span>$${formatCLP(r.totalCost)}</span></div>`;
+    bd += `<div class="recipe-breakdown-total"><span>COSTO TOTAL</span><span>$${formatCLP(scaledTotal)}</span></div>`;
 
     if (totalPending > 0) {
         bd += `<div style="background:rgba(245,158,11,0.1);border-left:3px solid var(--warning-color);border-radius:0 var(--radius-sm) var(--radius-sm) 0;padding:12px 14px;margin-top:12px;">
             <strong style="color:var(--warning-color);font-size:13px;display:block;margin-bottom:6px;">⚠️ Materiales pendientes por completar:</strong>
-            ${pendingIngredients.map(i => `<div style="font-size:13px;color:var(--text-muted);padding:2px 0;">• ${sanitizeHTML(i.name)} (${i.qty} ${i.unit})</div>`).join('')}
-            ${pendingDecorations.map(i => `<div style="font-size:13px;color:var(--text-muted);padding:2px 0;">• ${sanitizeHTML(i.name)} (${i.qty} ${i.unit})</div>`).join('')}
+            ${pendingIngredients.map(i => `<div style="font-size:13px;color:var(--text-muted);padding:2px 0;">• ${sanitizeHTML(i.name)} (${formatQty(i.qty * scale)} ${i.unit})</div>`).join('')}
+            ${pendingDecorations.map(i => `<div style="font-size:13px;color:var(--text-muted);padding:2px 0;">• ${sanitizeHTML(i.name)} (${formatQty(i.qty * scale)} ${i.unit})</div>`).join('')}
             <p style="font-size:12px;color:var(--text-muted);margin:8px 0 0;">Ve a Materiales y completa los datos para calcular el costo real.</p>
         </div>`;
     }
 
     let sl = `<div class="recipe-selling-section"><div class="recipe-selling-row highlight"><span>💰 Venta entera:</span><span>$${formatCLP(se)}</span></div>`;
-    if (r.portions > 1) {
-        const sp = Math.round(se / r.portions);
-        sl += `<div class="recipe-selling-row"><span>🍰 Por porción (${r.portions}x):</span><span>$${formatCLP(sp)} c/u</span></div>
-               <div class="recipe-selling-row"><span>Total porciones:</span><span>$${formatCLP(sp * r.portions)}</span></div>`;
+    if (scaledPortions > 1) {
+        const sp = Math.round(se / scaledPortions);
+        sl += `<div class="recipe-selling-row"><span>🍰 Por porción (${formatQty(scaledPortions)}x):</span><span>$${formatCLP(sp)} c/u</span></div>
+               <div class="recipe-selling-row"><span>Total porciones:</span><span>$${formatCLP(sp * scaledPortions)}</span></div>`;
     }
     sl += `</div>`;
 
     let tipH = '';
     
-    // Mostrar Tips del Profesor a todos (Profesores y Alumnos)
-    if (r.recipeTips) {
-        tipH = `<div class="recipe-tip"><strong>💡 Tips de la Profe</strong><br>${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}</div>`;
-    } 
-    // Si no hay Tips de la Profe, mostrar el tip automático del ingrediente caro
-    else {
-        const tip = generateRecipeTip(r);
-        tipH = tip ? `<div class="recipe-tip"><strong>💡 Consejo</strong><br>${tip}</div>` : '';
+    // El tip se muestra a todos en la pestaña Recetas, menos a los alumnos en recetas importadas (que lo ven en la clase)
+    if (r.recipeSource !== 'class' || teacherMode.active) {
+        if (r.recipeTips) {
+            tipH = `<div class="recipe-tip"><strong>💡 Tips de la Profe</strong><br>${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}</div>`;
+        } else {
+            const tip = generateRecipeTip(r);
+            tipH = tip ? `<div class="recipe-tip"><strong>💡 Consejo</strong><br>${tip}</div>` : '';
+        }
     }
 
     const recipePhotoH = (teacherMode.active && r.recipePhoto)
@@ -1480,7 +1500,12 @@ function renderRecipeCard(r, priceColor) {
                         <button class="btn-submit" style="margin-top:0;flex:1;" onclick="showAddRecipeModal('${r.id}')"><i class='bx bx-edit'></i> Editar</button>
                         <button class="btn-icon" style="background:var(--secondary-color);color:white;" onclick="shareRecipe('${r.id}')" title="Compartir"><i class='bx bx-share-alt'></i></button>
                         <button class="btn-icon danger" onclick="deleteRecipe('${r.id}')"><i class='bx bx-trash'></i></button>
-                    </div>` : ''}
+                    </div>` : `
+                    <div class="action-buttons-group" style="margin-top:16px; justify-content:center;">
+                        <button class="btn-icon" style="background:var(--secondary-color);color:white; width:100%; max-width:200px; border-radius:50px;" onclick="shareRecipe('${r.id}')">
+                            <i class='bx bx-share-alt'></i> Compartir Receta
+                        </button>
+                    </div>`}
                 </div>
             </div>
         </div>
@@ -3952,6 +3977,32 @@ function closePhotoFullscreen() {
     document.getElementById('photo-fullscreen').style.display = 'none';
 }
 
+// === ESCALAR RECETAS (MULTIPLICADOR) ===
+function formatQty(q) {
+    // Redondea a 2 decimales solo si es necesario (para que no salga 2.00)
+    return Number.isInteger(q) ? q : parseFloat(q.toFixed(2));
+}
+
+function changeRecipeScale(recipeId, scaleStr) {
+    const scale = parseFloat(scaleStr);
+    const r = recipes.find(x => String(x.id) === String(recipeId));
+    if (r) {
+        r.scale = scale;
+        saveRecipesToStorage();
+        updateRecipesView(); // Refresca la vista manteniendo la tarjeta abierta
+    }
+}
+
+function changeRecipeScaleFromClass(recipeId, scaleStr) {
+    const scale = parseFloat(scaleStr);
+    const r = recipes.find(x => String(x.id) === String(recipeId));
+    if (r) {
+        r.scale = scale;
+        saveRecipesToStorage();
+        openRecipeFromClass(recipeId); // Refresca el modal en vivo
+    }
+}
+
 // === ABRIR RECETA DESDE CLASE ===
 function findRecipeByName(recipeName) {
     const r = recipes.find(x =>
@@ -3967,7 +4018,7 @@ function openRecipeFromClass(recipeId) {
         return;
     }
 
-    // Recalcular costos en vivo
+    const scale = r.scale || 1;
     let ic = 0;
     let dc = 0;
 
@@ -3977,10 +4028,11 @@ function openRecipeFromClass(recipeId) {
         if (m && !m.pending) {
             cost = calculateIngredientCost(m, i.qty, i.unit);
         }
+        cost = cost * scale;
         ic += cost;
         return `
             <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
-                <span>${sanitizeHTML(i.name)} (${i.qty} ${i.unit})</span>
+                <span>${sanitizeHTML(i.name)} (${formatQty(i.qty * scale)} ${i.unit})</span>
                 <span style="font-weight:500;">$${formatCLP(cost)}</span>
             </div>
         `;
@@ -3992,32 +4044,49 @@ function openRecipeFromClass(recipeId) {
         if (m && !m.pending) {
             cost = calculateIngredientCost(m, d.qty, d.unit);
         }
+        cost = cost * scale;
         dc += cost;
         return `
             <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
-                <span>${sanitizeHTML(d.name)} (${d.qty} ${d.unit})</span>
+                <span>${sanitizeHTML(d.name)} (${formatQty(d.qty * scale)} ${d.unit})</span>
                 <span style="font-weight:500;">$${formatCLP(cost)}</span>
             </div>
         `;
     }).join('');
 
     const ec = r.extraCost || 0;
-    
     let currentExtraCost = ec;
     let extraItemsList = [];
     if (r.extraSubcategory) {
         extraItemsList = materials.filter(m => m.category === 'extra' && normalizeText(m.subcategory) === normalizeText(r.extraSubcategory));
         currentExtraCost = extraItemsList.reduce((s, m) => s + m.price, 0);
     }
+    currentExtraCost = currentExtraCost * scale;
 
     const totalCost = ic + dc + currentExtraCost;
     const se = Math.floor((totalCost * profitMargin) / 500) * 500;
+    const scaledPortions = (r.portions || 1) * scale;
 
     let html = '';
 
     html += `<div class="class-content-header">
         <h2>${sanitizeHTML(r.name)}</h2>
-        <p>${(r.ingredients || []).length + (r.decorations || []).length} Items${r.extraSubcategory ? ' + Extra' : ''}${r.portions > 1 ? ' • ' + r.portions + ' porciones' : ''}</p>
+        <p>${(r.ingredients || []).length + (r.decorations || []).length} Items${r.extraSubcategory ? ' + Extra' : ''}${scaledPortions > 1 ? ' • ' + formatQty(scaledPortions) + ' porciones' : ''}</p>
+    </div>`;
+
+    // Dropdown Multiplicador en Modal
+    html += `
+    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--surface-color); padding:8px 12px; border-radius:var(--radius-sm); margin-bottom:12px; border:1px solid rgba(0,0,0,0.05);">
+        <span style="font-size:13px; font-weight:600;"><i class='bx bx-math'></i> Multiplicar receta:</span>
+        <select onchange="changeRecipeScaleFromClass('${r.id}', this.value)" style="width:auto; padding:4px 8px; font-size:13px; min-height:auto; border-color:var(--secondary-color);">
+            <option value="0.5" ${scale === 0.5 ? 'selected' : ''}>x0.5 (Mitad)</option>
+            <option value="1" ${scale === 1 ? 'selected' : ''}>x1 (Normal)</option>
+            <option value="2" ${scale === 2 ? 'selected' : ''}>x2 (Doble)</option>
+            <option value="3" ${scale === 3 ? 'selected' : ''}>x3 (Triple)</option>
+            <option value="4" ${scale === 4 ? 'selected' : ''}>x4</option>
+            <option value="5" ${scale === 5 ? 'selected' : ''}>x5</option>
+            <option value="10" ${scale === 10 ? 'selected' : ''}>x10</option>
+        </select>
     </div>`;
 
     if ((r.ingredients || []).length > 0) {
@@ -4051,7 +4120,7 @@ function openRecipeFromClass(recipeId) {
                 ${extraItemsList.map(m => `
                     <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;">
                         <span>${sanitizeHTML(m.name)}</span>
-                        <span style="font-weight:500;">$${formatCLP(m.price)}</span>
+                        <span style="font-weight:500;">$${formatCLP(m.price * scale)}</span>
                     </div>
                 `).join('')}
                 <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid rgba(0,0,0,0.08);margin-top:4px;font-weight:600;">
@@ -4069,16 +4138,16 @@ function openRecipeFromClass(recipeId) {
             <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:14px;color:var(--secondary-color);font-weight:600;">
                 <span>💰 Venta sugerida (x${profitMargin}):</span><span>$${formatCLP(se)}</span>
             </div>
-            ${r.portions > 1 ? `
+            ${scaledPortions > 1 ? `
             <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;color:var(--text-muted);">
-                <span>🍰 Por porción (${r.portions}x):</span><span>$${formatCLP(Math.round(se / r.portions))} c/u</span>
+                <span>🍰 Por porción (${formatQty(scaledPortions)}x):</span><span>$${formatCLP(Math.round(se / scaledPortions))} c/u</span>
             </div>` : ''}
         </div>
     </div>`;
 
     const autoTip = generateRecipeTip(r);
     if (autoTip) {
-        html += `<div class="recipe-tip"><strong>💡 Consejo</strong>${autoTip}</div>`;
+        html += `<div class="recipe-tip"><strong>💡 Consejo</strong><br>${autoTip}</div>`;
     }
 
     document.getElementById('view-class-title').textContent = r.name;
