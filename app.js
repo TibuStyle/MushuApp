@@ -4006,82 +4006,113 @@ function previewClassAsStudent(courseId, classId) {
     document.getElementById('modal-view-class').classList.add('active');
 }
 
-// === PHOTO FULLSCREEN ===
+// === PHOTO FULLSCREEN CON ZOOM ===
+let currentZoom = 1;
+let initialDistance = null;
+
 function openPhotoFullscreen(src, watermark) {
-    // Si la imagen ya es Base64 o Data URI, abrir en nueva ventana nativa
-    // con un HTML básico que la centra y permite hacer zoom nativo.
+    const viewer = document.getElementById('photo-fullscreen');
+    const img = document.getElementById('photo-fullscreen-img');
+    const wm = document.getElementById('photo-fullscreen-watermark');
     
-    const newWindow = window.open();
-    if (newWindow) {
-        newWindow.document.write(`
-            <!DOCTYPE html>
-            <html lang="es">
-            <head>
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-                <title>Ver Receta</title>
-                <style>
-                    body {
-                        margin: 0;
-                        padding: 0;
-                        background: #000;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        height: 100vh;
-                        overflow: auto; /* Permite scroll si se hace zoom */
-                    }
-                    img {
-                        max-width: 100%;
-                        height: auto;
-                        -webkit-user-drag: none;
-                        -webkit-touch-callout: none;
-                    }
-                    .watermark {
-                        position: absolute;
-                        top: 50%;
-                        left: 50%;
-                        transform: translate(-50%, -50%) rotate(-30deg);
-                        font-size: 32px;
-                        font-weight: 800;
-                        color: rgba(255, 255, 255, 0.4);
-                        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-                        white-space: nowrap;
-                        pointer-events: none;
-                        user-select: none;
-                        text-transform: uppercase;
-                        letter-spacing: 2px;
-                        font-family: sans-serif;
-                    }
-                    .close-btn {
-                        position: fixed;
-                        top: 20px;
-                        right: 20px;
-                        background: rgba(255, 255, 255, 0.2);
-                        color: white;
-                        border: none;
-                        border-radius: 50%;
-                        width: 40px;
-                        height: 40px;
-                        font-size: 20px;
-                        cursor: pointer;
-                        z-index: 100;
-                    }
-                </style>
-            </head>
-            <body>
-                <button class="close-btn" onclick="window.close()">X</button>
-                <div style="position:relative;">
-                    <img src="${src}" alt="Receta" oncontextmenu="return false;">
-                    <div class="watermark">${sanitizeHTML(watermark)}</div>
-                </div>
-            </body>
-            </html>
-        `);
-        newWindow.document.close();
-    } else {
-        showToast('El navegador bloqueó la ventana emergente', true);
+    img.src = src;
+    wm.textContent = watermark || '';
+    
+    // Resetear zoom
+    currentZoom = 1;
+    img.style.transform = `scale(1)`;
+    
+    viewer.style.display = 'block';
+
+    // Asegurarse de que el botón atrás de Android cierre la foto en vez de salir de la app
+    history.pushState({photoOpen: true}, "photo", "#photo");
+}
+
+function closePhotoFullscreen() {
+    document.getElementById('photo-fullscreen').style.display = 'none';
+    if (history.state && history.state.photoOpen) {
+        history.back();
     }
 }
+
+// Escuchar botón atrás de Android
+window.addEventListener('popstate', function(event) {
+    document.getElementById('photo-fullscreen').style.display = 'none';
+});
+
+// === LOGICA DE PELLIZCO PARA ZOOM (PINCH TO ZOOM) ===
+document.addEventListener('DOMContentLoaded', () => {
+    const imgContainer = document.getElementById('photo-zoom-container');
+    const img = document.getElementById('photo-fullscreen-img');
+
+    if (imgContainer) {
+        // Evitar que el touch normal cierre la foto si estamos haciendo zoom
+        imgContainer.addEventListener('click', (e) => {
+            if (currentZoom > 1) {
+                e.stopPropagation(); // No cierra si tiene zoom
+            }
+        });
+
+        // Detectar dos dedos (TouchStart)
+        imgContainer.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                initialDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+            }
+        });
+
+        // Detectar movimiento de los dedos (TouchMove)
+        imgContainer.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && initialDistance) {
+                e.preventDefault(); // Evitar scroll de la página
+
+                const currentDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+
+                // Calcular nuevo zoom basado en qué tanto se separaron los dedos
+                let zoomFactor = currentDistance / initialDistance;
+                let newZoom = currentZoom * zoomFactor;
+
+                // Limitar el zoom (entre x1 y x4)
+                if (newZoom < 1) newZoom = 1;
+                if (newZoom > 4) newZoom = 4;
+
+                img.style.transform = `scale(${newZoom})`;
+            }
+        }, { passive: false });
+
+        // Guardar el zoom actual cuando se levantan los dedos
+        imgContainer.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) {
+                initialDistance = null;
+                // Extraer el valor actual de scale de la propiedad CSS
+                const transform = img.style.transform;
+                if (transform.includes('scale')) {
+                    currentZoom = parseFloat(transform.replace('scale(', '').replace(')', ''));
+                }
+            }
+        });
+        
+        // Hacer doble tap para zoom rápido
+        let lastTap = 0;
+        imgContainer.addEventListener('touchend', (e) => {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            if (tapLength < 300 && tapLength > 0) {
+                // Doble tap detectado
+                currentZoom = currentZoom > 1 ? 1 : 2; // Alternar entre normal y x2
+                img.style.transform = `scale(${currentZoom})`;
+                e.preventDefault();
+            }
+            lastTap = currentTime;
+        });
+    }
+});
+
 // === ESCALAR RECETAS (MULTIPLICADOR) ===
 function formatQty(q) {
     // Redondea a 2 decimales solo si es necesario (para que no salga 2.00)
