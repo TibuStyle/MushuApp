@@ -4008,18 +4008,80 @@ function previewClassAsStudent(courseId, classId) {
 
 // === PHOTO FULLSCREEN ===
 function openPhotoFullscreen(src, watermark) {
-    const viewer = document.getElementById('photo-fullscreen');
-    const img = document.getElementById('photo-fullscreen-img');
-    const wm = document.getElementById('photo-fullscreen-watermark');
-    img.src = src;
-    wm.textContent = watermark || '';
-    viewer.style.display = 'flex';
+    // Si la imagen ya es Base64 o Data URI, abrir en nueva ventana nativa
+    // con un HTML básico que la centra y permite hacer zoom nativo.
+    
+    const newWindow = window.open();
+    if (newWindow) {
+        newWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+                <title>Ver Receta</title>
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        background: #000;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        height: 100vh;
+                        overflow: auto; /* Permite scroll si se hace zoom */
+                    }
+                    img {
+                        max-width: 100%;
+                        height: auto;
+                        -webkit-user-drag: none;
+                        -webkit-touch-callout: none;
+                    }
+                    .watermark {
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%) rotate(-30deg);
+                        font-size: 32px;
+                        font-weight: 800;
+                        color: rgba(255, 255, 255, 0.4);
+                        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+                        white-space: nowrap;
+                        pointer-events: none;
+                        user-select: none;
+                        text-transform: uppercase;
+                        letter-spacing: 2px;
+                        font-family: sans-serif;
+                    }
+                    .close-btn {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: rgba(255, 255, 255, 0.2);
+                        color: white;
+                        border: none;
+                        border-radius: 50%;
+                        width: 40px;
+                        height: 40px;
+                        font-size: 20px;
+                        cursor: pointer;
+                        z-index: 100;
+                    }
+                </style>
+            </head>
+            <body>
+                <button class="close-btn" onclick="window.close()">X</button>
+                <div style="position:relative;">
+                    <img src="${src}" alt="Receta" oncontextmenu="return false;">
+                    <div class="watermark">${sanitizeHTML(watermark)}</div>
+                </div>
+            </body>
+            </html>
+        `);
+        newWindow.document.close();
+    } else {
+        showToast('El navegador bloqueó la ventana emergente', true);
+    }
 }
-
-function closePhotoFullscreen() {
-    document.getElementById('photo-fullscreen').style.display = 'none';
-}
-
 // === ESCALAR RECETAS (MULTIPLICADOR) ===
 function formatQty(q) {
     // Redondea a 2 decimales solo si es necesario (para que no salga 2.00)
