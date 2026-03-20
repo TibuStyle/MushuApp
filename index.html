@@ -1102,6 +1102,20 @@
     <!-- Import Recipe File Input -->
     <input type="file" id="import-recipe-file" accept=".json" style="display:none;" onchange="importRecipeFromFile(event)">
 
+    <!-- Photo Fullscreen Viewer -->
+    <div id="photo-fullscreen" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.95); z-index:9000; overflow:scroll;" onclick="closePhotoFullscreen()">
+        <!-- Contenedor que permite hacer scroll cuando haces zoom -->
+        <div style="min-width:100vw; min-height:100vh; display:flex; justify-content:center; align-items:center; padding: 20px;">
+            <div style="position:relative;" id="photo-zoom-container">
+                <img id="photo-fullscreen-img" src="" style="max-width:100%; height:auto; transition: transform 0.2s; transform-origin: center center;">
+                <div id="photo-fullscreen-watermark" class="watermark-overlay" style="font-size:20px;"></div>
+            </div>
+        </div>
+        <button style="position:fixed; top:20px; right:20px; background:rgba(255,255,255,0.2); border:none; color:white; width:40px; height:40px; border-radius:50%; font-size:24px; cursor:pointer; z-index:9001; display:flex; justify-content:center; align-items:center;" onclick="closePhotoFullscreen()">
+            <i class='bx bx-x'></i>
+        </button>
+    </div>
+    
     <!-- Toast -->
     <div id="toast" class="toast">Mensaje</div>
 
