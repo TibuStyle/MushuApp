@@ -3325,7 +3325,7 @@ function showAddRecipeModal(recipeId = null) {
         folderGroup.style.display = 'none';
     }
 
-    folderInput.value = '';
+    if (folderInput) folderInput.value = '';
     currentRecipeIsRestricted = false;
 
     if (recipeId) {
@@ -3339,11 +3339,12 @@ function showAddRecipeModal(recipeId = null) {
             currentRecipeExtra = r.extraSubcategory || null;
             
             // Verificar si es alumno editando una receta importada
-            currentRecipeIsRestricted = !teacherMode.active && (r.recipeSource === 'class' || r.recipeSource === 'module');
+            currentRecipeIsRestricted = (!teacherMode.active && (r.recipeSource === 'class' || r.recipeSource === 'module'));
             
             document.querySelector('#modal-recipe h3').textContent = currentRecipeIsRestricted ? "🛠️ Personalizar Receta" : "Editar Receta";
-            if (teacherMode.active) {
-                document.getElementById('recipe-folder-input').value = r.recipeFolder || '';
+            
+            if (teacherMode.active && folderInput) {
+                folderInput.value = r.recipeFolder || '';
             }
             recalculateIngredientCosts();
             if (btnD) btnD.style.display = 'flex';
@@ -3387,7 +3388,7 @@ function showAddRecipeModal(recipeId = null) {
         currentRecipeModuleClass = '';
     }
 
-    // Aplicar restricciones visuales si es alumno
+    // Aplicar restricciones visuales si es alumno personalizando
     const nameGroup = document.getElementById('recipe-name-group');
     const portionsGroup = document.getElementById('recipe-portions-group');
     const ingredientsGroup = document.getElementById('recipe-ingredients-group');
@@ -3396,10 +3397,16 @@ function showAddRecipeModal(recipeId = null) {
         if (nameGroup) nameGroup.style.display = 'none';
         if (portionsGroup) portionsGroup.style.display = 'none';
         if (ingredientsGroup) ingredientsGroup.style.display = 'none';
+        if (btnD) btnD.style.display = 'none';
+        document.getElementById('recipe-name').disabled = true;
+        document.getElementById('recipe-portions').disabled = true;
     } else {
         if (nameGroup) nameGroup.style.display = 'block';
         if (portionsGroup) portionsGroup.style.display = 'block';
         if (ingredientsGroup) ingredientsGroup.style.display = 'block';
+        document.getElementById('recipe-name').disabled = false;
+        document.getElementById('recipe-portions').disabled = false;
+        if (currentEditingRecipeId && btnD) btnD.style.display = 'flex';
     }
 
     renderCurrentRecipeIngredients();
