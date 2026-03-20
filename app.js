@@ -2936,7 +2936,6 @@ function saveMissingMaterialsAndContinue() {
         }
     }
 
-    // Asegurarnos de que las subcategorías extra globales se actualicen
     const extraItems = materials.filter(m => m.category === 'extra');
     let extraSubcategories = JSON.parse(localStorage.getItem('mushu_extra_subcategories')) || [];
     extraItems.forEach(m => {
@@ -2947,7 +2946,10 @@ function saveMissingMaterialsAndContinue() {
     localStorage.setItem('mushu_extra_subcategories', JSON.stringify(extraSubcategories));
 
     saveMaterialsToStorage();
+
+    // 🔴 AQUÍ ESTÁ LA CLAVE: Forzar el recálculo en las recetas guardadas
     recalculateAllRecipes();
+
     renderMaterials();
     updateMaterialSelect();
     updateDecorationSelect();
@@ -2955,14 +2957,41 @@ function saveMissingMaterialsAndContinue() {
 
     closeModal('modal-missing-materials');
 
+    // 🔴 Y en el Alumno hay que asegurarse de recalcular el pendingImportClassData ANTES de importarlo
     if (pendingImportClassData) {
+        
+        const recipesToProcess = pendingImportClassData.linkedRecipes || (pendingImportClassData.linkedRecipe ? [pendingImportClassData.linkedRecipe] : []);
+        
+        recipesToProcess.forEach(r => {
+            (r.ingredients || []).forEach(i => {
+                const localMat = materials.find(m => normalizeText(m.name) === normalizeText(i.name));
+                if (localMat && !localMat.pending) {
+                    i.cost = calculateIngredientCost(localMat, i.qty, i.unit);
+                }
+            });
+            (r.decorations || []).forEach(d => {
+                const localMat = materials.find(m => normalizeText(m.name) === normalizeText(d.name));
+                if (localMat && !localMat.pending) {
+                    d.cost = calculateIngredientCost(localMat, d.qty, d.unit);
+                }
+            });
+            
+            if (r.extraSubcategory) {
+                const extraItemsLocal = materials.filter(m => m.category === 'extra' && normalizeText(m.subcategory) === normalizeText(r.extraSubcategory));
+                r.extraCost = extraItemsLocal.reduce((s, m) => s + m.price, 0);
+            }
+
+            const icCost = (r.ingredients || []).reduce((s, i) => s + (i.cost || 0), 0);
+            const dcCost = (r.decorations || []).reduce((s, d) => s + (d.cost || 0), 0);
+            r.totalCost = icCost + dcCost + (r.extraCost || 0);
+        });
+
         completeClassImport(pendingImportClassData);
         pendingImportClassData = null;
         setTimeout(() => {
             updateClassesView();
         }, 100);
     } else {
-        // Si venía del botón de sincronizar en Ajustes (no de una clase importada en el momento)
         showToast('Materiales guardados y clases actualizadas ✅');
         updateClassesView();
     }
