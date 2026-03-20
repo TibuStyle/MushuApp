@@ -1520,10 +1520,7 @@ function renderRecipeCard(r, priceColor) {
                     </div>` : `
                     <div class="action-buttons-group" style="margin-top:16px; justify-content:center;">
                         <button class="btn-submit" style="margin-top:0;flex:1; background:var(--surface-hover); color:var(--text-main); border:1px dashed var(--secondary-color);" onclick="showAddRecipeModal('${r.id}')">
-                            <i class='bx bx-slider-alt' style="color:var(--secondary-color);"></i> Personalizar
-                        </button>
-                        <button class="btn-icon" style="background:var(--secondary-color);color:white; width:100%; max-width:200px; border-radius:50px;" onclick="shareRecipe('${r.id}')">
-                            <i class='bx bx-share-alt'></i> Compartir Receta
+                            <i class='bx bx-slider-alt' style="color:var(--secondary-color);"></i> Personalizar Receta
                         </button>
                     </div>`}
                 </div>
