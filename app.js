@@ -1354,10 +1354,6 @@ function renderModuleFolder(mod, recipesInModule) {
     `;
 }
 
-function renderRecipes() {
-    updateRecipesView();
-}
-
 function renderRecipeCard(r, priceColor) {
     const scale = r.scale || 1;
     
@@ -1466,79 +1462,11 @@ function renderRecipeCard(r, priceColor) {
     sl += `</div>`;
 
     let tipH = '';
-    if (r.recipeSource !== 'class' || teacherMode.active) {
-        if (r.recipeTips) {
-            tipH = `<div class="recipe-tip"><strong>💡 Tips de la Profe</strong><br>${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}</div>`;
-        } else {
-            const tip = generateRecipeTip(r);
-            tipH = tip ? `<div class="recipe-tip"><strong>💡 Consejo</strong><br>${tip}</div>` : '';
-        }
-    }
-
-    const recipePhotoH = (teacherMode.active && r.recipePhoto)
-        ? `<button class="btn-submit" style="margin-top:12px; background:var(--surface-hover); color:var(--secondary-color); border:1px dashed var(--secondary-color);" onclick="event.stopPropagation(); openPhotoFullscreen('${r.recipePhoto}', 'Vista Previa')">
-            <i class='bx bx-image'></i> Ver foto adjunta
-           </button>`
-        : '';
-
-    const sourceBadge = r.recipeSource === 'class'
-        ? `<div class="module-badge"><i class='bx bx-book'></i> Receta de módulo</div>`
-        : '';
-
-    // ¡BOTÓN PERSONALIZAR PARA ALUMNOS!
-    const actionButtons = ((r.recipeSource !== 'class' && r.recipeSource !== 'module') || teacherMode.active) ? `
-        <div class="action-buttons-group" style="margin-top:16px;">
-            <button class="btn-submit" style="margin-top:0;flex:1;" onclick="showAddRecipeModal('${r.id}')"><i class='bx bx-edit'></i> Editar</button>
-            <button class="btn-icon" style="background:var(--secondary-color);color:white;" onclick="shareRecipe('${r.id}')" title="Compartir"><i class='bx bx-share-alt'></i></button>
-            <button class="btn-icon danger" onclick="deleteRecipe('${r.id}')"><i class='bx bx-trash'></i></button>
-        </div>` : `
-        <div class="action-buttons-group" style="margin-top:16px;">
-            <button class="btn-submit" style="margin-top:0;flex:1; background:var(--surface-hover); color:var(--text-main); border:1px dashed var(--secondary-color);" onclick="showAddRecipeModal('${r.id}')">
-                <i class='bx bx-slider-alt' style="color:var(--secondary-color);"></i> Personalizar
-            </button>
-            <button class="btn-icon" style="background:var(--secondary-color);color:white;" onclick="shareRecipe('${r.id}')" title="Compartir"><i class='bx bx-share-alt'></i></button>
-        </div>`;
-
-    return `
-        <div class="recipe-card">
-            <div class="recipe-card-header" onclick="toggleRecipeDetail('${r.id}')" style="cursor:pointer;">
-                <div class="recipe-card-info">
-                    <h3>${sanitizeHTML(r.name)}</h3>
-                    <p>${ti} Items${r.extraSubcategory ? ' + Extra' : ''}</p>
-                    ${sourceBadge}
-                    ${pendingWarning}
-                    ${pb}
-                </div>
-                <div class="recipe-card-price">
-                    <div class="recipe-card-price-label">${pl}</div>
-                    <div class="recipe-card-price-value" style="color:${priceColor};">$${formatCLP(dp)}</div>
-                </div>
-            </div>
-            <div class="recipe-card-toggle" id="recipe-toggle-${r.id}" onclick="toggleRecipeDetail('${r.id}')" style="cursor:pointer;">
-                <i class='bx bx-chevron-down'></i>
-            </div>
-            <div class="recipe-card-detail" id="recipe-detail-${r.id}">
-                <div class="recipe-detail-content">
-                    ${recipePhotoH}
-                    ${bd}
-                    ${sl}
-                    ${tipH}
-                    ${r.sharedBy ? `
-                    <div style="text-align:center; padding:10px 0; margin-top:12px; border-top:1px dashed rgba(0,0,0,0.08);">
-                        <span style="font-size:12px; color:var(--text-muted);">
-                            <i class='bx bx-share-alt' style="font-size:14px; vertical-align:middle; margin-right:4px; color:var(--secondary-color);"></i>
-                            Receta compartida por 
-                            <strong style="color:var(--secondary-color);">
-                                ${sanitizeHTML(r.sharedBy)}
-                            </strong>
-                        </span>
-                    </div>` : ''}
-                    ${actionButtons}
-                </div>
-            </div>
-        </div>
-    `;
-}
+    
+    // Los tips de la profe ahora van en la vista de la clase, no en la receta.
+    // Aquí solo mostramos el consejo automático del ingrediente más caro.
+    const tip = generateRecipeTip(r);
+    tipH = tip ? `<div class="recipe-tip"><strong>💡 Consejo</strong><br>${tip}</div>` : '';
 
     const recipePhotoH = (teacherMode.active && r.recipePhoto)
         ? `<button class="btn-submit" style="margin-top:12px; background:var(--surface-hover); color:var(--secondary-color); border:1px dashed var(--secondary-color);" onclick="event.stopPropagation(); openPhotoFullscreen('${r.recipePhoto}', 'Vista Previa')">
@@ -1591,6 +1519,9 @@ function renderRecipeCard(r, priceColor) {
                         <button class="btn-icon danger" onclick="deleteRecipe('${r.id}')"><i class='bx bx-trash'></i></button>
                     </div>` : `
                     <div class="action-buttons-group" style="margin-top:16px; justify-content:center;">
+                        <button class="btn-submit" style="margin-top:0;flex:1; background:var(--surface-hover); color:var(--text-main); border:1px dashed var(--secondary-color);" onclick="showAddRecipeModal('${r.id}')">
+                            <i class='bx bx-slider-alt' style="color:var(--secondary-color);"></i> Personalizar
+                        </button>
                         <button class="btn-icon" style="background:var(--secondary-color);color:white; width:100%; max-width:200px; border-radius:50px;" onclick="shareRecipe('${r.id}')">
                             <i class='bx bx-share-alt'></i> Compartir Receta
                         </button>
