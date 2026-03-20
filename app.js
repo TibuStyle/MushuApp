@@ -3391,10 +3391,23 @@ function showAddRecipeModal(recipeId = null) {
     }
 
     // Aplicar restricciones visuales si es alumno
-    document.getElementById('recipe-name').disabled = currentRecipeIsRestricted;
-    document.getElementById('recipe-portions').disabled = currentRecipeIsRestricted;
-    const addIngForm = document.getElementById('recipe-ingredients-list').nextElementSibling;
-    if (addIngForm) addIngForm.style.display = currentRecipeIsRestricted ? 'none' : 'block';
+    const nameGroup = document.getElementById('recipe-name-group');
+    const portionsGroup = document.getElementById('recipe-portions-group');
+    const ingredientsGroup = document.getElementById('recipe-ingredients-group');
+    
+    if (currentRecipeIsRestricted) {
+        // Ocultar completamente lo que el alumno no puede tocar
+        if (nameGroup) nameGroup.style.display = 'none';
+        if (portionsGroup) portionsGroup.style.display = 'none';
+        if (ingredientsGroup) ingredientsGroup.style.display = 'none';
+    } else {
+        // Mostrar todo normal para el profesor o en recetas propias
+        if (nameGroup) nameGroup.style.display = 'block';
+        if (portionsGroup) portionsGroup.style.display = 'block';
+        if (ingredientsGroup) ingredientsGroup.style.display = 'block';
+        document.getElementById('recipe-name').disabled = false;
+        document.getElementById('recipe-portions').disabled = false;
+    }
 
     renderCurrentRecipeIngredients();
     renderCurrentRecipeDecorations();
