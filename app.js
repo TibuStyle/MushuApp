@@ -1821,6 +1821,24 @@ function showCreateCourseModal(courseId = null) {
     document.getElementById('modal-course').classList.add('active');
 }
 
+function renderCourseStudents() {
+    const list = document.getElementById('course-students-list');
+    if (!currentCourseStudents.length) {
+        list.innerHTML = '<div style="padding:10px;font-size:13px;color:var(--text-muted);text-align:center;">Sin alumnos aún</div>';
+        return;
+    }
+
+    list.innerHTML = currentCourseStudents.map(s => `
+        <div class="course-student-item">
+            <span>👤 ${sanitizeHTML(s.name)}</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span class="student-code-badge">${s.studentCode || '--'}</span>
+                <button type="button" onclick="removeStudentFromCourse('${s.id}')"><i class='bx bx-x'></i></button>
+            </div>
+        </div>
+    `).join('');
+}
+
 function addStudentToCourse() {
     const input = document.getElementById('course-add-student');
     const name = input.value.trim();
