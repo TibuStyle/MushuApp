@@ -6471,3 +6471,94 @@ async function sincronizarAsistenciaFirebase(modulePrefix, studentId, classId, p
 }
 
 console.log('🔗 Integración Firebase con sistema de clases cargada');
+
+async function procesarCodigoEnFirebase(codigoCompleto, decodedData) {
+    try {
+        console.log('🔓 Procesando código en Firebase:', codigoCompleto);
+        
+        const { modulePrefix, classId, attendance, studentId } = decodedData;
+        
+        // 1. Verificar si el código ya fue usado
+        const codigoRef = firebaseDB.ref(`codigos/${codigoCompleto}`);
+        const codigoSnap = await codigoRef.once('value');
+        
+        if (codigoSnap.exists()) {
+            console.log('⚠️ Código ya fue usado anteriormente');
+        }
+        
+        // 2. Registrar el código usado
+        await codigoRef.set({
+            codigoCompleto: codigoCompleto,
+            modulo: modulePrefix,
+            claseId: classId,
+            alumnaId: studentId,
+            asistencia: parseInt(attendance) % 2 === 1,
+            fechaUso: new Date().toISOString(),
+            usado: true
+        });
+        
+        // 3. Buscar a la alumna dentro de TODOS los cursos del módulo
+        const moduloAlumnasRef = firebaseDB.ref(`alumnas/${modulePrefix}`);
+        const moduloSnap = await moduloAlumnasRef.once('value');
+        
+        if (!moduloSnap.exists()) {
+            console.error('❌ No existe el módulo en alumnas:', modulePrefix);
+            return false;
+        }
+        
+        let alumnaRef = null;
+        let alumnaData = null;
+        let foundCursoId = null;
+        
+        moduloSnap.forEach(cursoSnap => {
+            const cursoId = cursoSnap.key;
+            cursoSnap.forEach(alumnaSnap => {
+                if (String(alumnaSnap.key) === String(studentId)) {
+                    alumnaRef = firebaseDB.ref(`alumnas/${modulePrefix}/${cursoId}/${studentId}`);
+                    alumnaData = alumnaSnap.val();
+                    foundCursoId = cursoId;
+                }
+            });
+        });
+        
+        if (!alumnaRef || !alumnaData) {
+            console.error('❌ No se encontró la alumna con código', studentId, 'en módulo', modulePrefix);
+            return false;
+        }
+        
+        // 4. Actualizar clases desbloqueadas
+        if (!alumnaData.clasesDesbloqueadas) {
+            alumnaData.clasesDesbloqueadas = [];
+        }
+        
+        if (!alumnaData.clasesDesbloqueadas.includes(classId)) {
+            alumnaData.clasesDesbloqueadas.push(classId);
+        }
+        
+        // 5. Actualizar asistencia
+        if (!alumnaData.asistencia) {
+            alumnaData.asistencia = [];
+        }
+        
+        alumnaData.asistencia.push({
+            claseId: classId,
+            fecha: new Date().toISOString(),
+            presente: parseInt(attendance) % 2 === 1,
+            codigo: codigoCompleto
+        });
+        
+        // 6. Guardar
+        await alumnaRef.update({
+            clasesDesbloqueadas: alumnaData.clasesDesbloqueadas,
+            asistencia: alumnaData.asistencia,
+            ultimaConexion: new Date().toISOString()
+        });
+        
+        console.log('✅ Código procesado y alumna actualizada en Firebase | Curso:', foundCursoId);
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Error procesando código:', error);
+        return false;
+    }
+}
