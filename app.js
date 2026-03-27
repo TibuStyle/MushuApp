@@ -4740,11 +4740,14 @@ function loginStudentFromScratch() {
         });
 }
 
+// TEMPORAL: Comentada porque estaba duplicada con línea 2433
+/*
 function showAddModuleModal() {
     document.getElementById('student-modal-login-prefix').value = '';
     document.getElementById('modal-add-module-student-name').textContent = studentName;
     document.getElementById('modal-student-add-module').classList.add('active');
 }
+*/
 
 function addModuleForExistingStudent() {
     const inputPrefix = document.getElementById('student-modal-login-prefix').value.trim().toUpperCase();
