@@ -6340,73 +6340,51 @@ async function registrarAlumnaEnFirebase(nombre, moduloPrefix, alumnaId) {
 }
 
 // Registrar código y desbloquear clase en Firebase
-async function procesarCodigoEnFirebase(codigoCompleto, decodedData) {
+async function sincronizarAsistenciaFirebase(modulePrefix, studentId, classId, presente) {
     try {
-        console.log('🔓 Procesando código en Firebase:', codigoCompleto);
+        const moduloAlumnasRef = firebaseDB.ref(`alumnas/${modulePrefix}`);
+        const moduloSnap = await moduloAlumnasRef.once('value');
         
-        const { modulePrefix, classId, attendance, studentId } = decodedData;
-        
-        // 1. Verificar si el código ya fue usado
-        const codigoRef = firebaseDB.ref(`codigos/${codigoCompleto}`);
-        const codigoSnap = await codigoRef.once('value');
-        
-        if (codigoSnap.exists()) {
-            console.log('⚠️ Código ya fue usado anteriormente');
-            // Podemos permitir o denegar según lógica
+        if (!moduloSnap.exists()) {
+            console.error('❌ No existe módulo de alumnas:', modulePrefix);
+            return;
         }
         
-        // 2. Registrar el código usado
-        await codigoRef.set({
-            codigoCompleto: codigoCompleto,
-            modulo: modulePrefix,
-            claseId: classId,
-            alumnaId: studentId,
-            asistencia: parseInt(attendance) % 2 === 1, // impar=presente
-            fechaUso: new Date().toISOString(),
-            usado: true
+        let alumnaRef = null;
+        let asistencia = [];
+        
+        moduloSnap.forEach(cursoSnap => {
+            cursoSnap.forEach(alumnaSnap => {
+                if (String(alumnaSnap.key) === String(studentId)) {
+                    alumnaRef = firebaseDB.ref(`alumnas/${modulePrefix}/${cursoSnap.key}/${studentId}/asistencia`);
+                    asistencia = alumnaSnap.val().asistencia || [];
+                }
+            });
         });
         
-        // 3. Agregar clase desbloqueada a la alumna
-        const alumnaRef = firebaseDB.ref(`alumnas/${modulePrefix}/${studentId}`);
-        
-        // Obtener datos actuales
-        const alumnaSnap = await alumnaRef.once('value');
-        let alumnaData = alumnaSnap.val() || {};
-        
-        // Actualizar clases desbloqueadas
-        if (!alumnaData.clasesDesbloqueadas) {
-            alumnaData.clasesDesbloqueadas = [];
+        if (!alumnaRef) {
+            console.error('❌ No se encontró la alumna para sincronizar asistencia');
+            return;
         }
         
-        if (!alumnaData.clasesDesbloqueadas.includes(classId)) {
-            alumnaData.clasesDesbloqueadas.push(classId);
+        const existente = asistencia.findIndex(a => a.claseId === classId);
+        
+        if (existente >= 0) {
+            asistencia[existente].presente = presente;
+            asistencia[existente].fechaActualizacion = new Date().toISOString();
+        } else {
+            asistencia.push({
+                claseId: classId,
+                fecha: new Date().toISOString(),
+                presente: presente
+            });
         }
         
-        // Actualizar asistencia
-        if (!alumnaData.asistencia) {
-            alumnaData.asistencia = [];
-        }
-        
-        alumnaData.asistencia.push({
-            claseId: classId,
-            fecha: new Date().toISOString(),
-            presente: parseInt(attendance) % 2 === 1,
-            codigo: codigoCompleto
-        });
-        
-        // Guardar
-        await alumnaRef.update({
-            clasesDesbloqueadas: alumnaData.clasesDesbloqueadas,
-            asistencia: alumnaData.asistencia,
-            ultimaConexion: new Date().toISOString()
-        });
-        
-        console.log('✅ Código procesado y alumna actualizada en Firebase');
-        return true;
+        await alumnaRef.set(asistencia);
+        console.log('✅ Asistencia sincronizada');
         
     } catch (error) {
-        console.error('❌ Error procesando código:', error);
-        return false;
+        console.error('❌ Error sincronizando asistencia:', error);
     }
 }
 
