@@ -2736,11 +2736,14 @@ function viewImportedClass(classId) {
     if (rList && rList.length > 0) {
         rList.forEach(r => {
             let recipeId = null;
-            const fullR = recipes.find(rr => rr.name === r.name && rr.recipeFolder === ic.moduleName);
-            if (fullR) recipeId = fullR.id;
+            const recipeName = r.name || r.nombre || '';
+            const fullR = recipes.find(rr =>
+            normalizeText(rr.name) === normalizeText(recipeName)
+   );
+   if (fullR) recipeId = fullR.id;
 
             html += `<div style="margin-bottom:16px; border:1px solid var(--border-color); border-radius:var(--radius-md); padding:12px;">
-                        <h4 style="margin:0 0 10px 0; color:var(--text-color); font-size:15px;">${sanitizeHTML(r.name || 'Receta')}</h4>`;
+                        <h4 style="margin:0 0 10px 0; color:var(--text-color); font-size:15px;">${sanitizeHTML(r.name || r.nombre || 'Receta')}</h4>`;
 
             if (r.recipePhoto) {
                 html += `<div class="class-content-photo" style="margin-bottom:10px; position:relative; overflow:hidden;">
@@ -2766,7 +2769,7 @@ function viewImportedClass(classId) {
                 </button>`;
             } else {
                 html += `<div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
-                    <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${sanitizeHTML(r.name || 'Receta')}</div>
+                    <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${sanitizeHTML(r.name || r.nombre || 'Receta')}</div>
                     <div style="font-size:13px;color:var(--text-muted);">Costo: $${formatCLP(r.totalCost || 0)}</div>
                 </div>`;
             }
