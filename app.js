@@ -3206,24 +3206,23 @@ function saveMissingMaterialsAndContinue() {
     }
 }
 
-function completeClassImport(decoded) {
-    const importedClass = {
-        id: Date.now().toString(),
-        classId: decoded.classId,
-        className: decoded.className,
-        courseName: decoded.courseName,
-        moduleName: decoded.moduleName || '',
-        studentName: decoded.studentName,
-        studentCode: decoded.studentCode || '',
-        visibleCode: decoded.code || '',
-        present: decoded.present,
-        date: decoded.date,
-        tips: decoded.tips || '',
-        photos: decoded.photos || [],
-        linkedRecipe: decoded.linkedRecipe,
-        linkedRecipes: decoded.linkedRecipes,
-        importedAt: new Date().toISOString()
-    };
+const importedClass = {
+    id: Date.now().toString(),
+    classId: decoded.classId,
+    className: decoded.className,
+    courseName: decoded.courseName,
+    moduleName: decoded.moduleName || '',
+    studentName: decoded.studentName,
+    studentCode: decoded.studentCode || '',
+    visibleCode: decoded.code || '',
+    present: decoded.present,
+    date: decoded.date,
+    tips: decoded.tips || '',
+    photos: decoded.photos || [],
+    linkedRecipe: decoded.linkedRecipe,
+    linkedRecipes: decoded.linkedRecipes,
+    importedAt: new Date().toISOString()
+};
 
     importedClasses.push(importedClass);
     saveImportedClasses();
