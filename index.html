@@ -1119,7 +1119,44 @@
     <!-- Toast -->
     <div id="toast" class="toast">Mensaje</div>
 
-<!-- Temporalmente sin módulos hasta migrar correctamente -->
-<script src="app.js"></script>
+    <!-- Firebase SDK (versión compat - global) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+    <!-- Configuración e inicialización de Firebase -->
+    <script>
+      // Configuración de Firebase
+    const firebaseConfig = {
+  apiKey: "AIzaSyAWJo1KbaVG-E7az0WOLw6CCJv9fo1MK3U",
+  authDomain: "mushuapp.firebaseapp.com",
+  databaseURL: "https://mushuapp-default-rtdb.firebaseio.com",
+  projectId: "mushuapp",
+  storageBucket: "mushuapp.firebasestorage.app",
+  messagingSenderId: "781210345910",
+  appId: "1:781210345910:web:1eda2c95d9b5228571e117"
+};
+
+      // Inicializar Firebase
+      firebase.initializeApp(firebaseConfig);
+      
+      // Variables globales de Firebase
+      window.firebaseDB = firebase.database();
+      window.firebaseAuth = firebase.auth();
+
+      // Autenticación anónima automática
+      firebase.auth().signInAnonymously()
+        .then(() => {
+          console.log('✅ Firebase conectado correctamente');
+        })
+        .catch((error) => {
+          console.error('❌ Error conectando a Firebase:', error);
+        });
+    </script>
+
+    <!-- App principal -->
+    <script src="app.js"></script>
+  </body>
+</html>
   </body>
 </html>
