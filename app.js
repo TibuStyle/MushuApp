@@ -3781,10 +3781,41 @@ function saveMaterial(e) {
 }
 
 function deleteModule(moduleId) {
+    // Buscar el módulo para obtener el prefix
+    const moduleToDelete = modules.find(m => String(m.id) === String(moduleId));
+    
     showConfirmModal(
         'Eliminar módulo',
-        '¿Eliminar este módulo? Las recetas que usen su nombre quedarán como están.',
+        '¿Eliminar este módulo? Las recetas que usen su nombre quedarán como están.\n\n⚠️ También se eliminará de Firebase (alumnas y cursos de este módulo).',
         () => {
+            // 🔥 ELIMINAR DE FIREBASE
+            if (moduleToDelete && typeof firebaseDB !== 'undefined' && teacherMode.active) {
+                const prefix = moduleToDelete.prefix;
+                
+                // Eliminar módulo completo de Firebase
+                firebaseDB.ref(`modulos/${prefix}`).remove()
+                    .then(() => {
+                        console.log('✅ Módulo eliminado de Firebase:', prefix);
+                    })
+                    .catch(err => {
+                        console.error('Error eliminando módulo de Firebase:', err);
+                    });
+                
+                // Eliminar todas las alumnas de este módulo
+                firebaseDB.ref(`alumnas/${prefix}`).remove()
+                    .then(() => {
+                        console.log('✅ Alumnas del módulo eliminadas de Firebase:', prefix);
+                    })
+                    .catch(err => {
+                        console.error('Error eliminando alumnas de Firebase:', err);
+                    });
+                
+                // Eliminar cursos relacionados de la lista local
+                courses = courses.filter(c => String(c.moduleId) !== String(moduleId));
+                saveCourses();
+            }
+            
+            // Eliminar de localStorage
             modules = modules.filter(m => String(m.id) !== String(moduleId));
             saveModules();
             updateRecipesView();
