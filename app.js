@@ -1619,11 +1619,11 @@ function renderRecipeCard(r, priceColor) {
 }
 
 function formatCLP(value) {
-    // Si el valor es null, undefined, o no es un número válido, tratarlo como 0
     if (value === null || value === undefined || isNaN(value)) {
         value = 0;
     }
-    return '$' + Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    // Solo devuelve el número con puntos, SIN el signo peso
+    return Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 function formatDate(ds) {
