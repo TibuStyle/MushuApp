@@ -5680,13 +5680,10 @@ async function confirmSyncModuleDownload() {
     }
     
     closeModal('modal-enter-prefix-load');
-    
     const cleanPrefix = prefixInput.trim().toUpperCase();
-    
     showToast('⏳ Cargando módulo ' + cleanPrefix + ' desde Firebase...', false);
     
     try {
-        // 🔥 CARGAR DESDE FIREBASE EN LUGAR DE GITHUB
         const moduloRef = firebaseDB.ref(`modulos/${cleanPrefix}`);
         const moduloSnap = await moduloRef.once('value');
         
@@ -5696,126 +5693,146 @@ async function confirmSyncModuleDownload() {
         }
         
         const data = moduloSnap.val();
-        
-        console.log('📥 Módulo cargado desde Firebase:', data);
-        
-        // Verificar estructura
         if (!data.metadata || !data.clases) {
             showToast('❌ El módulo tiene una estructura inválida', true);
             return;
         }
         
-        // Crear o actualizar módulo local
+        // 1. Crear o actualizar módulo local
         let modIdx = modules.findIndex(m => m.prefix.toUpperCase() === cleanPrefix);
         let currentModId;
-        
         if (modIdx >= 0) {
-            // Actualizar existente
             currentModId = modules[modIdx].id;
-            modules[modIdx] = {
-                ...modules[modIdx],
-                name: data.metadata.nombre,
-                prefix: cleanPrefix
-            };
-            console.log('✅ Módulo actualizado:', cleanPrefix);
+            modules[modIdx].name = data.metadata.nombre;
         } else {
-            // Crear nuevo
             currentModId = Date.now().toString();
             modules.push({
                 id: currentModId,
                 name: data.metadata.nombre,
                 prefix: cleanPrefix
             });
-            console.log('✅ Módulo creado:', cleanPrefix);
         }
         
-        saveModules();
+        // ==========================================
+        // 2. REVISAR MATERIALES FALTANTES
+        // ==========================================
+        const allMissing = [];
         
-        // Importar RECETAS del módulo
+        for (const claseData of Object.values(data.clases || {})) {
+            for (const receta of Object.values(claseData.recetas || {})) {
+                // Combinar ingredientes y decoraciones soportando ambos formatos (inglés/español)
+                const ingredientes = receta.ingredientes || receta.ingredients || [];
+                const decoraciones = receta.decoraciones || receta.decorations || [];
+                const allItems = [...ingredientes, ...decoraciones];
+                
+                allItems.forEach(item => {
+                    const itemName = item.nombre || item.name || '';
+                    
+                    // Buscar si lo tienes en tu inventario local
+                    const found = materials.find(m => normalizeText(m.name) === normalizeText(itemName));
+                    
+                    if (!found && !allMissing.find(mm => normalizeText(mm.name) === normalizeText(itemName))) {
+                        const isDeco = decoraciones.some(d => (d.nombre || d.name) === itemName);
+                        allMissing.push({
+                            name: itemName,
+                            category: isDeco ? 'decoracion' : 'productos'
+                        });
+                    }
+                });
+            }
+        }
+
+        // Crear los materiales pendientes locales si faltan
+        allMissing.forEach(mm => {
+            createPendingMaterial(mm.name, mm.category);
+        });
+
+        // ==========================================
+        // 3. IMPORTAR RECETAS Y CALCULAR COSTOS LOCALES
+        // ==========================================
         let recetasImportadas = 0;
         
         for (const [claseNum, claseData] of Object.entries(data.clases || {})) {
             const recetasClase = Object.values(claseData.recetas || {});
             
             recetasClase.forEach(receta => {
-                // Verificar si ya existe
-                const existente = recipes.findIndex(r => 
-                    r.name === receta.nombre && 
-                    r.recipeFolder === data.metadata.nombre
-                );
+                const recetaName = receta.nombre || receta.name || 'Sin nombre';
+                let idx = recipes.findIndex(r => r.name === recetaName && r.recipeFolder === data.metadata.nombre);
                 
-                if (existente >= 0) {
-                    // Actualizar receta existente
-                    recipes[existente] = {
-                        ...recipes[existente],
-                        name: receta.nombre,
-                        ingredients: receta.ingredientes || [],
-                        decorations: receta.decoraciones || [],
-                        yield: receta.rendimiento || '',
-                        prepTime: receta.tiempoPrep || '',
-                        instructions: receta.instrucciones || '',
-                        notes: receta.notas || '',
-                        recipeTips: receta.tips || '',
-                        recipePhoto: receta.foto || null,
-                        moduleClass: claseData.nombre || `Clase ${claseNum}`,
-                        portions: receta.porciones || 0
-                    };
+                // Función para adaptar ingredientes al formato de la app y calcular precios
+                const procesarItems = (items) => {
+                    return (items || []).map(item => {
+                        const itemName = item.nombre || item.name || '';
+                        const itemQty = parseFloat(item.cantidad || item.qty || 0);
+                        const itemUnit = item.unidad || item.unit || '';
+                        
+                        const found = materials.find(m => normalizeText(m.name) === normalizeText(itemName));
+                        
+                        return {
+                            id: item.id || (Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5)),
+                            matId: found ? String(found.id) : '',
+                            name: itemName,
+                            qty: itemQty,
+                            unit: itemUnit,
+                            cost: (found && !found.pending) ? calculateIngredientCost(found, itemQty, itemUnit) : 0,
+                            pending: found ? (found.pending || false) : true
+                        };
+                    });
+                };
+
+                const processedIngredients = procesarItems(receta.ingredientes || receta.ingredients);
+                const processedDecorations = procesarItems(receta.decoraciones || receta.decorations);
+
+                const ic = processedIngredients.reduce((s, i) => s + (i.cost || 0), 0);
+                const dc = processedDecorations.reduce((s, d) => s + (d.cost || 0), 0);
+                const ec = parseFloat(receta.costoExtra || receta.extraCost || 0);
+
+                const newRecipeData = {
+                    id: (idx >= 0) ? recipes[idx].id : (Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9)),
+                    name: recetaName,
+                    ingredients: processedIngredients,
+                    decorations: processedDecorations,
+                    extraSubcategory: receta.subcategoriaExtra || receta.extraSubcategory || null,
+                    extraCost: ec,
+                    totalCost: ic + dc + ec,
+                    portions: parseFloat(receta.porciones || receta.portions || 1),
+                    yield: receta.rendimiento || receta.yield || '',
+                    prepTime: receta.tiempoPrep || receta.prepTime || '',
+                    instructions: receta.instrucciones || receta.instructions || '',
+                    notes: receta.notas || receta.notes || '',
+                    recipeTips: receta.tips || receta.recipeTips || '',
+                    recipePhoto: receta.foto || receta.recipePhoto || null,
+                    recipeFolder: data.metadata.nombre,
+                    recipeSource: 'module',
+                    moduleClass: claseData.nombre || `Clase ${claseNum}`,
+                    isRestricted: false
+                };
+
+                if (idx >= 0) {
+                    recipes[idx] = newRecipeData;
                 } else {
-                    // Crear nueva receta
-                    const newRecipe = {
-                        id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9),
-                        name: receta.nombre,
-                        ingredients: receta.ingredientes || [],
-                        decorations: receta.decoraciones || [],
-                        extraSubcategory: null,
-                        extraCost: 0,
-                        totalCost: 0,
-                        yield: receta.rendimiento || '',
-                        prepTime: receta.tiempoPrep || '',
-                        instructions: receta.instrucciones || '',
-                        notes: receta.notas || '',
-                        recipeTips: receta.tips || '',
-                        recipePhoto: receta.foto || null,
-                        recipeFolder: data.metadata.nombre,
-                        recipeSource: 'module',
-                        moduleClass: claseData.nombre || `Clase ${claseNum}`,
-                        portions: receta.porciones || 0,
-                        isRestricted: false
-                    };
-                    
-                    recipes.push(newRecipe);
+                    recipes.push(newRecipeData);
                 }
-                
                 recetasImportadas++;
             });
         }
         
-        saveRecipesToStorage();
-        
-        // Importar CURSOS del módulo
+        // ==========================================
+        // 4. IMPORTAR CURSOS
+        // ==========================================
         let cursosImportados = 0;
-        
         for (const [cursoId, cursoData] of Object.entries(data.cursos || {})) {
-            const existeCurso = courses.findIndex(c => 
-                c.name === cursoData.nombre && 
-                String(c.moduleId) === String(currentModId)
-            );
+            const existeCurso = courses.findIndex(c => c.name === cursoData.nombre && String(c.moduleId) === String(currentModId));
             
             if (existeCurso >= 0) {
-                // Actualizar curso existente
-                courses[existeCurso] = {
-                    ...courses[existeCurso],
-                    name: cursoData.nombre,
-                    day: cursoData.dia || '',
-                    schedule: cursoData.horario || '',
-                    students: (cursoData.estudiantes || []).map(est => ({
-                        id: est.id,
-                        name: est.nombre,
-                        studentCode: est.codigo
-                    }))
-                };
+                courses[existeCurso].day = cursoData.dia || '';
+                courses[existeCurso].schedule = cursoData.horario || '';
+                courses[existeCurso].students = (cursoData.estudiantes || []).map(est => ({
+                    id: est.id,
+                    name: est.nombre,
+                    studentCode: est.codigo
+                }));
             } else {
-                // Crear nuevo curso
                 courses.push({
                     id: cursoId,
                     name: cursoData.nombre,
@@ -5824,46 +5841,40 @@ async function confirmSyncModuleDownload() {
                     day: cursoData.dia || '',
                     schedule: cursoData.horario || '',
                     students: (cursoData.estudiantes || []).map(est => ({
-                        id: est.id,
-                        name: est.nombre,
-                        studentCode: est.codigo
+                        id: est.id, name: est.nombre, studentCode: est.codigo
                     })),
                     classes: []
                 });
             }
-            
             cursosImportados++;
         }
         
+        // Guardar todo
+        saveModules();
+        saveRecipesToStorage();
         saveCourses();
-        
-        // Importar CLASES (con fotos, tips, etc.)
-        let clasesImportadas = 0;
-        
-        for (const [claseNum, claseData] of Object.entries(data.clases || {})) {
-            // Las clases se importan como "imported classes" para las alumnas
-            // La profesora las tiene en el módulo directamente
-            clasesImportadas++;
-        }
-        
+        saveMaterialsToStorage(); // Guardar los pendientes
+        renderMaterials();
+        updateMaterialSelect();
+        updateDecorationSelect();
         updateRecipesView();
         renderCourses();
         
-        console.log(`✅ Sincronización completa:
-          - ${recetasImportadas} recetas
-          - ${cursosImportados} cursos
-          - ${clasesImportadas} clases`);
-        
-        showToast(`✅ Módulo ${cleanPrefix} sincronizado!\n\n` +
-                  `📝 ${recetasImportadas} recetas\n` +
-                  `👥 ${cursosImportados} cursos\n` +
-                  `🍪 ${clasesImportadas} clases`);
+        // MOSTRAR MENSAJES FINALES
+        if (allMissing.length > 0) {
+            showSyncMissingModal(allMissing); // <- ¡AQUÍ ESTÁ LA VENTANA EMERGENTE!
+            showToast(`✅ Módulo cargado! ⚠️ Faltan ${allMissing.length} materiales`);
+        } else {
+            showToast(`✅ ¡Módulo ${cleanPrefix} descargado!\n\n` +
+                      `📝 ${recetasImportadas} recetas cargadas\n` +
+                      `👥 ${cursosImportados} cursos cargados`);
+        }
         
     } catch (error) {
-        console.error('❌ Error sincronizando desde Firebase:', error);
-        showToast('❌ Error al sincronizar. Verifica tu conexión.', true);
+        console.error('❌ Error descargando desde Firebase:', error);
+        showToast('❌ Error al descargar. Verifica tu conexión.', true);
     }
-}   
+}  
     
 // === MODAL NUEVO MATERIAL NOMBRE ===
 function showNewMaterialNameModal(category, callback) {
