@@ -271,13 +271,14 @@ function saveModules() {
     // 🔥 Subir módulos a Firebase
     if (typeof firebaseDB !== 'undefined' && teacherMode.active) {
         modules.forEach(modulo => {
-            const moduloRef = firebaseDB.ref(`modulos/${modulo.prefix}/metadata`);
-            moduloRef.update({
+            firebaseDB.ref(`modulos/${modulo.prefix}/metadata`).update({
                 codigo: modulo.prefix,
                 nombre: modulo.name,
                 activo: true,
                 ultimaActualizacion: new Date().toISOString()
-            }).catch(err => console.error('Error subiendo módulo a Firebase:', err));
+            }).then(() => {
+                console.log('✅ Módulo subido a Firebase:', modulo.prefix);
+            }).catch(err => console.error('Error subiendo módulo:', err));
         });
     }
 }
@@ -307,12 +308,11 @@ function saveCourses() {
             }).then(() => {
                 console.log('✅ Curso subido a Firebase:', curso.name);
                 
-                // También registrar a cada alumna en alumnas/{modulo}/{codigo}
+                // Registrar cada alumna en alumnas/{modulo}/{codigo}
                 (curso.students || []).forEach(student => {
                     const alumnaRef = firebaseDB.ref(`alumnas/${modulo.prefix}/${student.studentCode}`);
                     alumnaRef.once('value').then(snap => {
                         if (!snap.exists()) {
-                            // Solo crear si no existe
                             alumnaRef.set({
                                 id: student.studentCode,
                                 nombre: student.name,
@@ -323,11 +323,13 @@ function saveCourses() {
                                 activa: true,
                                 clasesDesbloqueadas: [],
                                 asistencia: []
+                            }).then(() => {
+                                console.log('✅ Alumna creada en Firebase:', student.name);
                             });
                         }
                     });
                 });
-            }).catch(err => console.error('Error subiendo curso a Firebase:', err));
+            }).catch(err => console.error('Error subiendo curso:', err));
         });
     }
 }
