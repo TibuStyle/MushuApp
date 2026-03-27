@@ -2863,8 +2863,9 @@ function importClassFromLongCode(codeInput) {
         }
 
         const existing = importedClasses.find(ic =>
-            ic.classId === decoded.classId && ic.studentName === decoded.studentName
-        );
+    String(ic.classId) === String(classData.classId || classData.id || blockCode) &&
+    normalizeText(ic.studentName || '') === normalizeText(studentData.studentName || '')
+);
         if (existing) {
             showToast('Ya importaste esta clase', true);
             return;
@@ -2980,9 +2981,9 @@ function importClassFromShortCode(code) {
                             }
 
                             const existing = importedClasses.find(ic =>
-                                String(ic.classId) === String(classData.classId || classData.id || blockCode) &&
-                                normalizeText(ic.studentName) === normalizeText(studentData.studentName)
-                            );
+    String(ic.classId) === String(classData.classId || classData.id || blockCode) &&
+    normalizeText(ic.studentName || '') === normalizeText(studentData.studentName || '')
+);
 
                             if (existing) {
                                 showToast('Ya importaste esta clase', true);
