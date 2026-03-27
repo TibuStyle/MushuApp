@@ -5840,22 +5840,41 @@ async function confirmSyncModuleDownload() {
         }
         
         // ==========================================
-        // 4. IMPORTAR CURSOS
+        // 4. IMPORTAR CURSOS Y SUS CLASES (FOTOS Y TIPS)
         // ==========================================
         let cursosImportados = 0;
+        let clasesImportadas = 0;
+
+        // Primero, armar un array con las clases que vienen de Firebase
+        const clasesFirebase = Object.values(data.clases || {}).map(claseData => ({
+            id: claseData.numero ? `clase_${claseData.numero}` : Date.now().toString(),
+            name: claseData.nombre,
+            tips: claseData.tips || '',
+            photos: claseData.fotos || [], // Aquí están las fotos
+            linkedRecipes: Object.values(claseData.recetas || {}).map(r => r.nombre || r.name),
+            moduleClassName: claseData.nombre
+        }));
+
+        clasesImportadas = clasesFirebase.length;
+
         for (const [cursoId, cursoData] of Object.entries(data.cursos || {})) {
-            const existeCurso = courses.findIndex(c => c.name === cursoData.nombre && String(c.moduleId) === String(currentModId));
+            const existeCursoIdx = courses.findIndex(c => c.name === cursoData.nombre && String(c.moduleId) === String(currentModId));
             
-            if (existeCurso >= 0) {
-                courses[existeCurso].day = cursoData.dia || '';
-                courses[existeCurso].schedule = cursoData.horario || '';
-                courses[existeCurso].students = (cursoData.estudiantes || []).map(est => ({
+            let cursoActual;
+
+            if (existeCursoIdx >= 0) {
+                // Actualizar curso existente
+                courses[existeCursoIdx].day = cursoData.dia || '';
+                courses[existeCursoIdx].schedule = cursoData.horario || '';
+                courses[existeCursoIdx].students = (cursoData.estudiantes || []).map(est => ({
                     id: est.id,
                     name: est.nombre,
                     studentCode: est.codigo
                 }));
+                cursoActual = courses[existeCursoIdx];
             } else {
-                courses.push({
+                // Crear nuevo curso
+                cursoActual = {
                     id: cursoId,
                     name: cursoData.nombre,
                     moduleId: currentModId,
@@ -5865,9 +5884,47 @@ async function confirmSyncModuleDownload() {
                     students: (cursoData.estudiantes || []).map(est => ({
                         id: est.id, name: est.nombre, studentCode: est.codigo
                     })),
-                    classes: []
-                });
+                    classes: [] // Iniciar clases vacío
+                };
+                courses.push(cursoActual);
             }
+
+            // === ASIGNAR FOTOS Y TIPS A LAS CLASES DEL CURSO ===
+            if (!cursoActual.classes) cursoActual.classes = [];
+
+            // Actualizar o crear clases dentro del curso basándose en la data de Firebase
+            clasesFirebase.forEach(claseFB => {
+                const claseExistenteIdx = cursoActual.classes.findIndex(c => c.name === claseFB.name || c.moduleClassName === claseFB.name);
+                
+                if (claseExistenteIdx >= 0) {
+                    // Actualizar clase existente (respetando sus fechas y asistencia local)
+                    cursoActual.classes[claseExistenteIdx].tips = claseFB.tips;
+                    cursoActual.classes[claseExistenteIdx].photos = claseFB.photos;
+                    // Vincular recetas si no las tiene
+                    if (!cursoActual.classes[claseExistenteIdx].linkedRecipes || cursoActual.classes[claseExistenteIdx].linkedRecipes.length === 0) {
+                        // Buscar en base de recetas locales para sacar el objeto completo
+                        const recetasVinculadasObjects = recipes.filter(r => r.recipeFolder === data.metadata.nombre && claseFB.linkedRecipes.includes(r.name));
+                        cursoActual.classes[claseExistenteIdx].linkedRecipes = recetasVinculadasObjects;
+                    }
+                } else {
+                    // Crear clase nueva en el curso
+                    const recetasVinculadasObjects = recipes.filter(r => r.recipeFolder === data.metadata.nombre && claseFB.linkedRecipes.includes(r.name));
+                    
+                    cursoActual.classes.push({
+                        id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+                        name: claseFB.name,
+                        moduleClassName: claseFB.name,
+                        date: new Date().toISOString().split('T')[0],
+                        tips: claseFB.tips,
+                        photos: claseFB.photos,
+                        linkedRecipes: recetasVinculadasObjects,
+                        attendance: [],
+                        blockCode: generateClassBlockCode ? generateClassBlockCode() : Math.random().toString(36).substr(2, 5).toUpperCase(),
+                        codesGenerated: false
+                    });
+                }
+            });
+
             cursosImportados++;
         }
         
