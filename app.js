@@ -2491,16 +2491,21 @@ function renderStudentDashboard() {
         const lastClass = sortedClasses.length > 0 ? sortedClasses[0] : null;
 
         // Renderizar clases dentro del módulo
-        const classesHTML = sortedClasses.length > 0
-            ? sortedClasses.map(ic => `
-                <div class="imported-class-card" onclick="viewImportedClass('${ic.id}')" style="margin-bottom:8px;">
-                    <h3>${sanitizeHTML(ic.className)}</h3>
-                    <p>📅 ${formatDate(ic.date)}</p>
-                    <span class="class-content-badge ${ic.present ? 'present' : 'absent'}">
-                        ${ic.present ? '✅ Presente' : '⚠️ Ausente'}
-                    </span>
-                </div>
-            `).join('')
+const classesHTML = sortedClasses.length > 0
+    ? sortedClasses.map(ic => {
+        const safeClassName = ic.className || ic.name || 'Clase';
+        const safeDate = ic.date ? formatDate(ic.date) : 'Sin fecha';
+        
+        return `
+        <div class="imported-class-card" onclick="viewImportedClass('${ic.id}')" style="margin-bottom:8px;">
+            <h3>${sanitizeHTML(safeClassName)}</h3>
+            <p>📅 ${sanitizeHTML(safeDate)}</p>
+            <span class="class-content-badge ${ic.present ? 'present' : 'absent'}">
+                ${ic.present ? '✅ Presente' : '⚠️ Ausente'}
+            </span>
+        </div>
+        `;
+    }).join('')
             : '<div class="empty-state" style="padding:15px;font-size:13px;">No has desbloqueado clases aún.</div>';
 
         return `
@@ -2731,7 +2736,9 @@ function viewImportedClass(classId) {
         </div>`;
     }
 
-    const rList = ic.linkedRecipes || (ic.linkedRecipe ? [ic.linkedRecipe] : []);
+    const rList = (ic.linkedRecipes && ic.linkedRecipes.length > 0)
+    ? ic.linkedRecipes
+    : (ic.linkedRecipe ? [ic.linkedRecipe] : []);
 
     if (rList && rList.length > 0) {
         rList.forEach(r => {
