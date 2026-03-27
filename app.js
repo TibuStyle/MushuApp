@@ -5220,13 +5220,6 @@ function showGlobalSyncModal() {
     document.getElementById('modal-sync-module').classList.add('active');
 }
 
-function showSyncStatus(text) {
-    const statusDiv = document.getElementById('sync-status');
-    const statusText = document.getElementById('sync-status-text');
-    statusDiv.style.display = 'block';
-    statusText.textContent = text;
-}
-
 function saveSyncMissingMaterials() {
     const items = document.querySelectorAll('[id^="sync-missing-name-"]');
     let updated = 0;
