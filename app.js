@@ -2935,56 +2935,42 @@ function importClassFromShortCode(code) {
             let classData = null;
             let courseData = null;
 
-            // Soportar clases como array viejo o como objeto Firebase nuevo
-            let classesList = [];
-            
-            if (Array.isArray(data.classes)) {
-                classesList = data.classes;
-            } else if (data.classes && typeof data.classes === 'object') {
-                classesList = Object.values(data.classes);
-            }
+            // 🔥 Buscar la clase en los cursos locales ya sincronizados
+            const matchingCourses = courses.filter(c => {
+                const mod = modules.find(m => String(m.id) === String(c.moduleId));
+                return mod && mod.prefix === prefix;
+            });
 
-            let coursesList = [];
-            if (Array.isArray(data.courses)) {
-                coursesList = data.courses;
-            } else if (data.cursos && typeof data.cursos === 'object') {
-                coursesList = Object.values(data.cursos);
-            }
-
-            // Buscar clase por blockCode
-            coursesList.forEach(c => {
-                const foundClass = classesList.find(cls => 
-                    cls.blockCode === blockCode && (!cls.courseId || cls.courseId === c.id)
-                );
+            matchingCourses.forEach(curso => {
+                const foundClass = (curso.classes || []).find(cls => cls.blockCode === blockCode);
                 if (foundClass) {
                     classData = foundClass;
-                    courseData = c;
+                    courseData = curso;
                 }
             });
 
             if (!classData) {
-                classData = classesList.find(cls => cls.blockCode === blockCode);
-            }
-
-            if (!classData) {
                 console.log('❌ No se encontró clase con blockCode:', blockCode);
-                console.log('Clases disponibles:', classesList);
+                console.log('Cursos locales revisados:', matchingCourses);
                 showToast('Clase no encontrada con ese código', true);
                 return;
             }
 
+            // Buscar alumna en la asistencia de la clase usando studentCode
             const studentData = (classData.attendance || []).find(a =>
-                a.studentCode === studentCode
+                String(a.studentCode) === String(studentCode)
             );
 
             if (!studentData) {
+                console.log('❌ Alumno no encontrado con ese código:', studentCode);
+                console.log('Asistencia disponible:', classData.attendance || []);
                 showToast('Alumno no encontrado con ese código', true);
                 return;
             }
 
             const existing = importedClasses.find(ic =>
-                ic.classId === classData.classId &&
-                ic.studentName === studentData.studentName
+                String(ic.classId) === String(classData.id) &&
+                normalizeText(ic.studentName) === normalizeText(studentData.studentName)
             );
             if (existing) {
                 showToast('Ya importaste esta clase', true);
@@ -2993,19 +2979,19 @@ function importClassFromShortCode(code) {
 
             const decoded = {
                 code: code,
-                className: classData.className,
-                courseId: classData.courseId,
-                courseName: classData.courseName,
-                moduleId: data.module.id,
-                moduleName: data.module.name,
-                classId: classData.classId,
-                studentId: studentData.studentId,
+                className: classData.name || classData.className,
+                courseId: courseData ? courseData.id : classData.courseId,
+                courseName: courseData ? courseData.name : classData.courseName,
+                moduleId: data.module ? data.module.id : prefix,
+                moduleName: data.module ? data.module.name : prefix,
+                classId: classData.id || classData.classId || blockCode,
+                studentId: studentData.studentId || studentCode,
                 studentName: studentData.studentName,
                 studentCode: studentCode,
                 present: isPresent,
                 date: classData.date,
                 tips: classData.tips || '',
-                photos: classData.photos || [],
+                photos: classData.photos || classData.fotos || [],
                 linkedRecipe: classData.linkedRecipe || null,
                 linkedRecipes: classData.linkedRecipes || [],
                 expiry: null
@@ -3037,7 +3023,6 @@ function importClassFromShortCode(code) {
             showToast('No se encontró el módulo "' + prefix + '". ¿Ya lo subieron?', true);
         });
 }
-
 function showMissingMaterialsModal(missing) {
     const list = document.getElementById('missing-materials-list');
     list.innerHTML = missing.map((m, i) => {
