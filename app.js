@@ -2692,94 +2692,92 @@ function viewImportedClass(classId) {
 
     const watermarkName = (studentName || ic.studentName || 'Alumno') + ' • MushuApp';
 
-   document.getElementById('view-class-title').textContent = sanitizeHTML(ic.className || 'Clase');
+    const titleEl = document.getElementById('view-class-title');
+    const contentEl = document.getElementById('view-class-content');
+    const modalEl = document.getElementById('modal-view-class');
+
+    if (!titleEl || !contentEl || !modalEl) {
+        console.error('❌ No se encontró el modal de vista de clase');
+        return;
+    }
+
+    titleEl.textContent = sanitizeHTML(ic.className || 'Clase');
 
     let html = `<div style="margin-bottom:12px; font-size:13px; color:var(--text-muted);">
         📅 ${ic.date || ''} | 📌 ${sanitizeHTML(ic.moduleName || '')}
     </div>`;
 
-    // === 1. FOTOS DE LA CLASE PRIMERO ===
-    // Asegurar compatibilidad por si Firebase lo guardó como 'fotos' en vez de 'photos'
     const classPhotos = ic.photos || ic.fotos || [];
-    
     if (classPhotos.length > 0) {
         html += `<div class="class-content-section" style="margin-bottom:16px;">
-            <h4 style="margin:0 0 10px 0; font-size:14px;"><i class='bx bx-camera'></i> Fotos de la Clase</h4>
-            <div class="class-content-photos" style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <h4><i class='bx bx-camera'></i> Fotos de la Clase</h4>
+            <div class="class-content-photos">
                 ${classPhotos.map(p => `
-                    <div class="class-content-photo" style="position:relative; overflow:hidden; border-radius:var(--radius-sm);">
-                        <img src="${p}" alt="Foto de clase" class="no-save-img" draggable="false" 
-                             oncontextmenu="return false;" 
-                             onclick="event.stopPropagation(); openPhotoFullscreen('${p}', '${sanitizeHTML(watermarkName)}')" 
-                             style="cursor:pointer; width:100%; height:120px; object-fit:cover; display:block;">
-                        <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
+                    <div class="class-content-photo" style="position:relative; overflow:hidden; margin-bottom:8px;">
+                        <img src="${p}" alt="Foto de clase" class="no-save-img" draggable="false"
+                             oncontextmenu="return false;"
+                             onclick="event.stopPropagation(); openPhotoFullscreen('${p}', '${sanitizeHTML(watermarkName)}')"
+                             style="cursor:pointer; width:100%; display:block;">
                     </div>
                 `).join('')}
             </div>
         </div>`;
     }
 
-    // === 2. TIPS GENERALES DE LA CLASE ===
     if (ic.tips) {
-        html += `<div class="class-content-tips" style="margin-bottom:20px; background:var(--surface-hover); padding:12px; border-radius:var(--radius-sm); border-left:3px solid var(--secondary-color);">
-                    <strong style="color:var(--secondary-color); font-size:13px; display:block; margin-bottom:4px;">💡 Tips de la Profe:</strong>
-                    ${sanitizeHTML(ic.tips).replace(/\n/g, '<br>')}
-                 </div>`;
+        html += `<div class="class-content-tips" style="margin-top:12px; margin-bottom:16px;">
+            <strong style="color:var(--secondary-color); font-size:13px; display:block; margin-bottom:4px;">💡 Tips de la clase:</strong>
+            ${sanitizeHTML(ic.tips).replace(/\n/g, '<br>')}
+        </div>`;
     }
 
-    // === 3. RECETAS VINCULADAS ===
     const rList = ic.linkedRecipes || (ic.linkedRecipe ? [ic.linkedRecipe] : []);
 
     if (rList && rList.length > 0) {
-        html += `<h4 style="margin:0 0 10px 0; font-size:14px;"><i class='bx bx-receipt'></i> Recetas de la Clase</h4>`;
-        
         rList.forEach(r => {
-            // Buscar la receta en el inventario local para el botón
             let recipeId = null;
             const fullR = recipes.find(rr => rr.name === r.name && rr.recipeFolder === ic.moduleName);
             if (fullR) recipeId = fullR.id;
 
             html += `<div style="margin-bottom:16px; border:1px solid var(--border-color); border-radius:var(--radius-md); padding:12px;">
-                        <h4 style="margin:0 0 10px 0; color:var(--text-color); font-size:15px;">${sanitizeHTML(r.name)}</h4>`;
+                        <h4 style="margin:0 0 10px 0; color:var(--text-color); font-size:15px;">${sanitizeHTML(r.name || 'Receta')}</h4>`;
 
-            // Foto individual de la receta
             if (r.recipePhoto) {
                 html += `<div class="class-content-photo" style="margin-bottom:10px; position:relative; overflow:hidden;">
-                    <img src="${r.recipePhoto}" alt="Foto de receta" 
+                    <img src="${r.recipePhoto}" alt="Foto de receta"
                          class="no-save-img" draggable="false"
                          oncontextmenu="return false;"
-                         onclick="event.stopPropagation(); openPhotoFullscreen('${r.recipePhoto}', '${sanitizeHTML(watermarkName)}')" 
-                         style="cursor:pointer; width:100%; border-radius:var(--radius-sm); display:block;">
-                    <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
+                         onclick="event.stopPropagation(); openPhotoFullscreen('${r.recipePhoto}', '${sanitizeHTML(watermarkName)}')"
+                         style="cursor:pointer; width:100%; display:block;">
                 </div>`;
             }
 
-            // Tips de la receta individual
             if (r.recipeTips) {
                 html += `<div class="class-content-tips" style="margin-bottom:12px; margin-top:8px;">
-                            <strong style="color:var(--secondary-color); font-size:13px; display:block; margin-bottom:4px;">💡 Nota de receta:</strong>
+                            <strong style="color:var(--secondary-color); font-size:13px; display:block; margin-bottom:4px;">💡 Tips de la Profe:</strong>
                             ${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}
                          </div>`;
             }
 
-            // Botón de ver costo
             if (recipeId) {
-                html += `<button class="btn-submit" style="margin-top:0; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" 
+                html += `<button class="btn-submit" style="margin-top:0; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));"
                          onclick="closeModal('modal-view-class'); openRecipeFromClass('${recipeId}')">
                     <i class='bx bx-book-open'></i> Ver costo de receta
                 </button>`;
             } else {
                 html += `<div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
-                    <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${sanitizeHTML(r.name)}</div>
-                    <div style="font-size:13px;color:var(--text-muted);">Costo: $${formatCLP(r.totalCost)}</div>
+                    <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${sanitizeHTML(r.name || 'Receta')}</div>
+                    <div style="font-size:13px;color:var(--text-muted);">Costo: $${formatCLP(r.totalCost || 0)}</div>
                 </div>`;
             }
 
             html += `</div>`;
         });
-    } else {
-        html += `<div class="empty-state" style="margin-top:12px;">No hay recetas vinculadas a esta clase</div>`;
     }
+
+    contentEl.innerHTML = html;
+    modalEl.classList.add('active');
+}
 
 document.getElementById('view-class-content').innerHTML = html;
 document.getElementById('modal-view-class').classList.add('active');
