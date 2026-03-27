@@ -2935,76 +2935,104 @@ function importClassFromShortCode(code) {
             let classData = null;
             let courseData = null;
 
-            // 🔥 Buscar la clase directamente en Firebase
-            const clasesSnap = await firebaseDB.ref(`modulos/${prefix}/clases`).once('value');
-            let classesList = [];
+            firebaseDB.ref(`modulos/${prefix}/clases`).once('value')
+                .then(clasesSnap => {
+                    let classesList = [];
 
-            if (clasesSnap.exists()) {
-                const clasesVal = clasesSnap.val();
-                classesList = Array.isArray(clasesVal) ? clasesVal.filter(Boolean) : Object.values(clasesVal);
-            }
+                    if (clasesSnap.exists()) {
+                        const clasesVal = clasesSnap.val();
+                        classesList = Array.isArray(clasesVal) ? clasesVal.filter(Boolean) : Object.values(clasesVal);
+                    }
 
-            classData = classesList.find(cls => cls.blockCode === blockCode);
+                    classData = classesList.find(cls => cls.blockCode === blockCode);
 
-            if (!classData) {
-                console.log('❌ No se encontró clase con blockCode:', blockCode);
-                console.log('Clases Firebase disponibles:', classesList);
-                showToast('Clase no encontrada con ese código', true);
-                return;
-            }
+                    if (!classData) {
+                        console.log('❌ No se encontró clase con blockCode:', blockCode);
+                        console.log('Clases Firebase disponibles:', classesList);
+                        showToast('Clase no encontrada con ese código', true);
+                        return;
+                    }
 
-            // Buscar curso relacionado si existe
-            const cursosSnap = await firebaseDB.ref(`modulos/${prefix}/cursos`).once('value');
-            let cursosList = [];
+                    return firebaseDB.ref(`modulos/${prefix}/cursos`).once('value')
+                        .then(cursosSnap => {
+                            let cursosList = [];
 
-            if (cursosSnap.exists()) {
-                const cursosVal = cursosSnap.val();
-                cursosList = Array.isArray(cursosVal) ? cursosVal.filter(Boolean) : Object.values(cursosVal);
-            }
+                            if (cursosSnap.exists()) {
+                                const cursosVal = cursosSnap.val();
+                                cursosList = Array.isArray(cursosVal) ? cursosVal.filter(Boolean) : Object.values(cursosVal);
+                            }
 
-            courseData = cursosList.find(c => String(c.id) === String(classData.courseId)) || null;
+                            courseData = cursosList.find(c => String(c.id) === String(classData.courseId)) || null;
 
-            // Buscar alumna dentro de attendance
-            const studentData = (classData.attendance || []).find(a =>
-                String(a.studentCode) === String(studentCode)
-            );
+                            const studentData = (classData.attendance || []).find(a =>
+                                String(a.studentCode) === String(studentCode)
+                            );
 
-            if (!studentData) {
-                console.log('❌ Alumno no encontrado con ese código:', studentCode);
-                console.log('Asistencia disponible:', classData.attendance || []);
-                showToast('Alumno no encontrado con ese código', true);
-                return;
-            }
+                            if (!studentData) {
+                                console.log('❌ Alumno no encontrado con ese código:', studentCode);
+                                console.log('Asistencia disponible:', classData.attendance || []);
+                                showToast('Alumno no encontrado con ese código', true);
+                                return;
+                            }
 
-            const existing = importedClasses.find(ic =>
-                String(ic.classId) === String(classData.classId || classData.id || blockCode) &&
-                normalizeText(ic.studentName) === normalizeText(studentData.studentName)
-            );
+                            const existing = importedClasses.find(ic =>
+                                String(ic.classId) === String(classData.classId || classData.id || blockCode) &&
+                                normalizeText(ic.studentName) === normalizeText(studentData.studentName)
+                            );
 
-            if (existing) {
-                showToast('Ya importaste esta clase', true);
-                return;
-            }
+                            if (existing) {
+                                showToast('Ya importaste esta clase', true);
+                                return;
+                            }
 
-            const decoded = {
-                code: code,
-                className: classData.className || classData.name,
-                courseId: classData.courseId || (courseData ? courseData.id : ''),
-                courseName: classData.courseName || (courseData ? courseData.nombre || courseData.name : ''),
-                moduleId: prefix,
-                moduleName: prefix,
-                classId: classData.classId || classData.id || blockCode,
-                studentId: studentData.studentId || studentCode,
-                studentName: studentData.studentName,
-                studentCode: studentCode,
-                present: isPresent,
-                date: classData.date,
-                tips: classData.tips || '',
-                photos: classData.photos || classData.fotos || [],
-                linkedRecipe: classData.linkedRecipe || null,
-                linkedRecipes: classData.linkedRecipes || [],
-                expiry: null
-            };
+                            const decoded = {
+                                code: code,
+                                className: classData.className || classData.name,
+                                courseId: classData.courseId || (courseData ? courseData.id : ''),
+                                courseName: classData.courseName || (courseData ? courseData.nombre || courseData.name : ''),
+                                moduleId: prefix,
+                                moduleName: prefix,
+                                classId: classData.classId || classData.id || blockCode,
+                                studentId: studentData.studentId || studentCode,
+                                studentName: studentData.studentName,
+                                studentCode: studentCode,
+                                present: isPresent,
+                                date: classData.date,
+                                tips: classData.tips || '',
+                                photos: classData.photos || classData.fotos || [],
+                                linkedRecipe: classData.linkedRecipe || null,
+                                linkedRecipes: classData.linkedRecipes || [],
+                                expiry: null
+                            };
+
+                            const linkedRecipes = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
+                            const allMissing = [];
+
+                            linkedRecipes.forEach(r => {
+                                const missing = getMissingMaterialsForRecipe(r);
+                                missing.forEach(m => {
+                                    if (!allMissing.find(am => normalizeText(am.name) === normalizeText(m.name))) {
+                                        allMissing.push(m);
+                                    }
+                                });
+                            });
+
+                            if (allMissing.length > 0) {
+                                pendingImportClassData = decoded;
+                                showMissingMaterialsModal(allMissing);
+                                closeModal('modal-import-class');
+                                return;
+                            }
+
+                            completeClassImport(decoded);
+                        });
+                })
+                .catch(err => {
+                    console.error(err);
+                    showToast('No se encontró el módulo "' + prefix + '". ¿Ya lo subieron?', true);
+                });
+
+            return;
 
             const linkedRecipes = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
             const allMissing = [];
