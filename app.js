@@ -1,3 +1,7 @@
+// 🔥 IMPORTAR FIREBASE
+import { database, auth, ref, get, set, update, remove, onValue, off } 
+  from './firebase-config.js';
+
 // === MushuApp v4.0 estable - Parte 1/2 ===
 
 const TEACHER_HASH = '46115714';
