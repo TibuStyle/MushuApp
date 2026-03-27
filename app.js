@@ -308,21 +308,50 @@ function saveCourses() {
             }).then(() => {
                 console.log('✅ Curso subido a Firebase:', curso.name);
                 
+                // 🔥 LIMPIAR ALUMNAS ELIMINADAS
+                firebaseDB.ref(`alumnas/${modulo.prefix}/${curso.id}`).once('value').then(snap => {
+                    if (snap.exists()) {
+                        const alumnasFirebase = Object.keys(snap.val());
+                        const alumnasCurso = (curso.students || []).map(s => s.studentCode);
+                        
+                        // Eliminar las que ya no están en el curso
+                        alumnasFirebase.forEach(codigo => {
+                            if (!alumnasCurso.includes(codigo)) {
+                                firebaseDB.ref(`alumnas/${modulo.prefix}/${curso.id}/${codigo}`).remove()
+                                    .then(() => {
+                                        console.log('🗑️ Alumna eliminada de Firebase:', codigo);
+                                    });
+                            }
+                        });
+                    }
+                });
+                
                 // 🔥 Registrar alumnas: alumnas/{modulo}/{cursoId}/{codigo}
                 (curso.students || []).forEach(student => {
                     const alumnaRef = firebaseDB.ref(`alumnas/${modulo.prefix}/${curso.id}/${student.studentCode}`);
-                    alumnaRef.set({
-                        id: student.studentCode,
-                        nombre: student.name,
-                        modulo: modulo.prefix,
-                        cursoId: curso.id,
-                        cursoNombre: curso.name,
-                        fechaRegistro: new Date().toISOString(),
-                        activa: true,
-                        clasesDesbloqueadas: [],
-                        asistencia: []
-                    }).then(() => {
-                        console.log('✅ Alumna guardada:', student.name, '| Curso:', curso.name, '| Código:', student.studentCode);
+                    alumnaRef.once('value').then(snap => {
+                        if (!snap.exists()) {
+                            // Crear nueva alumna
+                            alumnaRef.set({
+                                id: student.studentCode,
+                                nombre: student.name,
+                                modulo: modulo.prefix,
+                                cursoId: curso.id,
+                                cursoNombre: curso.name,
+                                fechaRegistro: new Date().toISOString(),
+                                activa: true,
+                                clasesDesbloqueadas: [],
+                                asistencia: []
+                            }).then(() => {
+                                console.log('✅ Alumna creada:', student.name);
+                            });
+                        } else {
+                            // Actualizar nombre si cambió
+                            alumnaRef.update({
+                                nombre: student.name,
+                                cursoNombre: curso.name
+                            });
+                        }
                     });
                 });
             }).catch(err => console.error('Error subiendo curso:', err));
@@ -1813,30 +1842,41 @@ function addStudentToCourse() {
 }
 
 function removeStudentFromCourse(studentId) {
+    // Buscar datos del estudiante antes de eliminarlo
+    const studentToRemove = currentCourseStudents.find(s => String(s.id) === String(studentId));
+    
+    // Eliminar de la lista local
     currentCourseStudents = currentCourseStudents.filter(s => String(s.id) !== String(studentId));
+    
+    // Reordenar códigos
     currentCourseStudents = currentCourseStudents.map((s, index) => ({
         ...s,
         studentCode: String(index + 1).padStart(2, '0')
     }));
-    renderCourseStudents();
-}
-
-function renderCourseStudents() {
-    const list = document.getElementById('course-students-list');
-    if (!currentCourseStudents.length) {
-        list.innerHTML = '<div style="padding:10px;font-size:13px;color:var(--text-muted);text-align:center;">Sin alumnos aún</div>';
-        return;
+    
+    // 🔥 Eliminar de Firebase si existe
+    if (studentToRemove && typeof firebaseDB !== 'undefined' && teacherMode.active) {
+        // Obtener módulo y curso actual
+        const courseId = currentEditingCourseId;
+        if (courseId) {
+            const course = courses.find(c => String(c.id) === String(courseId));
+            if (course) {
+                const modulo = modules.find(m => String(m.id) === String(course.moduleId));
+                if (modulo) {
+                    const alumnaRef = firebaseDB.ref(`alumnas/${modulo.prefix}/${courseId}/${studentToRemove.studentCode}`);
+                    alumnaRef.remove()
+                        .then(() => {
+                            console.log('✅ Alumna eliminada de Firebase:', studentToRemove.name);
+                        })
+                        .catch(err => {
+                            console.error('Error eliminando de Firebase:', err);
+                        });
+                }
+            }
+        }
     }
-
-    list.innerHTML = currentCourseStudents.map(s => `
-        <div class="course-student-item">
-            <span>👤 ${sanitizeHTML(s.name)}</span>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span class="student-code-badge">${s.studentCode || '--'}</span>
-                <button type="button" onclick="removeStudentFromCourse('${s.id}')"><i class='bx bx-x'></i></button>
-            </div>
-        </div>
-    `).join('');
+    
+    renderCourseStudents();
 }
 
 function saveCourse() {
