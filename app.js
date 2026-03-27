@@ -5721,27 +5721,34 @@ async function confirmSyncModuleDownload() {
         }
         
         // ==========================================
-        // 2. REVISAR MATERIALES FALTANTES
+        // 2. REVISAR MATERIALES FALTANTES (CON NORMALIZACIÓN MEJORADA)
         // ==========================================
         const allMissing = [];
         
         for (const claseData of Object.values(data.clases || {})) {
             for (const receta of Object.values(claseData.recetas || {})) {
-                // Combinar ingredientes y decoraciones soportando ambos formatos (inglés/español)
+                // Soportar ambos formatos (inglés/español)
                 const ingredientes = receta.ingredientes || receta.ingredients || [];
                 const decoraciones = receta.decoraciones || receta.decorations || [];
                 const allItems = [...ingredientes, ...decoraciones];
                 
                 allItems.forEach(item => {
                     const itemName = item.nombre || item.name || '';
+                    if (!itemName.trim()) return; // Ignorar vacíos
                     
-                    // Buscar si lo tienes en tu inventario local
-                    const found = materials.find(m => normalizeText(m.name) === normalizeText(itemName));
+                    const normName = normalizeText(itemName);
                     
-                    if (!found && !allMissing.find(mm => normalizeText(mm.name) === normalizeText(itemName))) {
-                        const isDeco = decoraciones.some(d => (d.nombre || d.name) === itemName);
+                    // Buscar en inventario local usando texto normalizado
+                    const found = materials.find(m => normalizeText(m.name) === normName);
+                    
+                    // Si no existe localmente Y no lo hemos agregado ya a la lista de faltantes
+                    if (!found && !allMissing.find(mm => normalizeText(mm.name) === normName)) {
+                        
+                        // Determinar si es decoración
+                        const isDeco = decoraciones.some(d => normalizeText(d.nombre || d.name || '') === normName);
+                        
                         allMissing.push({
-                            name: itemName,
+                            name: itemName, // Guardar el nombre original para mostrarlo bonito
                             category: isDeco ? 'decoracion' : 'productos'
                         });
                     }
@@ -5749,9 +5756,14 @@ async function confirmSyncModuleDownload() {
             }
         }
 
-        // Crear los materiales pendientes locales si faltan
+        // Crear los materiales pendientes locales solo si no existen ya
         allMissing.forEach(mm => {
-            createPendingMaterial(mm.name, mm.category);
+            const normName = normalizeText(mm.name);
+            const alreadyPending = materials.find(m => normalizeText(m.name) === normName && m.pending === true);
+            
+            if (!alreadyPending) {
+                createPendingMaterial(mm.name, mm.category);
+            }
         });
 
         // ==========================================
@@ -5773,18 +5785,21 @@ async function confirmSyncModuleDownload() {
                         const itemQty = parseFloat(item.cantidad || item.qty || 0);
                         const itemUnit = item.unidad || item.unit || '';
                         
+                        if (!itemName.trim()) return null;
+                        
+                        // Buscar en inventario local usando texto normalizado
                         const found = materials.find(m => normalizeText(m.name) === normalizeText(itemName));
                         
                         return {
                             id: item.id || (Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5)),
                             matId: found ? String(found.id) : '',
-                            name: itemName,
+                            name: itemName, // Mantener nombre original de la receta
                             qty: itemQty,
                             unit: itemUnit,
                             cost: (found && !found.pending) ? calculateIngredientCost(found, itemQty, itemUnit) : 0,
                             pending: found ? (found.pending || false) : true
                         };
-                    });
+                    }).filter(Boolean); // Quitar nulos
                 };
 
                 const processedIngredients = procesarItems(receta.ingredientes || receta.ingredients);
