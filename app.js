@@ -5590,7 +5590,9 @@ async function syncModuleUpload() {
             cursos: {}
         };
 
-        // Convertir cursos
+        // Crear un mapa temporal de clases con sus FOTOS y TIPS
+        const clasesDesdeCursos = {};
+        
         moduleCourses.forEach(curso => {
             firebaseData.cursos[curso.id] = {
                 id: curso.id,
@@ -5600,19 +5602,56 @@ async function syncModuleUpload() {
                 moduloId: curso.moduleId,
                 moduloNombre: curso.moduleName,
                 estudiantes: (curso.students || []).map(s => ({
-                    id: s.id,
-                    nombre: s.name,
-                    codigo: s.studentCode
+                    id: s.id, nombre: s.name, codigo: s.studentCode
                 }))
+            };
+
+            // Extraer las fotos y tips de cada clase del curso
+            (curso.classes || []).forEach(cls => {
+                let cNum = 1;
+                const match = (cls.name || '').match(/\d+/);
+                if (match) {
+                    cNum = parseInt(match[0]);
+                } else if (cls.moduleClassName) {
+                    const match2 = cls.moduleClassName.match(/\d+/);
+                    if (match2) cNum = parseInt(match2[0]);
+                }
+
+                if (!clasesDesdeCursos[cNum]) {
+                    clasesDesdeCursos[cNum] = {
+                        nombre: cls.name || `Clase ${cNum}`,
+                        tips: cls.tips || '',
+                        fotos: cls.photos || []
+                    };
+                } else {
+                    // Si ya existe, nos aseguramos de no perder fotos
+                    if (cls.photos && cls.photos.length > 0) {
+                        clasesDesdeCursos[cNum].fotos = cls.photos;
+                    }
+                    if (cls.tips) {
+                        clasesDesdeCursos[cNum].tips = cls.tips;
+                    }
+                }
+            });
+        });
+
+        // Asegurar que las clases existan en Firebase aunque no tengan recetas aún
+        Object.keys(clasesDesdeCursos).forEach(cNum => {
+            firebaseData.clases[cNum] = {
+                numero: parseInt(cNum),
+                nombre: clasesDesdeCursos[cNum].nombre,
+                activa: true,
+                tips: clasesDesdeCursos[cNum].tips || '',
+                fotos: clasesDesdeCursos[cNum].fotos || [],
+                recetas: {}
             };
         });
 
         // Agrupar recetas por clase
         moduleRecipes.forEach((receta, index) => {
-            let claseNum = receta.moduleClass || '1';
-            // Extraer numero si viene como "Clase 1"
-            if (typeof claseNum === 'string') {
-                const match = claseNum.match(/\d+/);
+            let claseNum = 1;
+            if (receta.moduleClass) {
+                const match = receta.moduleClass.match(/\d+/);
                 claseNum = match ? parseInt(match[0]) : 1;
             }
 
@@ -5621,6 +5660,8 @@ async function syncModuleUpload() {
                     numero: claseNum,
                     nombre: `Clase ${claseNum}`,
                     activa: true,
+                    tips: '',
+                    fotos: [],
                     recetas: {}
                 };
             }
@@ -5647,7 +5688,7 @@ async function syncModuleUpload() {
             firebaseData.recetas[recetaId] = recetaEstructurada;
         });
 
-        // 4. Subir a Firebase (usa update para no borrar las alumnas)
+        // 4. Subir a Firebase
         await firebaseDB.ref(`modulos/${mod.prefix}`).update({
             metadata: firebaseData.metadata,
             clases: firebaseData.clases,
@@ -5655,7 +5696,7 @@ async function syncModuleUpload() {
             cursos: firebaseData.cursos
         });
         
-        console.log(`✅ Módulo ${mod.prefix} subido a Firebase con ${moduleRecipes.length} recetas.`);
+        console.log(`✅ Módulo ${mod.prefix} subido a Firebase con fotos y tips.`);
         showToast(`✅ ¡Módulo ${mod.prefix} subido a la nube correctamente!`);
 
     } catch (error) {
