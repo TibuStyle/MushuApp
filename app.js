@@ -3044,6 +3044,33 @@ function completeClassImport(decoded) {
     importedClasses.push(importedClass);
     saveImportedClasses();
 
+        importedClasses.push(importedClass);
+    saveImportedClasses();
+
+    // 🔥 PROCESAR CÓDIGO EN FIREBASE
+    // Extraer datos del código visual (formato: PA1-A123B-1-01)
+    if (decoded.code) {
+        const partes = decoded.code.split('-');
+        if (partes.length === 4) {
+            const codigoData = {
+                modulePrefix: partes[0],      // PA1
+                classId: partes[1],           // A123B
+                attendance: partes[2],        // 1 (impar=presente)
+                studentId: partes[3]          // 01
+            };
+            
+            procesarCodigoEnFirebase(decoded.code, codigoData)
+                .then(success => {
+                    if (success) {
+                        console.log('✅ Código procesado en Firebase');
+                    }
+                })
+                .catch(err => {
+                    console.error('Error procesando código en Firebase:', err);
+                });
+        }
+    }
+
     const recipesToProcess = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
 
     recipesToProcess.forEach(r => {
@@ -4727,12 +4754,25 @@ function loginStudentFromScratch() {
                 totalClassesInModule: totalClasses
             };
 
-            studentProfiles.push(newProfile);
-            localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
-            studentName = foundStudent.name; // Nombre global
-            
-            updateClassesView();
-            showToast('¡Hola ' + foundStudent.name + '! 👋');
+studentProfiles.push(newProfile);
+localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
+studentName = foundStudent.name; // Nombre global
+
+// 🔥 GUARDAR EN FIREBASE
+registrarAlumnaEnFirebase(
+    foundStudent.name, 
+    data.module.prefix, 
+    foundStudent.studentCode || foundStudent.id
+).then(success => {
+    if (success) {
+        console.log('✅ Alumna guardada en Firebase');
+    }
+}).catch(err => {
+    console.error('Error guardando en Firebase:', err);
+});
+
+updateClassesView();
+showToast('¡Hola ' + foundStudent.name + '! 👋');
         })
         .catch(err => {
             showToast('No se encontró el módulo "' + inputPrefix + '"', true);
@@ -5906,3 +5946,190 @@ async function verificarActualizacionesModulo(moduloCode = 'PA1') {
 }
 
 console.log('📚 Sistema de carga de módulos Firebase listo');
+
+// ============================================
+// INTEGRACIÓN FIREBASE CON SISTEMA DE CLASES
+// ============================================
+
+// Registrar alumna en Firebase cuando se agrega al módulo
+async function registrarAlumnaEnFirebase(nombre, moduloPrefix, alumnaId) {
+    try {
+        console.log('📝 Registrando alumna en Firebase:', nombre, moduloPrefix, alumnaId);
+        
+        const alumnaData = {
+            id: alumnaId,
+            nombre: nombre,
+            modulo: moduloPrefix,
+            fechaRegistro: new Date().toISOString(),
+            activa: true,
+            clasesDesbloqueadas: [],
+            asistencia: [],
+            ultimaConexion: new Date().toISOString()
+        };
+        
+        // Guardar en Firebase: alumnas/{modulo}/{id}
+        await firebaseDB.ref(`alumnas/${moduloPrefix}/${alumnaId}`).set(alumnaData);
+        
+        console.log('✅ Alumna registrada en Firebase');
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Error registrando alumna:', error);
+        return false;
+    }
+}
+
+// Registrar código y desbloquear clase en Firebase
+async function procesarCodigoEnFirebase(codigoCompleto, decodedData) {
+    try {
+        console.log('🔓 Procesando código en Firebase:', codigoCompleto);
+        
+        const { modulePrefix, classId, attendance, studentId } = decodedData;
+        
+        // 1. Verificar si el código ya fue usado
+        const codigoRef = firebaseDB.ref(`codigos/${codigoCompleto}`);
+        const codigoSnap = await codigoRef.once('value');
+        
+        if (codigoSnap.exists()) {
+            console.log('⚠️ Código ya fue usado anteriormente');
+            // Podemos permitir o denegar según lógica
+        }
+        
+        // 2. Registrar el código usado
+        await codigoRef.set({
+            codigoCompleto: codigoCompleto,
+            modulo: modulePrefix,
+            claseId: classId,
+            alumnaId: studentId,
+            asistencia: parseInt(attendance) % 2 === 1, // impar=presente
+            fechaUso: new Date().toISOString(),
+            usado: true
+        });
+        
+        // 3. Agregar clase desbloqueada a la alumna
+        const alumnaRef = firebaseDB.ref(`alumnas/${modulePrefix}/${studentId}`);
+        
+        // Obtener datos actuales
+        const alumnaSnap = await alumnaRef.once('value');
+        let alumnaData = alumnaSnap.val() || {};
+        
+        // Actualizar clases desbloqueadas
+        if (!alumnaData.clasesDesbloqueadas) {
+            alumnaData.clasesDesbloqueadas = [];
+        }
+        
+        if (!alumnaData.clasesDesbloqueadas.includes(classId)) {
+            alumnaData.clasesDesbloqueadas.push(classId);
+        }
+        
+        // Actualizar asistencia
+        if (!alumnaData.asistencia) {
+            alumnaData.asistencia = [];
+        }
+        
+        alumnaData.asistencia.push({
+            claseId: classId,
+            fecha: new Date().toISOString(),
+            presente: parseInt(attendance) % 2 === 1,
+            codigo: codigoCompleto
+        });
+        
+        // Guardar
+        await alumnaRef.update({
+            clasesDesbloqueadas: alumnaData.clasesDesbloqueadas,
+            asistencia: alumnaData.asistencia,
+            ultimaConexion: new Date().toISOString()
+        });
+        
+        console.log('✅ Código procesado y alumna actualizada en Firebase');
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Error procesando código:', error);
+        return false;
+    }
+}
+
+// Cargar clases desbloqueadas desde Firebase
+async function cargarClasesDesbloqueadasDesdeFirebase(modulePrefix, studentId) {
+    try {
+        console.log('📥 Cargando clases desbloqueadas desde Firebase...');
+        
+        const alumnaRef = firebaseDB.ref(`alumnas/${modulePrefix}/${studentId}`);
+        const alumnaSnap = await alumnaRef.once('value');
+        
+        if (!alumnaSnap.exists()) {
+            console.log('⚠️ Alumna no encontrada en Firebase');
+            return [];
+        }
+        
+        const alumnaData = alumnaSnap.val();
+        const clasesIds = alumnaData.clasesDesbloqueadas || [];
+        
+        console.log('🔓 Clases desbloqueadas:', clasesIds);
+        
+        // Cargar datos completos de cada clase desde el módulo
+        const clasesCompletas = [];
+        
+        for (const claseId of clasesIds) {
+            const claseRef = firebaseDB.ref(`modulos/${modulePrefix}/clases/${claseId}`);
+            const claseSnap = await claseRef.once('value');
+            
+            if (claseSnap.exists()) {
+                const claseData = claseSnap.val();
+                clasesCompletas.push({
+                    classId: claseId,
+                    className: claseData.nombre,
+                    modulePrefix: modulePrefix,
+                    photos: claseData.fotos || [],
+                    tips: claseData.tips || '',
+                    linkedRecipes: claseData.recetasVinculadas || [],
+                    ...claseData
+                });
+                
+                console.log('✅ Clase cargada:', claseData.nombre);
+            }
+        }
+        
+        return clasesCompletas;
+        
+    } catch (error) {
+        console.error('❌ Error cargando clases:', error);
+        return [];
+    }
+}
+
+// Sincronizar asistencia con Firebase
+async function sincronizarAsistenciaFirebase(modulePrefix, studentId, classId, presente) {
+    try {
+        const asistenciaRef = firebaseDB.ref(`alumnas/${modulePrefix}/${studentId}/asistencia`);
+        
+        // Obtener asistencia actual
+        const asistenciaSnap = await asistenciaRef.once('value');
+        let asistencia = asistenciaSnap.val() || [];
+        
+        // Buscar si ya existe registro para esta clase
+        const existente = asistencia.findIndex(a => a.claseId === classId);
+        
+        if (existente >= 0) {
+            // Actualizar
+            asistencia[existente].presente = presente;
+            asistencia[existente].fechaActualizacion = new Date().toISOString();
+        } else {
+            // Crear nuevo
+            asistencia.push({
+                claseId: classId,
+                fecha: new Date().toISOString(),
+                presente: presente
+            });
+        }
+        
+        await asistenciaRef.set(asistencia);
+        console.log('✅ Asistencia sincronizada');
+        
+    } catch (error) {
+        console.error('❌ Error sincronizando asistencia:', error);
+    }
+}
+
+console.log('🔗 Integración Firebase con sistema de clases cargada');
