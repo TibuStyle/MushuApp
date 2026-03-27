@@ -1618,8 +1618,12 @@ function renderRecipeCard(r, priceColor) {
     `;
 }
 
-function formatCLP(n) {
-    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+function formatCLP(value) {
+    // Si el valor es null, undefined, o no es un número válido, tratarlo como 0
+    if (value === null || value === undefined || isNaN(value)) {
+        value = 0;
+    }
+    return '$' + Math.round(value).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 function formatDate(ds) {
@@ -3461,6 +3465,9 @@ function showAddRecipeModal(recipeId = null) {
             document.getElementById('recipe-portions').value = r.portions || '';
             currentRecipeIngredients = JSON.parse(JSON.stringify(r.ingredients || []));
             currentRecipeDecorations = JSON.parse(JSON.stringify(r.decorations || []));
+             // 🔥 Asegurar que todos tengan un 'cost' numérico válido para evitar errores
+            currentRecipeIngredients.forEach(i => i.cost = i.cost || 0);
+            currentRecipeDecorations.forEach(d => d.cost = d.cost || 0);
             currentRecipeExtra = r.extraSubcategory || null;
             
             // Verificar si es alumno editando una receta importada
