@@ -2692,7 +2692,7 @@ function viewImportedClass(classId) {
 
     const watermarkName = (studentName || ic.studentName || 'Alumno') + ' • MushuApp';
 
-    document.getElementById('modal-view-class-title').textContent = sanitizeHTML(ic.className);
+   document.getElementById('view-class-title').textContent = sanitizeHTML(ic.className || 'Clase');
 
     let html = `<div style="margin-bottom:12px; font-size:13px; color:var(--text-muted);">
         📅 ${ic.date || ''} | 📌 ${sanitizeHTML(ic.moduleName || '')}
@@ -2781,8 +2781,8 @@ function viewImportedClass(classId) {
         html += `<div class="empty-state" style="margin-top:12px;">No hay recetas vinculadas a esta clase</div>`;
     }
 
-    document.getElementById('modal-view-class-content').innerHTML = html;
-    document.getElementById('modal-view-class').classList.add('active');
+document.getElementById('view-class-content').innerHTML = html;
+document.getElementById('modal-view-class').classList.add('active');
 }
 
 function showImportClassModal() {
@@ -2987,24 +2987,24 @@ function importClassFromShortCode(code) {
 
                             const decoded = {
                                 code: code,
-                                className: classData.className || classData.name,
+                                className: classData.className || classData.name || 'Clase',
                                 courseId: classData.courseId || (courseData ? courseData.id : ''),
-                                courseName: classData.courseName || (courseData ? courseData.nombre || courseData.name : ''),
+                                courseName: classData.courseName || (courseData ? (courseData.nombre || courseData.name) : ''),
                                 moduleId: prefix,
-                                moduleName: prefix,
+                                moduleName: data.module?.name || prefix,
                                 classId: classData.classId || classData.id || blockCode,
                                 studentId: studentData.studentId || studentCode,
-                                studentName: studentData.studentName,
+                                studentName: studentData.studentName || '',
                                 studentCode: studentCode,
                                 present: isPresent,
-                                date: classData.date,
+                                date: classData.date || '',
                                 tips: classData.tips || '',
                                 photos: classData.photos || classData.fotos || [],
                                 linkedRecipe: classData.linkedRecipe || null,
                                 linkedRecipes: classData.linkedRecipes || [],
                                 expiry: null
-                            };
-
+                              };
+                            
                             const linkedRecipes = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
                             const allMissing = [];
 
