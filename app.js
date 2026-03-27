@@ -5865,27 +5865,6 @@ async function confirmSyncModuleDownload() {
     }
 }
     
-    closeModal('modal-enter-prefix-load');
-    
-    const cleanPrefix = prefixInput.trim().toUpperCase();
-    const fileName = cleanPrefix.toLowerCase() + '-module.json';
-    const url = 'https://tibustyle.github.io/MushuApp/modules/' + fileName + '?v=' + Date.now();
-
-    showToast('⏳ Buscando módulo ' + cleanPrefix + ' en GitHub...', false);
-
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('No encontrado');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (!data.type || data.type !== 'module' || !data.module) {
-                showToast('❌ El archivo no es un módulo válido', true);
-                return;
-            }
-
             // Actualizar módulo si existe, o crearlo si es nuevo
             let modIdx = modules.findIndex(m => m.prefix.toUpperCase() === data.module.prefix.toUpperCase());
             let currentModId;
