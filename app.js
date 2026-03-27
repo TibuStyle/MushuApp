@@ -5661,17 +5661,209 @@ function syncModuleDownload() {
     // Cerrar el modal principal de sincronización primero
     closeModal('modal-sync-module');
     
-    // Abrir el modal bonito para pedir el prefijo
+    // Verificar que sea profesora
+    if (!teacherMode.active) {
+        showToast('Solo la profesora puede sincronizar módulos', true);
+        return;
+    }
+    
+    // Abrir el modal para pedir el prefijo
     document.getElementById('sync-load-prefix-input').value = '';
     document.getElementById('modal-enter-prefix-load').classList.add('active');
 }
 
-function confirmSyncModuleDownload() {
+async function confirmSyncModuleDownload() {
     const prefixInput = document.getElementById('sync-load-prefix-input').value;
     if (!prefixInput || !prefixInput.trim()) {
         showToast('Por favor, ingresa un prefijo', true);
         return;
     }
+    
+    closeModal('modal-enter-prefix-load');
+    
+    const cleanPrefix = prefixInput.trim().toUpperCase();
+    
+    showToast('⏳ Cargando módulo ' + cleanPrefix + ' desde Firebase...', false);
+    
+    try {
+        // 🔥 CARGAR DESDE FIREBASE EN LUGAR DE GITHUB
+        const moduloRef = firebaseDB.ref(`modulos/${cleanPrefix}`);
+        const moduloSnap = await moduloRef.once('value');
+        
+        if (!moduloSnap.exists()) {
+            showToast('❌ Módulo ' + cleanPrefix + ' no encontrado en Firebase', true);
+            return;
+        }
+        
+        const data = moduloSnap.val();
+        
+        console.log('📥 Módulo cargado desde Firebase:', data);
+        
+        // Verificar estructura
+        if (!data.metadata || !data.clases) {
+            showToast('❌ El módulo tiene una estructura inválida', true);
+            return;
+        }
+        
+        // Crear o actualizar módulo local
+        let modIdx = modules.findIndex(m => m.prefix.toUpperCase() === cleanPrefix);
+        let currentModId;
+        
+        if (modIdx >= 0) {
+            // Actualizar existente
+            currentModId = modules[modIdx].id;
+            modules[modIdx] = {
+                ...modules[modIdx],
+                name: data.metadata.nombre,
+                prefix: cleanPrefix
+            };
+            console.log('✅ Módulo actualizado:', cleanPrefix);
+        } else {
+            // Crear nuevo
+            currentModId = Date.now().toString();
+            modules.push({
+                id: currentModId,
+                name: data.metadata.nombre,
+                prefix: cleanPrefix
+            });
+            console.log('✅ Módulo creado:', cleanPrefix);
+        }
+        
+        saveModules();
+        
+        // Importar RECETAS del módulo
+        let recetasImportadas = 0;
+        
+        for (const [claseNum, claseData] of Object.entries(data.clases || {})) {
+            const recetasClase = Object.values(claseData.recetas || {});
+            
+            recetasClase.forEach(receta => {
+                // Verificar si ya existe
+                const existente = recipes.findIndex(r => 
+                    r.name === receta.nombre && 
+                    r.recipeFolder === data.metadata.nombre
+                );
+                
+                if (existente >= 0) {
+                    // Actualizar receta existente
+                    recipes[existente] = {
+                        ...recipes[existente],
+                        name: receta.nombre,
+                        ingredients: receta.ingredientes || [],
+                        decorations: receta.decoraciones || [],
+                        yield: receta.rendimiento || '',
+                        prepTime: receta.tiempoPrep || '',
+                        instructions: receta.instrucciones || '',
+                        notes: receta.notas || '',
+                        recipeTips: receta.tips || '',
+                        recipePhoto: receta.foto || null,
+                        moduleClass: claseData.nombre || `Clase ${claseNum}`,
+                        portions: receta.porciones || 0
+                    };
+                } else {
+                    // Crear nueva receta
+                    const newRecipe = {
+                        id: Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9),
+                        name: receta.nombre,
+                        ingredients: receta.ingredientes || [],
+                        decorations: receta.decoraciones || [],
+                        extraSubcategory: null,
+                        extraCost: 0,
+                        totalCost: 0,
+                        yield: receta.rendimiento || '',
+                        prepTime: receta.tiempoPrep || '',
+                        instructions: receta.instrucciones || '',
+                        notes: receta.notas || '',
+                        recipeTips: receta.tips || '',
+                        recipePhoto: receta.foto || null,
+                        recipeFolder: data.metadata.nombre,
+                        recipeSource: 'module',
+                        moduleClass: claseData.nombre || `Clase ${claseNum}`,
+                        portions: receta.porciones || 0,
+                        isRestricted: false
+                    };
+                    
+                    recipes.push(newRecipe);
+                }
+                
+                recetasImportadas++;
+            });
+        }
+        
+        saveRecipesToStorage();
+        
+        // Importar CURSOS del módulo
+        let cursosImportados = 0;
+        
+        for (const [cursoId, cursoData] of Object.entries(data.cursos || {})) {
+            const existeCurso = courses.findIndex(c => 
+                c.name === cursoData.nombre && 
+                String(c.moduleId) === String(currentModId)
+            );
+            
+            if (existeCurso >= 0) {
+                // Actualizar curso existente
+                courses[existeCurso] = {
+                    ...courses[existeCurso],
+                    name: cursoData.nombre,
+                    day: cursoData.dia || '',
+                    schedule: cursoData.horario || '',
+                    students: (cursoData.estudiantes || []).map(est => ({
+                        id: est.id,
+                        name: est.nombre,
+                        studentCode: est.codigo
+                    }))
+                };
+            } else {
+                // Crear nuevo curso
+                courses.push({
+                    id: cursoId,
+                    name: cursoData.nombre,
+                    moduleId: currentModId,
+                    moduleName: data.metadata.nombre,
+                    day: cursoData.dia || '',
+                    schedule: cursoData.horario || '',
+                    students: (cursoData.estudiantes || []).map(est => ({
+                        id: est.id,
+                        name: est.nombre,
+                        studentCode: est.codigo
+                    })),
+                    classes: []
+                });
+            }
+            
+            cursosImportados++;
+        }
+        
+        saveCourses();
+        
+        // Importar CLASES (con fotos, tips, etc.)
+        let clasesImportadas = 0;
+        
+        for (const [claseNum, claseData] of Object.entries(data.clases || {})) {
+            // Las clases se importan como "imported classes" para las alumnas
+            // La profesora las tiene en el módulo directamente
+            clasesImportadas++;
+        }
+        
+        updateRecipesView();
+        renderCourses();
+        
+        console.log(`✅ Sincronización completa:
+          - ${recetasImportadas} recetas
+          - ${cursosImportados} cursos
+          - ${clasesImportadas} clases`);
+        
+        showToast(`✅ Módulo ${cleanPrefix} sincronizado!\n\n` +
+                  `📝 ${recetasImportadas} recetas\n` +
+                  `👥 ${cursosImportados} cursos\n` +
+                  `🍪 ${clasesImportadas} clases`);
+        
+    } catch (error) {
+        console.error('❌ Error sincronizando desde Firebase:', error);
+        showToast('❌ Error al sincronizar. Verifica tu conexión.', true);
+    }
+}
     
     closeModal('modal-enter-prefix-load');
     
