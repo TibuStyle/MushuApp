@@ -308,25 +308,21 @@ function saveCourses() {
             }).then(() => {
                 console.log('✅ Curso subido a Firebase:', curso.name);
                 
-                // Registrar cada alumna en alumnas/{modulo}/{codigo}
+                // 🔥 Registrar alumnas: alumnas/{modulo}/{cursoId}/{codigo}
                 (curso.students || []).forEach(student => {
-                    const alumnaRef = firebaseDB.ref(`alumnas/${modulo.prefix}/${student.studentCode}`);
-                    alumnaRef.once('value').then(snap => {
-                        if (!snap.exists()) {
-                            alumnaRef.set({
-                                id: student.studentCode,
-                                nombre: student.name,
-                                modulo: modulo.prefix,
-                                cursoId: curso.id,
-                                cursoNombre: curso.name,
-                                fechaRegistro: new Date().toISOString(),
-                                activa: true,
-                                clasesDesbloqueadas: [],
-                                asistencia: []
-                            }).then(() => {
-                                console.log('✅ Alumna creada en Firebase:', student.name);
-                            });
-                        }
+                    const alumnaRef = firebaseDB.ref(`alumnas/${modulo.prefix}/${curso.id}/${student.studentCode}`);
+                    alumnaRef.set({
+                        id: student.studentCode,
+                        nombre: student.name,
+                        modulo: modulo.prefix,
+                        cursoId: curso.id,
+                        cursoNombre: curso.name,
+                        fechaRegistro: new Date().toISOString(),
+                        activa: true,
+                        clasesDesbloqueadas: [],
+                        asistencia: []
+                    }).then(() => {
+                        console.log('✅ Alumna guardada:', student.name, '| Curso:', curso.name, '| Código:', student.studentCode);
                     });
                 });
             }).catch(err => console.error('Error subiendo curso:', err));
@@ -4768,53 +4764,49 @@ async function loginStudentFromScratch() {
 
     showToast('⏳ Verificando tus datos...', false);
 
-    // 🔥 PRIMERO INTENTAR BUSCAR EN FIREBASE
+    // 🔥 BUSCAR EN FIREBASE - En TODOS los cursos del módulo
     try {
         console.log('🔍 Buscando', inputName, 'en módulo', inputPrefix, 'en Firebase...');
         
-        // Obtener cursos del módulo desde Firebase
-        const cursosRef = firebaseDB.ref(`modulos/${inputPrefix}/cursos`);
-        const cursosSnap = await cursosRef.once('value');
+        // Buscar en alumnas/{modulo}/ (todos los cursos)
+        const alumnasModuloRef = firebaseDB.ref(`alumnas/${inputPrefix}`);
+        const alumnasSnap = await alumnasModuloRef.once('value');
         
-        if (cursosSnap.exists()) {
-            const cursosData = cursosSnap.val();
+        if (alumnasSnap.exists()) {
             let foundStudent = null;
-            let foundCourse = null;
+            let foundCursoId = null;
             
-            // Buscar el estudiante en todos los cursos
-            for (const [cursoId, curso] of Object.entries(cursosData)) {
-                const student = (curso.estudiantes || []).find(s => 
-                    normalizeText(s.nombre) === normalizeText(inputName)
-                );
+            // Recorrer todos los cursos del módulo
+            alumnasSnap.forEach(cursoSnap => {
+                const cursoId = cursoSnap.key;
                 
-                if (student) {
-                    foundStudent = {
-                        name: student.nombre,
-                        id: student.id,
-                        studentCode: student.codigo
-                    };
-                    foundCourse = {
-                        id: cursoId,
-                        name: curso.nombre
-                    };
-                    break;
-                }
-            }
+                // Recorrer todas las alumnas del curso
+                cursoSnap.forEach(alumnaSnap => {
+                    const alumna = alumnaSnap.val();
+                    
+                    if (normalizeText(alumna.nombre) === normalizeText(inputName)) {
+                        foundStudent = {
+                            name: alumna.nombre,
+                            id: alumna.id,
+                            studentCode: alumnaSnap.key,
+                            cursoId: alumna.cursoId,
+                            cursoNombre: alumna.cursoNombre
+                        };
+                        foundCursoId = cursoId;
+                    }
+                });
+            });
             
             if (foundStudent) {
-                console.log('✅ Alumna encontrada en Firebase:', foundStudent.name);
-                
-                // Obtener metadata del módulo
-                const metadataSnap = await firebaseDB.ref(`modulos/${inputPrefix}/metadata`).once('value');
-                const metadata = metadataSnap.val() || {};
+                console.log('✅ Alumna encontrada en Firebase:', foundStudent.name, '| Curso:', foundStudent.cursoNombre);
                 
                 const newProfile = {
                     name: foundStudent.name,
                     id: foundStudent.id,
                     code: foundStudent.studentCode,
-                    courseId: foundCourse.id,
-                    courseName: foundCourse.name,
-                    moduleId: metadata.codigo || inputPrefix,
+                    courseId: foundStudent.cursoId,
+                    courseName: foundStudent.cursoNombre,
+                    moduleId: inputPrefix,
                     modulePrefix: inputPrefix,
                     totalClassesInModule: 0
                 };
@@ -4823,15 +4815,8 @@ async function loginStudentFromScratch() {
                 localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
                 studentName = foundStudent.name;
                 
-                // 🔥 Guardar en Firebase que se registró
-                registrarAlumnaEnFirebase(
-                    foundStudent.name, 
-                    inputPrefix, 
-                    foundStudent.studentCode || foundStudent.id
-                );
-                
                 // Actualizar última conexión
-                const alumnaRef = firebaseDB.ref(`alumnas/${inputPrefix}/${foundStudent.studentCode}`);
+                const alumnaRef = firebaseDB.ref(`alumnas/${inputPrefix}/${foundCursoId}/${foundStudent.studentCode}`);
                 alumnaRef.update({
                     ultimaConexion: new Date().toISOString()
                 }).catch(err => console.log('Error actualizando conexión:', err));
@@ -4839,14 +4824,73 @@ async function loginStudentFromScratch() {
                 updateClassesView();
                 showToast('¡Hola ' + foundStudent.name + '! 👋');
                 return;
+            } else {
+                console.log('❌ Alumna no encontrada en Firebase');
             }
+        } else {
+            console.log('⚠️ Módulo no encontrado en Firebase');
         }
         
-        console.log('⚠️ No encontrado en Firebase, buscando en JSON...');
-        
     } catch (firebaseError) {
-        console.log('⚠️ Firebase no disponible, usando JSON:', firebaseError.message);
+        console.log('⚠️ Firebase no disponible:', firebaseError.message);
     }
+
+    // 🔄 FALLBACK: Buscar en JSON local
+    const fileName = inputPrefix.toLowerCase() + '-module.json';
+    const url = 'https://tibustyle.github.io/MushuApp/modules/' + fileName + '?v=' + Date.now();
+
+    fetch(url)
+        .then(response => {
+            if (!response.ok) throw new Error('No encontrado');
+            return response.json();
+        })
+        .then(data => {
+            if (!data.courses || data.courses.length === 0) {
+                showToast('Módulo sin cursos activos', true);
+                return;
+            }
+
+            let foundStudent = null;
+            let foundCourse = null;
+
+            for (const course of data.courses) {
+                const student = (course.students || []).find(s => 
+                    normalizeText(s.name) === normalizeText(inputName)
+                );
+                if (student) {
+                    foundStudent = student;
+                    foundCourse = course;
+                    break;
+                }
+            }
+
+            if (!foundStudent) {
+                showToast('Nombre no encontrado. Contacta a tu profesor/a.', true);
+                return;
+            }
+
+            const newProfile = {
+                name: foundStudent.name,
+                id: foundStudent.id,
+                code: foundStudent.studentCode,
+                courseId: foundCourse.id,
+                courseName: foundCourse.name,
+                moduleId: data.module.id,
+                modulePrefix: data.module.prefix,
+                totalClassesInModule: 0
+            };
+
+            studentProfiles.push(newProfile);
+            localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
+            studentName = foundStudent.name;
+
+            updateClassesView();
+            showToast('¡Hola ' + foundStudent.name + '! 👋');
+        })
+        .catch(err => {
+            showToast('Nombre no encontrado. Contacta a tu profesor/a.', true);
+        });
+}
 
     // 🔄 FALLBACK: Buscar en JSON local si Firebase falla o no encuentra
     const fileName = inputPrefix.toLowerCase() + '-module.json';
