@@ -2779,10 +2779,6 @@ function viewImportedClass(classId) {
     modalEl.classList.add('active');
 }
 
-document.getElementById('view-class-content').innerHTML = html;
-document.getElementById('modal-view-class').classList.add('active');
-}
-
 function showImportClassModal() {
     document.getElementById('import-class-code').value = '';
     document.getElementById('modal-import-class').classList.add('active');
