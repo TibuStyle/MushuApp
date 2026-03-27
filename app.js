@@ -2935,9 +2935,26 @@ function importClassFromShortCode(code) {
             let classData = null;
             let courseData = null;
 
-            (data.courses || []).forEach(c => {
-                const foundClass = (data.classes || []).find(cls => 
-                    cls.blockCode === blockCode && cls.courseId === c.id
+            // Soportar clases como array viejo o como objeto Firebase nuevo
+            let classesList = [];
+            
+            if (Array.isArray(data.classes)) {
+                classesList = data.classes;
+            } else if (data.classes && typeof data.classes === 'object') {
+                classesList = Object.values(data.classes);
+            }
+
+            let coursesList = [];
+            if (Array.isArray(data.courses)) {
+                coursesList = data.courses;
+            } else if (data.cursos && typeof data.cursos === 'object') {
+                coursesList = Object.values(data.cursos);
+            }
+
+            // Buscar clase por blockCode
+            coursesList.forEach(c => {
+                const foundClass = classesList.find(cls => 
+                    cls.blockCode === blockCode && (!cls.courseId || cls.courseId === c.id)
                 );
                 if (foundClass) {
                     classData = foundClass;
@@ -2946,10 +2963,12 @@ function importClassFromShortCode(code) {
             });
 
             if (!classData) {
-                classData = (data.classes || []).find(cls => cls.blockCode === blockCode);
+                classData = classesList.find(cls => cls.blockCode === blockCode);
             }
 
             if (!classData) {
+                console.log('❌ No se encontró clase con blockCode:', blockCode);
+                console.log('Clases disponibles:', classesList);
                 showToast('Clase no encontrada con ese código', true);
                 return;
             }
