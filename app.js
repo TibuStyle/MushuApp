@@ -4120,7 +4120,8 @@ function previewClassAsStudent(courseId, classId) {
 
     const watermarkName = 'Vista Previa • MushuApp';
 
-    document.getElementById('modal-view-class-title').textContent = sanitizeHTML(cls.name);
+    // 🔥 USANDO LOS IDs CORRECTOS
+    document.getElementById('view-class-title').textContent = sanitizeHTML(cls.name);
 
     let html = `<div style="margin-bottom:12px; font-size:13px; color:var(--text-muted);">
         📅 ${cls.date || ''} | 📌 ${sanitizeHTML(crs.moduleName || '')}
@@ -4161,44 +4162,49 @@ function previewClassAsStudent(courseId, classId) {
         html += `<h4 style="margin:0 0 10px 0; font-size:14px;"><i class='bx bx-receipt'></i> Recetas de la Clase</h4>`;
         
         rList.forEach(r => {
-            // Buscar la receta en el inventario local para el botón
             let recipeId = null;
-            const fullR = recipes.find(rr => rr.name === r.name && rr.recipeFolder === mod.name);
+            // Para el modo profe, buscamos la receta localmente
+            let fullR = recipes.find(rr => rr.name === r.name && rr.recipeFolder === mod.name);
+            // Si viene directo con el objeto (del JSON/Firebase viejo)
+            if (!fullR && typeof r === 'object' && r.id) fullR = r;
+            
             if (fullR) recipeId = fullR.id;
 
             html += `<div style="margin-bottom:16px; border:1px solid var(--border-color); border-radius:var(--radius-md); padding:12px;">
-                        <h4 style="margin:0 0 10px 0; color:var(--text-color); font-size:15px;">${sanitizeHTML(r.name)}</h4>`;
+                        <h4 style="margin:0 0 10px 0; color:var(--text-color); font-size:15px;">${sanitizeHTML(r.name || r.nombre || 'Receta')}</h4>`;
 
             // Foto individual de la receta
-            if (r.recipePhoto) {
+            if (r.recipePhoto || r.foto) {
+                const fotoR = r.recipePhoto || r.foto;
                 html += `<div class="class-content-photo" style="margin-bottom:10px; position:relative; overflow:hidden;">
-                    <img src="${r.recipePhoto}" alt="Foto de receta" 
+                    <img src="${fotoR}" alt="Foto de receta" 
                          class="no-save-img" draggable="false"
                          oncontextmenu="return false;"
-                         onclick="event.stopPropagation(); openPhotoFullscreen('${r.recipePhoto}', '${sanitizeHTML(watermarkName)}')" 
+                         onclick="event.stopPropagation(); openPhotoFullscreen('${fotoR}', '${sanitizeHTML(watermarkName)}')" 
                          style="cursor:pointer; width:100%; border-radius:var(--radius-sm); display:block;">
                     <div class="watermark-photo">${sanitizeHTML(watermarkName)}</div>
                 </div>`;
             }
 
             // Tips de la receta individual
-            if (r.recipeTips) {
+            if (r.recipeTips || r.tips) {
+                const tipsR = r.recipeTips || r.tips;
                 html += `<div class="class-content-tips" style="margin-bottom:12px; margin-top:8px;">
                             <strong style="color:var(--secondary-color); font-size:13px; display:block; margin-bottom:4px;">💡 Nota de receta:</strong>
-                            ${sanitizeHTML(r.recipeTips).replace(/\n/g, '<br>')}
+                            ${sanitizeHTML(tipsR).replace(/\n/g, '<br>')}
                          </div>`;
             }
 
             // Botón de ver costo
             if (recipeId) {
                 html += `<button class="btn-submit" style="margin-top:0; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));" 
-                         onclick="closeModal('modal-view-class'); openRecipeFromClass('${recipeId}')">
+                         onclick="closeModal('modal-view-class-teacher'); openRecipeFromClass('${recipeId}')">
                     <i class='bx bx-book-open'></i> Ver costo de receta
                 </button>`;
             } else {
                 html += `<div style="background:var(--surface-hover);border-radius:var(--radius-sm);padding:12px;margin-top:8px;">
-                    <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${sanitizeHTML(r.name)}</div>
-                    <div style="font-size:13px;color:var(--text-muted);">Costo: $${formatCLP(r.totalCost)}</div>
+                    <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${sanitizeHTML(r.name || r.nombre || 'Receta')}</div>
+                    <div style="font-size:13px;color:var(--text-muted);">Costo: $${formatCLP(r.totalCost || r.costoTotal || 0)}</div>
                 </div>`;
             }
 
@@ -4210,13 +4216,14 @@ function previewClassAsStudent(courseId, classId) {
 
     // === BOTÓN ASISTENCIA ===
     html += `<div style="display:flex; gap:10px; margin-top:20px;">
-        <button class="btn-submit" style="margin-top:0; flex:1;" onclick="closeModal('modal-view-class'); showAttendanceModal('${courseId}', '${classId}')">
+        <button class="btn-submit" style="margin-top:0; flex:1;" onclick="closeModal('modal-view-class-teacher'); showAttendanceModal('${courseId}', '${classId}')">
             <i class='bx bx-clipboard'></i> Asistencia
         </button>
     </div>`;
 
-    document.getElementById('modal-view-class-content').innerHTML = html;
-    document.getElementById('modal-view-class').classList.add('active');
+    // 🔥 USANDO LOS IDs CORRECTOS
+    document.getElementById('view-class-content').innerHTML = html;
+    document.getElementById('modal-view-class-teacher').classList.add('active');
 }
 
 // === PHOTO FULLSCREEN CON ZOOM ===
