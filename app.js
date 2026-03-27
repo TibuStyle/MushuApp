@@ -5743,147 +5743,166 @@ function saveProfitMargin() {
 }
 
 // ============================================
-// FUNCIONES DE FIREBASE
+// CARGA DE RECETAS Y CLASES DESDE FIREBASE
 // ============================================
 
-// Verificar si la alumna ya está registrada
-async function checkFirebaseRegistration() {
-    const alumnaId = localStorage.getItem('mushu_alumna_id');
-    
-    if (!alumnaId) {
-        // No está registrada, mostrar modal de registro
-        showRegistrationModal();
-        return false;
-    }
-    
-    // Actualizar última conexión
+// Cargar módulo completo desde Firebase
+async function cargarModuloDesdeFirebase(moduloCode = 'PA1') {
     try {
-        await firebaseDB.ref('alumnas/' + alumnaId + '/ultimaConexion').set(new Date().toISOString());
-        console.log('📅 Última conexión actualizada');
-    } catch (error) {
-        console.log('⚠️ Sin conexión a internet (modo offline)');
-    }
-    
-    return true;
-}
-
-// Mostrar modal de registro (primera vez)
-function showRegistrationModal() {
-    const modal = document.createElement('div');
-    modal.id = 'firebase-registration-modal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10000;
-    `;
-    
-    modal.innerHTML = `
-        <div style="
-            background: white;
-            padding: 2rem;
-            border-radius: 12px;
-            max-width: 400px;
-            width: 90%;
-            text-align: center;
-        ">
-            <h2 style="color: #333; margin-bottom: 1rem;">Bienvenida a MushuApp</h2>
-            <p style="color: #666; margin-bottom: 1.5rem;">Por favor ingresa tu nombre para comenzar:</p>
-            <input 
-                type="text" 
-                id="firebase-student-name" 
-                placeholder="Tu nombre completo"
-                style="
-                    width: 100%;
-                    padding: 0.75rem;
-                    border: 2px solid #ddd;
-                    border-radius: 8px;
-                    font-size: 1rem;
-                    margin-bottom: 1rem;
-                "
-            >
-            <button 
-                onclick="registrarAlumnaFirebase()"
-                style="
-                    width: 100%;
-                    padding: 0.75rem;
-                    background: #ff6b9d;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    font-size: 1rem;
-                    cursor: pointer;
-                "
-            >
-                Continuar
-            </button>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Focus en el input
-    setTimeout(() => {
-        document.getElementById('firebase-student-name').focus();
-    }, 100);
-}
-
-// Registrar alumna en Firebase
-async function registrarAlumnaFirebase() {
-    const nombre = document.getElementById('firebase-student-name').value.trim();
-    
-    if (!nombre) {
-        alert('Por favor ingresa tu nombre');
-        return;
-    }
-    
-    try {
-        // Generar ID único
-        const timestamp = Date.now();
-        const random = Math.floor(Math.random() * 1000);
-        const alumnaId = 'alumna_' + timestamp + '_' + random;
+        console.log('📥 Cargando módulo', moduloCode, 'desde Firebase...');
         
-        // Guardar en Firebase
-        await firebaseDB.ref('alumnas/' + alumnaId).set({
-            id: alumnaId,
-            nombre: nombre,
-            modulo: 'PA1', // Por defecto
-            fechaRegistro: new Date().toISOString(),
-            activa: true,
-            clasesDesbloqueadas: {},
-            ultimaConexion: new Date().toISOString()
-        });
+        // 1. Obtener datos del módulo completo
+        const moduloSnapshot = await firebaseDB.ref('modulos/' + moduloCode).once('value');
         
-        // Guardar ID localmente
-        localStorage.setItem('mushu_alumna_id', alumnaId);
-        localStorage.setItem('mushu_alumna_nombre', nombre);
+        if (!moduloSnapshot.exists()) {
+            console.log('⚠️ Módulo no encontrado en Firebase');
+            return null;
+        }
         
-        console.log('✅ Alumna registrada en Firebase:', alumnaId);
+        const moduloData = moduloSnapshot.val();
+        const alumnaId = localStorage.getItem('mushu_alumna_id');
         
-        // Cerrar modal
-        const modal = document.getElementById('firebase-registration-modal');
-        if (modal) modal.remove();
+        // 2. Obtener clases desbloqueadas de la alumna
+        let clasesDesbloqueadas = [];
         
-        showToast('¡Bienvenida ' + nombre + '!');
+        if (alumnaId) {
+            const desbloqueadasSnapshot = await firebaseDB
+                .ref('alumnas/' + alumnaId + '/clasesDesbloqueadas')
+                .once('value');
+            
+            if (desbloqueadasSnapshot.exists()) {
+                const desbloqueadasData = desbloqueadasSnapshot.val();
+                clasesDesbloqueadas = Object.keys(desbloqueadasData);
+            }
+        }
+        
+        // También incluir clases guardadas localmente (offline)
+        const clasesLocales = JSON.parse(localStorage.getItem('mushu_clases_desbloqueadas') || '[]');
+        clasesDesbloqueadas = [...new Set([...clasesDesbloqueadas, ...clasesLocales])];
+        
+        console.log('🔓 Clases desbloqueadas:', clasesDesbloqueadas);
+        
+        // 3. Construir estructura de datos para la app
+        const moduloCargado = {
+            metadata: moduloData.metadata,
+            clases: [],
+            recetas: [],
+            cursos: moduloData.cursos || []
+        };
+        
+        // 4. Filtrar clases y recetas según desbloqueos
+        for (const [claseNum, claseData] of Object.entries(moduloData.clases || {})) {
+            const codigoClase = moduloCode + '-CLASE' + claseNum;
+            
+            // Si la clase está desbloqueada
+            if (clasesDesbloqueadas.includes(codigoClase)) {
+                
+                // Agregar información de la clase
+                moduloCargado.clases.push({
+                    numero: claseData.numero,
+                    nombre: claseData.nombre,
+                    fecha: claseData.fecha,
+                    tips: claseData.tips || '',
+                    fotos: claseData.fotos || [],
+                    codigoBloqueo: claseData.codigoBloqueo,
+                    activa: claseData.activa
+                });
+                
+                // Agregar recetas de esta clase
+                const recetasClase = Object.values(claseData.recetas || {});
+                moduloCargado.recetas.push(...recetasClase);
+                
+                console.log(`✅ Clase ${claseNum} desbloqueada:`, recetasClase.length, 'recetas');
+                console.log(`   Tips:`, claseData.tips ? 'Sí' : 'No');
+                console.log(`   Fotos:`, claseData.fotos ? claseData.fotos.length : 0);
+                
+            } else {
+                console.log(`🔒 Clase ${claseNum} bloqueada`);
+            }
+        }
+        
+        console.log('📊 Total recetas disponibles:', moduloCargado.recetas.length);
+        console.log('📚 Total clases disponibles:', moduloCargado.clases.length);
+        
+        // 5. Guardar en caché local
+        localStorage.setItem('mushu_cache_modulo_' + moduloCode, JSON.stringify(moduloCargado));
+        localStorage.setItem('mushu_cache_timestamp_' + moduloCode, Date.now().toString());
+        
+        console.log('✅ Módulo cargado y cacheado');
+        
+        return moduloCargado;
         
     } catch (error) {
-        console.error('❌ Error al registrar alumna:', error);
-        alert('Error al registrar. Verifica tu conexión a internet.');
+        console.error('❌ Error cargando módulo desde Firebase:', error);
+        
+        // Intentar cargar desde caché local
+        console.log('⚠️ Intentando cargar desde caché local...');
+        const cached = localStorage.getItem('mushu_cache_modulo_' + moduloCode);
+        
+        if (cached) {
+            console.log('✅ Módulo cargado desde caché (modo offline)');
+            return JSON.parse(cached);
+        }
+        
+        return null;
     }
 }
 
-// Verificar registro al cargar la app
-window.addEventListener('DOMContentLoaded', () => {
-    // Esperar 1 segundo para que Firebase se inicialice
-    setTimeout(() => {
-        checkFirebaseRegistration();
-    }, 1000);
-});
+// Cargar solo recetas (compatible con sistema actual)
+async function cargarRecetasDesdeFirebase(moduloCode = 'PA1') {
+    const modulo = await cargarModuloDesdeFirebase(moduloCode);
+    return modulo ? modulo.recetas : [];
+}
 
-console.log('🔥 Funciones de Firebase cargadas');
+// Cargar solo clases
+async function cargarClasesDesdeFirebase(moduloCode = 'PA1') {
+    const modulo = await cargarModuloDesdeFirebase(moduloCode);
+    return modulo ? modulo.clases : [];
+}
+
+// Obtener una receta específica por ID
+async function obtenerRecetaPorId(moduloCode, recetaId) {
+    try {
+        const recetaSnapshot = await firebaseDB
+            .ref(`modulos/${moduloCode}/recetas/${recetaId}`)
+            .once('value');
+        
+        if (recetaSnapshot.exists()) {
+            return recetaSnapshot.val();
+        }
+        
+        return null;
+        
+    } catch (error) {
+        console.error('Error obteniendo receta:', error);
+        return null;
+    }
+}
+
+// Verificar si hay actualizaciones
+async function verificarActualizacionesModulo(moduloCode = 'PA1') {
+    try {
+        const ultimaActSnapshot = await firebaseDB
+            .ref('modulos/' + moduloCode + '/metadata/ultimaActualizacion')
+            .once('value');
+        
+        if (ultimaActSnapshot.exists()) {
+            const ultimaActFirebase = new Date(ultimaActSnapshot.val()).getTime();
+            const cacheTimestamp = parseInt(localStorage.getItem('mushu_cache_timestamp_' + moduloCode) || '0');
+            
+            if (ultimaActFirebase > cacheTimestamp) {
+                console.log('🔄 Hay actualizaciones disponibles, recargando...');
+                showToast('Nuevas recetas disponibles');
+                return await cargarModuloDesdeFirebase(moduloCode);
+            }
+        }
+        
+        return null;
+        
+    } catch (error) {
+        console.log('⚠️ No se pudo verificar actualizaciones (offline)');
+        return null;
+    }
+}
+
+console.log('📚 Sistema de carga de módulos Firebase listo');
