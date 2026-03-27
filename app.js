@@ -2660,13 +2660,6 @@ function normalizeText(str) {
         .replace(/[^a-z0-9]/g, "") // quitar símbolos
         .trim();
 }
-function normalizeText(str) {
-    if (!str) return '';
-    return str.toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
-        .replace(/[^a-z0-9]/g, "") 
-        .trim();
-}
 
 function getMissingMaterialsForRecipe(recipe) {
     const needed = [];
