@@ -3186,17 +3186,25 @@ function completeClassImport(decoded) {
     saveImportedClasses();
 
     // 🔥 PROCESAR CÓDIGO EN FIREBASE
-    // Extraer datos del código visual (formato: PA1-A123B-1-01)
+    // Formato real del código: PA1U833H901
     if (decoded.code) {
-        const partes = decoded.code.split('-');
-        if (partes.length === 4) {
+        const codigoPlano = decoded.code.trim().toUpperCase();
+
+        // Estructura:
+        // PA1 = módulo (3)
+        // U833H = clase (5)
+        // 9 = asistencia (1)
+        // 01 = alumna (2)
+        if (codigoPlano.length >= 11) {
             const codigoData = {
-                modulePrefix: partes[0],      // PA1
-                classId: partes[1],           // A123B
-                attendance: partes[2],        // 1 (impar=presente)
-                studentId: partes[3]          // 01
+                modulePrefix: codigoPlano.substring(0, 3),   // PA1
+                classId: codigoPlano.substring(3, 8),        // U833H
+                attendance: codigoPlano.substring(8, 9),     // 9
+                studentId: codigoPlano.substring(9, 11)      // 01
             };
             
+            console.log('🔍 Código decodificado:', codigoData);
+
             procesarCodigoEnFirebase(decoded.code, codigoData)
                 .then(success => {
                     if (success) {
@@ -3206,6 +3214,8 @@ function completeClassImport(decoded) {
                 .catch(err => {
                     console.error('Error procesando código en Firebase:', err);
                 });
+        } else {
+            console.error('❌ Código inválido:', codigoPlano);
         }
     }
 
