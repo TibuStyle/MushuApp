@@ -2935,28 +2935,36 @@ function importClassFromShortCode(code) {
             let classData = null;
             let courseData = null;
 
-            // 🔥 Buscar la clase en los cursos locales ya sincronizados
-            const matchingCourses = courses.filter(c => {
-                const mod = modules.find(m => String(m.id) === String(c.moduleId));
-                return mod && mod.prefix === prefix;
-            });
+            // 🔥 Buscar la clase directamente en Firebase
+            const clasesSnap = await firebaseDB.ref(`modulos/${prefix}/clases`).once('value');
+            let classesList = [];
 
-            matchingCourses.forEach(curso => {
-                const foundClass = (curso.classes || []).find(cls => cls.blockCode === blockCode);
-                if (foundClass) {
-                    classData = foundClass;
-                    courseData = curso;
-                }
-            });
+            if (clasesSnap.exists()) {
+                const clasesVal = clasesSnap.val();
+                classesList = Array.isArray(clasesVal) ? clasesVal.filter(Boolean) : Object.values(clasesVal);
+            }
+
+            classData = classesList.find(cls => cls.blockCode === blockCode);
 
             if (!classData) {
                 console.log('❌ No se encontró clase con blockCode:', blockCode);
-                console.log('Cursos locales revisados:', matchingCourses);
+                console.log('Clases Firebase disponibles:', classesList);
                 showToast('Clase no encontrada con ese código', true);
                 return;
             }
 
-            // Buscar alumna en la asistencia de la clase usando studentCode
+            // Buscar curso relacionado si existe
+            const cursosSnap = await firebaseDB.ref(`modulos/${prefix}/cursos`).once('value');
+            let cursosList = [];
+
+            if (cursosSnap.exists()) {
+                const cursosVal = cursosSnap.val();
+                cursosList = Array.isArray(cursosVal) ? cursosVal.filter(Boolean) : Object.values(cursosVal);
+            }
+
+            courseData = cursosList.find(c => String(c.id) === String(classData.courseId)) || null;
+
+            // Buscar alumna dentro de attendance
             const studentData = (classData.attendance || []).find(a =>
                 String(a.studentCode) === String(studentCode)
             );
@@ -2969,9 +2977,10 @@ function importClassFromShortCode(code) {
             }
 
             const existing = importedClasses.find(ic =>
-                String(ic.classId) === String(classData.id) &&
+                String(ic.classId) === String(classData.classId || classData.id || blockCode) &&
                 normalizeText(ic.studentName) === normalizeText(studentData.studentName)
             );
+
             if (existing) {
                 showToast('Ya importaste esta clase', true);
                 return;
@@ -2979,12 +2988,12 @@ function importClassFromShortCode(code) {
 
             const decoded = {
                 code: code,
-                className: classData.name || classData.className,
-                courseId: courseData ? courseData.id : classData.courseId,
-                courseName: courseData ? courseData.name : classData.courseName,
-                moduleId: data.module ? data.module.id : prefix,
-                moduleName: data.module ? data.module.name : prefix,
-                classId: classData.id || classData.classId || blockCode,
+                className: classData.className || classData.name,
+                courseId: classData.courseId || (courseData ? courseData.id : ''),
+                courseName: classData.courseName || (courseData ? courseData.nombre || courseData.name : ''),
+                moduleId: prefix,
+                moduleName: prefix,
+                classId: classData.classId || classData.id || blockCode,
                 studentId: studentData.studentId || studentCode,
                 studentName: studentData.studentName,
                 studentCode: studentCode,
