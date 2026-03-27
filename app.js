@@ -5698,7 +5698,7 @@ async function syncModuleUpload() {
             cursos: {}
         };
 
-        // Crear un mapa temporal de clases con sus FOTOS y TIPS
+        // Crear un mapa temporal de clases con toda su info real
         const clasesDesdeCursos = {};
         
         moduleCourses.forEach(curso => {
@@ -5710,11 +5710,13 @@ async function syncModuleUpload() {
                 moduloId: curso.moduleId,
                 moduloNombre: curso.moduleName,
                 estudiantes: (curso.students || []).map(s => ({
-                    id: s.id, nombre: s.name, codigo: s.studentCode
+                    id: s.id,
+                    nombre: s.name,
+                    codigo: s.studentCode
                 }))
             };
 
-            // Extraer las fotos y tips de cada clase del curso
+            // Extraer TODA la info de cada clase del curso
             (curso.classes || []).forEach(cls => {
                 let cNum = 1;
                 const match = (cls.name || '').match(/\d+/);
@@ -5725,32 +5727,48 @@ async function syncModuleUpload() {
                     if (match2) cNum = parseInt(match2[0]);
                 }
 
-                if (!clasesDesdeCursos[cNum]) {
-                    clasesDesdeCursos[cNum] = {
-                        nombre: cls.name || `Clase ${cNum}`,
-                        tips: cls.tips || '',
-                        fotos: cls.photos || []
-                    };
-                } else {
-                    // Si ya existe, nos aseguramos de no perder fotos
-                    if (cls.photos && cls.photos.length > 0) {
-                        clasesDesdeCursos[cNum].fotos = cls.photos;
-                    }
-                    if (cls.tips) {
-                        clasesDesdeCursos[cNum].tips = cls.tips;
-                    }
-                }
+                clasesDesdeCursos[cNum] = {
+                    numero: cNum,
+                    nombre: cls.name || `Clase ${cNum}`,
+                    activa: true,
+                    fecha: cls.date || '',
+                    tips: cls.tips || '',
+                    fotos: cls.photos || cls.fotos || [],
+                    blockCode: cls.blockCode || '',
+                    codeExpiry: cls.codeExpiry || 0,
+                    courseId: curso.id,
+                    courseName: curso.name,
+                    attendance: (cls.attendance || []).map(a => ({
+                        studentId: a.studentId || '',
+                        studentName: a.studentName || '',
+                        studentCode: a.studentCode || '',
+                        present: a.present || false,
+                        shortCode: a.shortCode || '',
+                        codeUsed: a.codeUsed || false
+                    })),
+                    linkedRecipe: cls.linkedRecipe || null,
+                    linkedRecipes: cls.linkedRecipes || [],
+                    recetas: {}
+                };
             });
         });
 
-        // Asegurar que las clases existan en Firebase aunque no tengan recetas aún
+        // Crear clases en Firebase con toda la info real
         Object.keys(clasesDesdeCursos).forEach(cNum => {
             firebaseData.clases[cNum] = {
-                numero: parseInt(cNum),
+                numero: clasesDesdeCursos[cNum].numero,
                 nombre: clasesDesdeCursos[cNum].nombre,
                 activa: true,
+                fecha: clasesDesdeCursos[cNum].fecha,
                 tips: clasesDesdeCursos[cNum].tips || '',
                 fotos: clasesDesdeCursos[cNum].fotos || [],
+                blockCode: clasesDesdeCursos[cNum].blockCode || '',
+                codeExpiry: clasesDesdeCursos[cNum].codeExpiry || 0,
+                courseId: clasesDesdeCursos[cNum].courseId || '',
+                courseName: clasesDesdeCursos[cNum].courseName || '',
+                attendance: clasesDesdeCursos[cNum].attendance || [],
+                linkedRecipe: clasesDesdeCursos[cNum].linkedRecipe || null,
+                linkedRecipes: clasesDesdeCursos[cNum].linkedRecipes || [],
                 recetas: {}
             };
         });
@@ -5768,8 +5786,16 @@ async function syncModuleUpload() {
                     numero: claseNum,
                     nombre: `Clase ${claseNum}`,
                     activa: true,
+                    fecha: '',
                     tips: '',
                     fotos: [],
+                    blockCode: '',
+                    codeExpiry: 0,
+                    courseId: '',
+                    courseName: '',
+                    attendance: [],
+                    linkedRecipe: null,
+                    linkedRecipes: [],
                     recetas: {}
                 };
             }
