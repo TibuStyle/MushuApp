@@ -4223,7 +4223,7 @@ function previewClassAsStudent(courseId, classId) {
 
     // 🔥 USANDO LOS IDs CORRECTOS
     document.getElementById('view-class-content').innerHTML = html;
-    document.getElementById('modal-view-class-teacher').classList.add('active');
+    document.getElementById('modal-view-class').classList.add('active');
 }
 
 // === PHOTO FULLSCREEN CON ZOOM ===
