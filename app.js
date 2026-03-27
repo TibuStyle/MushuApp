@@ -5545,116 +5545,116 @@ function saveSyncMissingMaterials() {
     }
 }
 
-function syncModuleUpload() {
+async function syncModuleUpload() {
     const selectedId = document.getElementById('global-sync-module-select').value;
     if (!selectedId) {
-        showToast('No tienes módulos para subir', true);
+        showToast('Selecciona un módulo para subir', true);
         return;
     }
     
     const mod = modules.find(m => String(m.id) === String(selectedId));
     if (!mod) return;
 
-    // Juntar recetas del módulo
-    const moduleRecipes = recipes.filter(r =>
-        (r.recipeFolder || '') === mod.name &&
-        (r.recipeSource === 'module' || r.recipeSource === 'class')
-    );
+    closeModal('modal-sync-module');
+    showToast(`⏳ Subiendo ${mod.name} a la nube...`, false);
 
-    // Juntar cursos del módulo (buscar por ID o por Nombre por seguridad)
-    const moduleCourses = courses.filter(c =>
-        String(c.moduleId) === String(mod.id) || c.moduleName === mod.name
-    );
+    try {
+        // 1. Juntar recetas del módulo
+        const moduleRecipes = recipes.filter(r =>
+            (r.recipeFolder || '') === mod.name &&
+            (r.recipeSource === 'module' || r.recipeSource === 'class')
+        );
 
-    // Juntar clases con todo su contenido
-    const moduleClasses = [];
-    moduleCourses.forEach(course => {
-        (course.classes || []).forEach(cls => {
-            moduleClasses.push({
-                classId: cls.id,
-                className: cls.name,
-                courseId: course.id,
-                courseName: course.name,
-                date: cls.date,
-                moduleClassName: cls.moduleClassName || cls.name || '',
-                tips: cls.tips || '',
-                photos: cls.photos || [],
-                linkedRecipe: cls.linkedRecipe || null,
-                linkedRecipes: cls.linkedRecipes || [],
-                blockCode: cls.blockCode || '',
-                codeExpiry: cls.codeExpiry || 0,
-                attendance: (cls.attendance || []).map(a => ({
-                    studentId: a.studentId,
-                    studentName: a.studentName,
-                    studentCode: a.studentCode,
-                    present: a.present,
-                    shortCode: a.shortCode || ''
+        // 2. Juntar cursos del módulo
+        const moduleCourses = courses.filter(c =>
+            String(c.moduleId) === String(mod.id) || c.moduleName === mod.name
+        );
+
+        // 3. Estructurar para Firebase
+        const firebaseData = {
+            metadata: {
+                codigo: mod.prefix,
+                nombre: mod.name,
+                activo: true,
+                ultimaActualizacion: new Date().toISOString()
+            },
+            clases: {},
+            recetas: {},
+            cursos: {}
+        };
+
+        // Convertir cursos
+        moduleCourses.forEach(curso => {
+            firebaseData.cursos[curso.id] = {
+                id: curso.id,
+                nombre: curso.name,
+                dia: curso.day || '',
+                horario: curso.schedule || '',
+                moduloId: curso.moduleId,
+                moduloNombre: curso.moduleName,
+                estudiantes: (curso.students || []).map(s => ({
+                    id: s.id,
+                    nombre: s.name,
+                    codigo: s.studentCode
                 }))
-            });
+            };
         });
-    });
 
-    // Crear JSON del módulo
-    const moduleData = {
-        version: '4.1',
-        type: 'module',
-        exportDate: new Date().toISOString(),
-        module: {
-            id: mod.id,
-            name: mod.name,
-            prefix: mod.prefix
-        },
-        recipes: moduleRecipes.map(r => ({
-            name: r.name,
-            ingredients: r.ingredients || [],
-            decorations: r.decorations || [],
-            extraSubcategory: r.extraSubcategory || null,
-            extraCost: r.extraCost || 0,
-            totalCost: r.totalCost,
-            portions: r.portions || 1,
-            recipePhoto: r.recipePhoto || null,
-            recipeTips: r.recipeTips || '',
-            moduleClass: r.moduleClass || ''
-        })),
-        courses: moduleCourses.map(c => ({
-            id: c.id,
-            name: c.name,
-            day: c.day,
-            schedule: c.schedule || '',
-            students: (c.students || []).map(s => ({
-                id: s.id,
-                name: s.name,
-                studentCode: s.studentCode
-            }))
-        })),
-        classes: moduleClasses
-    };
+        // Agrupar recetas por clase
+        moduleRecipes.forEach((receta, index) => {
+            let claseNum = receta.moduleClass || '1';
+            // Extraer numero si viene como "Clase 1"
+            if (typeof claseNum === 'string') {
+                const match = claseNum.match(/\d+/);
+                claseNum = match ? parseInt(match[0]) : 1;
+            }
 
-    // Nombre del archivo
-    const fileName = mod.prefix.toLowerCase() + '-module.json';
-    const jsonString = JSON.stringify(moduleData, null, 2);
+            if (!firebaseData.clases[claseNum]) {
+                firebaseData.clases[claseNum] = {
+                    numero: claseNum,
+                    nombre: `Clase ${claseNum}`,
+                    activa: true,
+                    recetas: {}
+                };
+            }
 
-    // Descargar archivo
-    if (window.AndroidShare) {
-        window.AndroidShare.shareFile(jsonString, fileName);
-    } else {
-        const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonString);
-        const a = document.createElement('a');
-        a.href = dataUri;
-        a.download = fileName;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+            const recetaId = receta.id || `receta_${Date.now()}_${index}`;
+            
+            const recetaEstructurada = {
+                id: recetaId,
+                nombre: receta.name,
+                rendimiento: receta.yield || '',
+                tiempoPrep: receta.prepTime || '',
+                ingredientes: receta.ingredients || [],
+                decoraciones: receta.decorations || [],
+                instrucciones: receta.instructions || '',
+                notas: receta.notes || '',
+                foto: receta.recipePhoto || null,
+                tips: receta.recipeTips || '',
+                costoExtra: receta.extraCost || 0,
+                costoTotal: receta.totalCost || 0,
+                porciones: receta.portions || 1
+            };
+
+            firebaseData.clases[claseNum].recetas[recetaId] = recetaEstructurada;
+            firebaseData.recetas[recetaId] = recetaEstructurada;
+        });
+
+        // 4. Subir a Firebase (usa update para no borrar las alumnas)
+        await firebaseDB.ref(`modulos/${mod.prefix}`).update({
+            metadata: firebaseData.metadata,
+            clases: firebaseData.clases,
+            recetas: firebaseData.recetas,
+            cursos: firebaseData.cursos
+        });
+        
+        console.log(`✅ Módulo ${mod.prefix} subido a Firebase con ${moduleRecipes.length} recetas.`);
+        showToast(`✅ ¡Módulo ${mod.prefix} subido a la nube correctamente!`);
+
+    } catch (error) {
+        console.error('❌ Error subiendo a Firebase:', error);
+        showToast('❌ Error al subir a la nube. Revisa tu conexión.', true);
     }
-
-    // Abrir GitHub en la carpeta modules
-    setTimeout(() => {
-        window.open('https://github.com/TibuStyle/MushuApp/tree/main/modules', '_blank');
-    }, 1000);
-
-    showSyncStatus('✅ Archivo descargado. Súbelo a GitHub en la carpeta modules.');
-    showToast('Módulo exportado! 📦');
 }
 
 function syncModuleDownload() {
