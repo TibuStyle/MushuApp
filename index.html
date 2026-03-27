@@ -1012,7 +1012,7 @@
             </div>
         </div>
     
-        <!-- Modal Sincronizar Módulo General -->
+               <!-- Modal Sincronizar Módulo General -->
         <div class="modal-overlay" id="modal-sync-module" onclick="closeModal('modal-sync-module')">
             <div class="modal-content" onclick="event.stopPropagation()" style="max-width:420px;">
                 <div class="modal-header">
@@ -1028,18 +1028,19 @@
                 </div>
 
                 <div class="backup-buttons" style="flex-direction:column; gap:10px; margin-top:16px;">
-                    <button class="btn-backup export" onclick="syncModuleUpload()" style="width:100%; padding:16px;">
-                        <i class='bx bx-upload' style="font-size:20px;"></i>
+                    <button class="btn-backup export" onclick="syncModuleUpload()" style="width:100%; padding:16px; background-color: #667eea; color: white;">
+                        <i class='bx bx-cloud-upload' style="font-size:20px;"></i>
                         <div style="text-align:left;">
-                            <strong>Subir a GitHub</strong>
-                            <p style="font-size:11px; margin:2px 0 0; opacity:0.8;">Exporta el módulo y abre GitHub</p>
+                            <strong>Subir a la Nube</strong>
+                            <p style="font-size:11px; margin:2px 0 0; opacity:0.9;">Guarda tus nuevas recetas y cursos en Firebase</p>
                         </div>
                     </button>
-                    <button class="btn-backup import" onclick="syncModuleDownload()" style="width:100%; padding:16px;">
-                        <i class='bx bx-download' style="font-size:20px;"></i>
+                    
+                    <button class="btn-backup import" onclick="syncModuleDownload()" style="width:100%; padding:16px; background-color: #4CAF50; color: white;">
+                        <i class='bx bx-cloud-download' style="font-size:20px;"></i>
                         <div style="text-align:left;">
-                            <strong>Cargar desde GitHub</strong>
-                            <p style="font-size:11px; margin:2px 0 0; opacity:0.8;">Descarga la última versión</p>
+                            <strong>Descargar de la Nube</strong>
+                            <p style="font-size:11px; margin:2px 0 0; opacity:0.9;">Actualiza tu app con la última versión guardada</p>
                         </div>
                     </button>
                 </div>
