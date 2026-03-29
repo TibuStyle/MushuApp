@@ -2951,12 +2951,12 @@ function viewImportedClass(classId) {
     modalEl.classList.add('active');
 }
 
-function showImportClassModal() {
-    const input = document.getElementById('short-code-input');
-    if (input) {
-        input.value = '';
-    }
-    document.getElementById('modal-import-class').classList.add('active');
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    modal.classList.remove('active');
+    modal.style.display = 'none';
 }
 
 function normalizeText(str) {
