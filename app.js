@@ -3063,6 +3063,14 @@ function importClassFromLongCode(codeInput) {
     }
 }
 
+function showImportClassModal() {
+    const input = document.getElementById('short-code-input');
+    const modal = document.getElementById('modal-import-class');
+
+    if (input) input.value = '';
+    if (modal) modal.style.display = 'flex';
+}
+
 function importClassFromShortCode(code) {
     const shortCode = code.trim().toUpperCase();
     
