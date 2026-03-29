@@ -286,75 +286,70 @@ function saveModules() {
 function saveCourses() {
     localStorage.setItem('mushu_courses', JSON.stringify(courses));
     
-    // 🔥 Subir cursos y alumnas a Firebase
-    if (typeof firebaseDB !== 'undefined' && teacherMode.active) {
-        courses.forEach(curso => {
-            const modulo = modules.find(m => String(m.id) === String(curso.moduleId));
-            if (!modulo) return;
+    // 🔥 SINCRONIZAR CON FIREBASE (solo profesora)
+    if (teacherMode && teacherMode.active) {
+        courses.forEach(course => {
+            const mod = modules.find(m => String(m.id) === String(course.moduleId));
+            if (!mod) return;
             
-            const cursoRef = firebaseDB.ref(`modulos/${modulo.prefix}/cursos/${curso.id}`);
-            cursoRef.set({
-                id: curso.id,
-                nombre: curso.name,
-                dia: curso.day || '',
-                horario: curso.schedule || '',
-                moduloId: curso.moduleId,
-                moduloNombre: curso.moduleName,
-                estudiantes: (curso.students || []).map(student => ({
-                    id: student.id,
-                    nombre: student.name,
-                    codigo: student.studentCode
-                }))
-            }).then(() => {
-                console.log('✅ Curso subido a Firebase:', curso.name);
+            const modulePrefix = mod.prefix || 'MOD';
+            
+            // Sincronizar cada clase con Firebase
+            (course.classes || []).forEach((cls, index) => {
+                const claseRef = firebaseDB.ref(`modulos/${modulePrefix}/clases/${index}`);
                 
-                // 🔥 LIMPIAR ALUMNAS ELIMINADAS
-                firebaseDB.ref(`alumnas/${modulo.prefix}/${curso.id}`).once('value').then(snap => {
-                    if (snap.exists()) {
-                        const alumnasFirebase = Object.keys(snap.val());
-                        const alumnasCurso = (curso.students || []).map(s => s.studentCode);
-                        
-                        // Eliminar las que ya no están en el curso
-                        alumnasFirebase.forEach(codigo => {
-                            if (!alumnasCurso.includes(codigo)) {
-                                firebaseDB.ref(`alumnas/${modulo.prefix}/${curso.id}/${codigo}`).remove()
-                                    .then(() => {
-                                        console.log('🗑️ Alumna eliminada de Firebase:', codigo);
-                                    });
-                            }
-                        });
-                    }
-                });
+                const claseData = {
+                    id: cls.id,
+                    name: cls.name || cls.moduleClassName || 'Sin nombre',
+                    fecha: cls.date || '',
+                    moduleClassName: cls.moduleClassName || '',
+                    tips: cls.tips || '',
+                    photos: cls.photos || [],
+                    linkedRecipe: cls.linkedRecipe || null,
+                    linkedRecipes: cls.linkedRecipes || [],
+                    blockCode: cls.blockCode || '',
+                    attendance: cls.attendance || [],
+                    activa: true,
+                    courseId: course.id,
+                    courseName: course.name,
+                    codeExpiry: cls.codeExpiry || 24,
+                    codesGenerated: cls.codesGenerated || false
+                };
                 
-                // 🔥 Registrar alumnas: alumnas/{modulo}/{cursoId}/{codigo}
-                (curso.students || []).forEach(student => {
-                    const alumnaRef = firebaseDB.ref(`alumnas/${modulo.prefix}/${curso.id}/${student.studentCode}`);
-                    alumnaRef.once('value').then(snap => {
-                        if (!snap.exists()) {
-                            // Crear nueva alumna
-                            alumnaRef.set({
-                                id: student.studentCode,
-                                nombre: student.name,
-                                modulo: modulo.prefix,
-                                cursoId: curso.id,
-                                cursoNombre: curso.name,
-                                fechaRegistro: new Date().toISOString(),
-                                activa: true,
-                                clasesDesbloqueadas: [],
-                                asistencia: []
-                            }).then(() => {
-                                console.log('✅ Alumna creada:', student.name);
-                            });
-                        } else {
-                            // Actualizar nombre si cambió
-                            alumnaRef.update({
-                                nombre: student.name,
-                                cursoNombre: curso.name
-                            });
-                        }
+                claseRef.set(claseData)
+                    .then(() => {
+                        console.log('✅ Clase sincronizada:', claseData.name);
+                    })
+                    .catch(err => {
+                        console.error('❌ Error sincronizando clase:', err);
                     });
-                });
-            }).catch(err => console.error('Error subiendo curso:', err));
+                
+                // También guardar en la estructura de códigos
+                if (cls.blockCode) {
+                    const codigoRef = firebaseDB.ref(`codigos/${modulePrefix}-${cls.blockCode}`);
+                    
+                    codigoRef.update({
+                        claseId: cls.blockCode,
+                        moduloId: modulePrefix,
+                        claseNombre: cls.name || cls.moduleClassName,
+                        fecha: cls.date || '',
+                        activo: true,
+                        courseId: course.id,
+                        courseName: course.name,
+                        createdAt: new Date().toISOString()
+                    }).then(() => {
+                        console.log('✅ Código registrado:', `${modulePrefix}-${cls.blockCode}`);
+                    }).catch(err => {
+                        console.error('❌ Error registrando código:', err);
+                    });
+                }
+            });
+            
+            // Actualizar metadata del módulo
+            firebaseDB.ref(`modulos/${modulePrefix}/metadata`).update({
+                ultimaActualizacion: new Date().toISOString(),
+                totalClases: (course.classes || []).length
+            });
         });
     }
 }
