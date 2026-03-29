@@ -26,7 +26,7 @@ if (!Array.isArray(studentProfiles)) {
     const oldProfile = JSON.parse(localStorage.getItem('mushu_student_profile'));
     if (oldProfile) {
         studentProfiles = [oldProfile];
-        localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
+        localStorage.setItem('studentProfiles', JSON.stringify(studentProfiles));
     } else {
         studentProfiles = [];
     }
@@ -2725,7 +2725,7 @@ function showAddModuleModal() {
 function removeStudentModule(moduleId) {
     showConfirmModal('Quitar módulo', '¿Seguro? No perderás tus clases desbloqueadas, pero dejarás de ver este módulo en tu lista.', () => {
         studentProfiles = studentProfiles.filter(p => String(p.moduleId) !== String(moduleId));
-        localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
+        localStorage.setItem('studentProfiles', JSON.stringify(studentProfiles));
         updateClassesView();
     });
 }
@@ -3062,6 +3062,79 @@ function importClassFromLongCode(codeInput) {
         showToast('Código inválido o corrupto', true);
     }
 }
+
+// ================================
+// 🔥 NUEVA FUNCIÓN: renderMissingMaterials
+// ================================
+function renderMissingMaterials(missingItems) {
+    let modal = document.getElementById('modal-missing-materials');
+    
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modal-missing-materials';
+        modal.className = 'modal';
+        document.body.appendChild(modal);
+    }
+    
+    const itemsList = missingItems.map(item => {
+        const emoji = item.category === 'ingredient' ? '🥣' : 
+                      item.category === 'decoration' ? '🎀' : '📦';
+        return `<li style="margin: 8px 0;">${emoji} <strong>${item.name}</strong> <span style="color:#888; font-size:12px;">(${item.category})</span></li>`;
+    }).join('');
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 450px;">
+            <span class="close-modal" onclick="closeModal('modal-missing-materials')">&times;</span>
+            <h3 style="color: #ff758c; margin-bottom: 15px; text-align: center;">⚠️ Te faltan materiales</h3>
+            <p style="font-size: 14px; color: #666; margin-bottom: 15px; text-align: center;">
+                Para calcular el costo de esta receta, necesitas agregar estos materiales a tu inventario con <strong>TUS precios</strong>:
+            </p>
+            <ul style="list-style: none; padding: 0; max-height: 250px; overflow-y: auto; margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px;">
+                ${itemsList}
+            </ul>
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <button onclick="closeModal('modal-missing-materials'); showScreen('materials-screen');" 
+                        style="background: linear-gradient(135deg, #ff758c, #ff7eb3); color: white; border: none; padding: 14px 24px; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 4px 8px rgba(255,117,140,0.3);">
+                    📦 Ir a Materiales
+                </button>
+                <button onclick="forceCompleteImport()" 
+                        style="background: #eee; color: #666; border: none; padding: 14px 24px; border-radius: 25px; cursor: pointer; font-size: 14px;">
+                    Importar sin costos
+                </button>
+            </div>
+        </div>
+    `;
+    
+    modal.style.cssText = `
+        display: flex !important;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.6);
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    `;
+    
+    showToast(`⚠️ Te faltan ${missingItems.length} material(es)`, true);
+}
+
+// ================================
+// 🔥 FUNCIÓN AUXILIAR: Importar aunque falten materiales
+// ================================
+function forceCompleteImport() {
+    closeModal('modal-missing-materials');
+    if (typeof pendingImportClassData !== 'undefined' && pendingImportClassData) {
+        completeClassImport(pendingImportClassData);
+        pendingImportClassData = null;
+    } else {
+        showToast('No hay clase pendiente', true);
+    }
+}
+
+// ================================
+// 🔥 VARIABLE GLOBAL para datos pendientes
+// ================================
+let pendingImportClassData = null;
 
 function showImportClassModal() {
     const input = document.getElementById('short-code-input');
@@ -5136,7 +5209,7 @@ async function loginStudentFromScratch() {
                 };
                 
                 studentProfiles.push(newProfile);
-                localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
+                localStorage.setItem('studentProfiles', JSON.stringify(studentProfiles));
                 studentName = foundStudent.name;
                 
                 // Actualizar última conexión
@@ -5205,7 +5278,7 @@ async function loginStudentFromScratch() {
             };
 
             studentProfiles.push(newProfile);
-            localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
+            localStorage.setItem('studentProfiles', JSON.stringify(studentProfiles));
             studentName = foundStudent.name;
 
             updateClassesView();
@@ -5290,7 +5363,7 @@ function addModuleForExistingStudent() {
             };
 
             studentProfiles.push(newProfile);
-            localStorage.setItem('mushu_student_profiles', JSON.stringify(studentProfiles));
+            localStorage.setItem('studentProfiles', JSON.stringify(studentProfiles));
             
             closeModal('modal-student-add-module');
             updateClassesView();
