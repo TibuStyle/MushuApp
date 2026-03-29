@@ -3206,6 +3206,8 @@ function saveMissingMaterialsAndContinue() {
     }
 }
 
+
+function completeClassImport(decoded) {
     const recipesToProcess = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
 
     recipesToProcess.forEach(r => {
@@ -3287,6 +3289,85 @@ function saveMissingMaterialsAndContinue() {
         showToast('Material de repaso importado 📖');
     }
 }
+
+    recipesToProcess.forEach(r => {
+        const recipeCopy = JSON.parse(JSON.stringify(r));
+        recipeCopy.id = Date.now().toString() + '-class-' + Math.random().toString(36).substr(2, 5);
+        recipeCopy.recipeFolder = decoded.courseName;
+        recipeCopy.recipeSource = 'class';
+        recipeCopy.sourceCourseName = decoded.courseName;
+        recipeCopy.sourceClassDate = decoded.date;
+
+        // Actualizar IDs y RECALCULAR COSTOS de los ingredientes
+        (recipeCopy.ingredients || []).forEach(i => {
+            const localMat = materials.find(m => normalizeText(m.name) === normalizeText(i.name));
+            if (localMat) {
+                i.matId = String(localMat.id);
+                i.pending = localMat.pending || false;
+                if (!localMat.pending) {
+                    i.cost = calculateIngredientCost(localMat, i.qty, i.unit);
+                }
+            }
+        });
+
+        // Actualizar IDs y RECALCULAR COSTOS de las decoraciones
+        (recipeCopy.decorations || []).forEach(d => {
+            const localMat = materials.find(m => normalizeText(m.name) === normalizeText(d.name));
+            if (localMat) {
+                d.matId = String(localMat.id);
+                d.pending = localMat.pending || false;
+                if (!localMat.pending) {
+                    d.cost = calculateIngredientCost(localMat, d.qty, d.unit);
+                }
+            }
+        });
+
+        // Recalcular el costo extra y el costo total de la receta final
+        const ic = (recipeCopy.ingredients || []).reduce((s, i) => s + (i.cost || 0), 0);
+        const dc = (recipeCopy.decorations || []).reduce((s, d) => s + (d.cost || 0), 0);
+        let ec = 0;
+        if (recipeCopy.extraSubcategory) {
+            const extraItems = materials.filter(m => m.category === 'extra' && m.subcategory === recipeCopy.extraSubcategory);
+            ec = extraItems.reduce((s, m) => s + m.price, 0);
+        }
+        recipeCopy.totalCost = ic + dc + ec;
+
+        const alreadyExists = recipes.find(rec =>
+            rec.name === recipeCopy.name &&
+            rec.recipeFolder === recipeCopy.recipeFolder &&
+            rec.sourceClassDate === recipeCopy.sourceClassDate
+        );
+
+        if (!alreadyExists) {
+            recipes.push(recipeCopy);
+        }
+    });
+
+    saveRecipesToStorage();
+    
+    // Actualizar toda la información en las 3 pestañas
+    renderMaterials();
+    updateRecipesView();
+    updateClassesView();
+    
+    // Auto-abrir la carpeta del curso en el dashboard del alumno
+    setTimeout(() => {
+        if (decoded.moduleId) {
+            const folderId = 'student-mod-' + decoded.moduleId.replace(/[^a-zA-Z0-9]/g, '_');
+            const bodyElement = document.getElementById(`${folderId}-body-main`);
+            if (bodyElement) {
+                bodyElement.classList.add('open');
+            }
+        }
+    }, 100);
+    
+    closeModal('modal-import-class');
+
+    if (decoded.present) {
+        showToast('Clase importada! 🎓');
+    } else {
+        showToast('Material de repaso importado 📖');
+    }
 
 function exportData() {
     const personalRecipes = recipes.filter(r => 
