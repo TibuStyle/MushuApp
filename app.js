@@ -1984,6 +1984,21 @@ function saveCourse() {
         showToast('Curso creado!');
     }
 
+// 🔥 REGISTRAR ALUMNAS EN FIREBASE
+if (teacherMode && teacherMode.active) {
+    const mod = modules.find(m => String(m.id) === String(moduleId));
+    if (mod && mod.prefix) {
+        const courseId = currentEditingCourseId || Date.now().toString();
+        currentCourseStudents.forEach(student => {
+            registrarAlumnaEnFirebase(
+                student.name, 
+                mod.prefix, 
+                `${courseId}/${student.studentCode}`
+            );
+        });
+    }
+}
+    
     saveCourses();
     renderCourses();
     closeModal('modal-course');
