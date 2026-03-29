@@ -2629,7 +2629,7 @@ const classesHTML = sortedClasses.length > 0
 
         return `
         <div class="course-card" style="margin-bottom:12px;">
-            <div class="course-card-header" onclick="toggleFolderBody('${folderId}','main')">
+            <div class="course-card-header" onclick="setCurrentModule('${p.modulePrefix}'); toggleFolderBody('${folderId}','main')">
                 <div class="course-card-header-left">
                     <i class='bx bxs-graduation' style="font-size:24px;color:var(--secondary-color);"></i>
                     <div>
