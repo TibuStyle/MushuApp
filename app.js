@@ -3104,9 +3104,12 @@ function importClassFromLongCode(codeInput) {
 }
 
 // ================================
-// 🔥 NUEVA FUNCIÓN: renderMissingMaterials
+// 🔥 FUNCIÓN: renderMissingMaterials (VERSIÓN COMPLETA CON INPUTS)
 // ================================
 function renderMissingMaterials(missingItems) {
+    // Cerrar cualquier modal previo
+    closeModal('modal-import-class');
+    
     let modal = document.getElementById('modal-missing-materials');
     
     if (!modal) {
@@ -3116,30 +3119,81 @@ function renderMissingMaterials(missingItems) {
         document.body.appendChild(modal);
     }
     
-    const itemsList = missingItems.map(item => {
+    // Generar inputs para cada material faltante
+    const itemsInputs = missingItems.map((item, index) => {
         const emoji = item.category === 'ingredient' ? '🥣' : 
                       item.category === 'decoration' ? '🎀' : '📦';
-        return `<li style="margin: 8px 0;">${emoji} <strong>${item.name}</strong> <span style="color:#888; font-size:12px;">(${item.category})</span></li>`;
+        const categoryValue = item.category === 'ingredient' ? 'productos' : 
+                              item.category === 'decoration' ? 'decoracion' : 'extra';
+        
+        return `
+            <div style="background: white; border-radius: 12px; padding: 15px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <span style="font-size: 20px;">${emoji}</span>
+                    <input type="text" id="missing-name-${index}" value="${item.name}" 
+                           style="flex: 1; padding: 8px 12px; border: 2px solid #ff758c; border-radius: 8px; font-size: 14px; font-weight: bold;">
+                    <select id="missing-category-${index}" style="padding: 8px; border: 2px solid #eee; border-radius: 8px; font-size: 12px;">
+                        <option value="productos" ${categoryValue === 'productos' ? 'selected' : ''}>Ingrediente</option>
+                        <option value="decoracion" ${categoryValue === 'decoracion' ? 'selected' : ''}>Decoración</option>
+                        <option value="extra" ${categoryValue === 'extra' ? 'selected' : ''}>Extra</option>
+                    </select>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                    <div>
+                        <label style="font-size: 11px; color: #888; display: block; margin-bottom: 3px;">💰 Precio S/.</label>
+                        <input type="number" id="missing-price-${index}" placeholder="0.00" step="0.01" min="0"
+                               style="width: 100%; padding: 10px; border: 2px solid #eee; border-radius: 8px; font-size: 14px; text-align: center;">
+                    </div>
+                    <div>
+                        <label style="font-size: 11px; color: #888; display: block; margin-bottom: 3px;">📦 Cantidad</label>
+                        <input type="number" id="missing-qty-${index}" placeholder="1" step="0.01" min="0" value="1"
+                               style="width: 100%; padding: 10px; border: 2px solid #eee; border-radius: 8px; font-size: 14px; text-align: center;">
+                    </div>
+                    <div>
+                        <label style="font-size: 11px; color: #888; display: block; margin-bottom: 3px;">📏 Unidad</label>
+                        <select id="missing-unit-${index}" style="width: 100%; padding: 10px; border: 2px solid #eee; border-radius: 8px; font-size: 14px;">
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="L">L</option>
+                            <option value="ml">ml</option>
+                            <option value="unidad" selected>unidad</option>
+                            <option value="paquete">paquete</option>
+                            <option value="bolsa">bolsa</option>
+                            <option value="caja">caja</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
     }).join('');
     
     modal.innerHTML = `
-        <div class="modal-content" style="max-width: 450px;">
-            <span class="close-modal" onclick="closeModal('modal-missing-materials')">&times;</span>
-            <h3 style="color: #ff758c; margin-bottom: 15px; text-align: center;">⚠️ Te faltan materiales</h3>
-            <p style="font-size: 14px; color: #666; margin-bottom: 15px; text-align: center;">
-                Para calcular el costo de esta receta, necesitas agregar estos materiales a tu inventario con <strong>TUS precios</strong>:
-            </p>
-            <ul style="list-style: none; padding: 0; max-height: 250px; overflow-y: auto; margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px;">
-                ${itemsList}
-            </ul>
-            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                <button onclick="closeModal('modal-missing-materials'); showScreen('materials-screen');" 
-                        style="background: linear-gradient(135deg, #ff758c, #ff7eb3); color: white; border: none; padding: 14px 24px; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 4px 8px rgba(255,117,140,0.3);">
-                    📦 Ir a Materiales
+        <div class="modal-content" style="max-width: 500px; max-height: 90vh; overflow-y: auto; border-radius: 20px; position: relative;">
+            <span class="close-modal" onclick="closeModal('modal-missing-materials')" style="position: absolute; right: 15px; top: 10px; font-size: 28px; cursor: pointer; color: #999; z-index: 10;">&times;</span>
+            
+            <div style="text-align: center; padding: 20px 20px 10px;">
+                <div style="font-size: 50px; margin-bottom: 10px;">📦</div>
+                <h3 style="color: #ff758c; margin-bottom: 8px; font-size: 20px;">¡Te faltan ${missingItems.length} material(es)!</h3>
+                <p style="font-size: 13px; color: #666; margin-bottom: 5px;">
+                    Ingresa <strong>TUS precios</strong> para calcular el costo de la receta.
+                </p>
+                <p style="font-size: 11px; color: #999;">
+                    💡 Estos precios se guardarán en tu inventario personal.
+                </p>
+            </div>
+            
+            <div style="padding: 15px; max-height: 45vh; overflow-y: auto;">
+                ${itemsInputs}
+            </div>
+            
+            <div style="padding: 15px 20px 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; border-top: 1px solid #eee;">
+                <button onclick="saveMissingMaterialsAndContinue()" 
+                        style="background: linear-gradient(135deg, #ff758c, #ff7eb3); color: white; border: none; padding: 14px 28px; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 15px; box-shadow: 0 4px 15px rgba(255,117,140,0.4); flex: 1; max-width: 200px;">
+                    ✅ Guardar y Continuar
                 </button>
                 <button onclick="forceCompleteImport()" 
-                        style="background: #eee; color: #666; border: none; padding: 14px 24px; border-radius: 25px; cursor: pointer; font-size: 14px;">
-                    Importar sin costos
+                        style="background: #f5f5f5; color: #666; border: none; padding: 14px 20px; border-radius: 25px; cursor: pointer; font-size: 13px;">
+                    Omitir precios
                 </button>
             </div>
         </div>
@@ -3153,30 +3207,21 @@ function renderMissingMaterials(missingItems) {
         justify-content: center;
         align-items: center;
         z-index: 10000;
+        padding: 20px;
     `;
-    
-    showToast(`⚠️ Te faltan ${missingItems.length} material(es)`, true);
 }
 
 // ================================
-// 🔥 FUNCIÓN AUXILIAR: Importar aunque falten materiales
+// 🔥 FUNCIÓN: forceCompleteImport (importar sin precios)
 // ================================
 function forceCompleteImport() {
     closeModal('modal-missing-materials');
-    if (typeof pendingImportClassData !== 'undefined' && pendingImportClassData) {
+    if (pendingImportClassData) {
         completeClassImport(pendingImportClassData);
         pendingImportClassData = null;
     } else {
         showToast('No hay clase pendiente', true);
     }
-}
-
-function showImportClassModal() {
-    const input = document.getElementById('short-code-input');
-    const modal = document.getElementById('modal-import-class');
-
-    if (input) input.value = '';
-    if (modal) modal.style.display = 'flex';
 }
 
 function importClassFromShortCode(code) {
@@ -3315,7 +3360,7 @@ function importClassFromShortCode(code) {
             // Lanzar modal de faltantes o guardar directamente con los precios locales
             if (missing.length > 0) {
                 pendingImportClassData = decoded;
-                renderMissingMaterials(missing);
+                showMissingMaterialsModal(missing);
             } else {
                 completeClassImport(decoded);
             }
@@ -3326,60 +3371,6 @@ function importClassFromShortCode(code) {
         });
 }
 
-// ================================
-// 🔥 FUNCIÓN: renderMissingMaterials
-// ================================
-function renderMissingMaterials(missingItems) {
-    let modal = document.getElementById('modal-missing-materials');
-    
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'modal-missing-materials';
-        modal.className = 'modal';
-        document.body.appendChild(modal);
-    }
-    
-    const itemsList = missingItems.map(item => {
-        const emoji = item.category === 'ingredient' ? '🥣' : 
-                      item.category === 'decoration' ? '🎀' : '📦';
-        return `<li style="margin: 8px 0;">${emoji} <strong>${item.name}</strong> <span style="color:#888; font-size:12px;">(${item.category})</span></li>`;
-    }).join('');
-    
-    modal.innerHTML = `
-        <div class="modal-content" style="max-width: 450px;">
-            <span class="close-modal" onclick="closeModal('modal-missing-materials')">&times;</span>
-            <h3 style="color: #ff758c; margin-bottom: 15px; text-align: center;">⚠️ Te faltan materiales</h3>
-            <p style="font-size: 14px; color: #666; margin-bottom: 15px; text-align: center;">
-                Para calcular el costo de esta receta, necesitas agregar estos materiales a tu inventario con <strong>TUS precios</strong>:
-            </p>
-            <ul style="list-style: none; padding: 0; max-height: 250px; overflow-y: auto; margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-radius: 8px;">
-                ${itemsList}
-            </ul>
-            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                <button onclick="closeModal('modal-missing-materials'); showScreen('materials-screen');" 
-                        style="background: linear-gradient(135deg, #ff758c, #ff7eb3); color: white; border: none; padding: 14px 24px; border-radius: 25px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 4px 8px rgba(255,117,140,0.3);">
-                    📦 Ir a Materiales
-                </button>
-                <button onclick="forceCompleteImport()" 
-                        style="background: #eee; color: #666; border: none; padding: 14px 24px; border-radius: 25px; cursor: pointer; font-size: 14px;">
-                    Importar sin costos
-                </button>
-            </div>
-        </div>
-    `;
-    
-    modal.style.cssText = `
-        display: flex !important;
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.6);
-        justify-content: center;
-        align-items: center;
-        z-index: 10000;
-    `;
-    
-    showToast(`⚠️ Te faltan ${missingItems.length} material(es)`, true);
-}
 
 // ================================
 // 🔥 FUNCIÓN: forceCompleteImport
