@@ -1661,12 +1661,37 @@ function updateClassesView() {
 function deleteCourse(courseId) {
     showConfirmModal(
         'Eliminar curso',
-        '¿Eliminar este curso y todas sus clases?',
+        '¿Eliminar este curso y todas sus clases? (Las alumnas que ya lo descargaron no lo perderán)',
         () => {
+            const courseToDelete = courses.find(c => String(c.id) === String(courseId));
+            
+            if (courseToDelete && teacherMode && teacherMode.active) {
+                const mod = modules.find(m => String(m.id) === String(courseToDelete.moduleId));
+                const modulePrefix = mod ? mod.prefix : 'MOD';
+                
+                // 🔥 Borrar todas las clases de este curso en Firebase
+                (courseToDelete.classes || []).forEach((cls, index) => {
+                    // Borrar la clase
+                    firebaseDB.ref(`modulos/${modulePrefix}/clases/${index}`).remove();
+                    // Borrar el código asociado
+                    if (cls.blockCode || cls.classCode) {
+                        const codeToDel = cls.classCode || cls.blockCode;
+                        firebaseDB.ref(`codigos/${modulePrefix}-${codeToDel}`).remove();
+                    }
+                });
+                
+                // 🔥 Borrar el curso de Firebase
+                firebaseDB.ref(`modulos/${modulePrefix}/cursos/${courseId}`).remove();
+                
+                // 🔥 Borrar la lista de alumnas de ese curso para limpiar espacio
+                firebaseDB.ref(`alumnas/${modulePrefix}/${courseId}`).remove();
+            }
+
+            // Borrar localmente
             courses = courses.filter(c => String(c.id) !== String(courseId));
             saveCourses();
             renderCourses();
-            showToast('Curso eliminado');
+            showToast('Curso y datos en la nube eliminados 🗑️');
         }
     );
 }
@@ -2209,14 +2234,31 @@ function saveClass() {
 function deleteClass(courseId, classId) {
     showConfirmModal(
         'Eliminar clase',
-        '¿Eliminar esta clase?',
+        '¿Eliminar esta clase? (Las alumnas que ya la descargaron no la perderán)',
         () => {
             const course = courses.find(c => String(c.id) === String(courseId));
-            if (!course) return;
-            course.classes = (course.classes || []).filter(cl => String(cl.id) !== String(classId));
-            saveCourses();
-            renderCourses();
-            showToast('Clase eliminada');
+            if (course) {
+                const classToDelete = (course.classes || []).find(cl => String(cl.id) === String(classId));
+                
+                if (classToDelete && teacherMode && teacherMode.active) {
+                    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+                    const modulePrefix = mod ? mod.prefix : 'MOD';
+                    const index = course.classes.indexOf(classToDelete);
+                    
+                    // 🔥 Borrar clase y código de Firebase
+                    firebaseDB.ref(`modulos/${modulePrefix}/clases/${index}`).remove();
+                    if (classToDelete.blockCode || classToDelete.classCode) {
+                        const codeToDel = classToDelete.classCode || classToDelete.blockCode;
+                        firebaseDB.ref(`codigos/${modulePrefix}-${codeToDel}`).remove();
+                    }
+                }
+
+                // Borrar localmente
+                course.classes = course.classes.filter(cl => String(cl.id) !== String(classId));
+                saveCourses();
+                renderCourses();
+                showToast('Clase eliminada de la nube 🗑️');
+            }
         }
     );
 }
