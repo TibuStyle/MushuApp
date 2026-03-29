@@ -3224,6 +3224,18 @@ function forceCompleteImport() {
     }
 }
 
+// ================================
+// 🔥 FUNCIÓN: showImportClassModal
+// ================================
+function showImportClassModal() {
+    document.getElementById('modal-import-class').classList.add('active');
+    const input = document.getElementById('short-code-input');
+    if (input) {
+        input.value = '';
+        input.focus();
+    }
+}
+
 function importClassFromShortCode(code) {
     const shortCode = code.trim().toUpperCase();
     
