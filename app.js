@@ -3018,9 +3018,6 @@ function importClassFromLongCode(codeInput) {
 }
 
 function importClassFromShortCode(code) {
-    // 🔥 NUEVO: Código corto (ej: U833H)
-    // El módulo se obtiene del contexto donde está la alumna
-    
     const shortCode = code.trim().toUpperCase();
     
     if (shortCode.length < 3) {
@@ -3028,23 +3025,27 @@ function importClassFromShortCode(code) {
         return;
     }
 
-    // Obtener datos de la alumna actual
-    const studentId = localStorage.getItem('mushu_student_id');
-    const studentName = localStorage.getItem('mushu_student_name');
-    const currentModule = localStorage.getItem('mushu_current_module'); // Debe setearse al abrir un módulo
-    
-    if (!studentId || !studentName) {
-        showToast('Primero debes registrarte', true);
-        return;
-    }
+    const currentModule = localStorage.getItem('mushu_current_module'); 
     
     if (!currentModule) {
         showToast('Abre primero el módulo donde quieres importar la clase', true);
         return;
     }
 
-    const modulePrefix = currentModule; // Ejemplo: "PA1"
-    const fullCode = `${modulePrefix}-${shortCode}`; // Ejemplo: "PA1-U833H"
+    // 🔥 CORRECCIÓN: Buscar a la alumna en sus perfiles registrados
+    const profile = studentProfiles.find(p => p.modulePrefix === currentModule);
+    
+    if (!profile) {
+        showToast('No estás registrada en este módulo', true);
+        return;
+    }
+
+    // Obtener los datos exactos del perfil
+    const studentId = profile.id || profile.studentCode || '01';
+    const studentName = profile.name || localStorage.getItem('mushu_student_name');
+    
+    const modulePrefix = currentModule; 
+    const fullCode = `${modulePrefix}-${shortCode}`; 
     
     showToast('⏳ Buscando clase...', false);
 
