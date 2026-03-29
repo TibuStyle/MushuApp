@@ -2404,54 +2404,84 @@ function regenerateCodes() {
 
 function renderGeneratedCodes(cls, course) {
     const list = document.getElementById('generated-codes-list');
-    const att = cls.attendance || [];
-    const present = att.filter(a => a.present);
-    const absent = att.filter(a => !a.present);
-
-    let html = '';
-    if (present.length > 0) {
-        html += `<div style="font-size:13px;font-weight:600;color:var(--success-color);margin:8px 0;">✅ Presentes (${present.length})</div>`;
-        html += present.map(a => renderCodeItem(a)).join('');
-    }
-    if (absent.length > 0) {
-        html += `<div style="font-size:13px;font-weight:600;color:var(--warning-color);margin:8px 0;">❌ Ausentes (${absent.length})</div>`;
-        html += absent.map(a => renderCodeItem(a)).join('');
-    }
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    const modulePrefix = mod ? mod.prefix : 'MOD';
+    
+    // 🔥 NUEVO: Mostrar UN SOLO código para toda la clase
+    const classCode = cls.classCode || cls.blockCode || 'Sin código';
+    const fullCode = cls.fullCode || `${modulePrefix}-${classCode}`;
+    
+    const html = `
+        <div class="single-class-code">
+            <div class="class-code-header">
+                <div class="class-code-icon">🎟️</div>
+                <div class="class-code-info">
+                    <div class="class-code-title">Código de la Clase</div>
+                    <div class="class-code-subtitle">Comparte este código con tus alumnas</div>
+                </div>
+            </div>
+            
+            <div class="class-code-display">
+                <div class="class-code-main">${classCode}</div>
+                <div class="class-code-full">Código completo: ${fullCode}</div>
+            </div>
+            
+            <div class="class-code-actions">
+                <button class="btn-primary" onclick="copyClassCode('${classCode}')">
+                    📋 Copiar Código
+                </button>
+                <button class="btn-secondary" onclick="copyClassCode('${fullCode}')">
+                    📋 Copiar Código Completo
+                </button>
+            </div>
+            
+            <div class="class-code-note">
+                💡 Las alumnas solo necesitan ingresar: <strong>${classCode}</strong>
+            </div>
+        </div>
+    `;
+    
     list.innerHTML = html;
 }
 
 function renderCodeItem(a) {
-    return `
-        <div class="code-item">
-            <div>
-                <div class="code-item-left">
-                    <span class="code-item-status">${a.present ? '✅' : '❌'}</span>
-                    <span class="code-item-name">${sanitizeHTML(a.studentName)}</span>
-                    <span class="student-code-badge">${a.studentCode || '--'}</span>
-                </div>
-                <div class="code-item-short">${a.shortCode || '---'}</div>
-            </div>
-            <button class="code-item-copy" onclick="copyShortCode('${a.studentId}')">Copiar</button>
-        </div>`;
+    // 🔥 Función legacy - ya no se usa con el nuevo sistema
+    return '';
 }
 
-function copyShortCode(studentId) {
-    const a = currentAttendanceData.find(x => String(x.studentId) === String(studentId));
-    if (!a || !a.shortCode) {
-        showToast('No hay código generado', true);
-        return;
-    }
-
-    const codeToCopy = a.shortCode;
-
+function copyClassCode(code) {
     if (navigator.clipboard) {
-        navigator.clipboard.writeText(codeToCopy).then(() => {
-            a.codeUsed = true;
-            saveAttendanceOnly();
-            renderAttendanceList();
-            showToast('Código ' + codeToCopy + ' copiado!');
+        navigator.clipboard.writeText(code).then(() => {
+            showToast('✅ Código copiado: ' + code);
+        }).catch(err => {
+            console.error('Error copiando:', err);
+            fallbackCopyCode(code);
         });
     } else {
+        fallbackCopyCode(code);
+    }
+}
+
+function fallbackCopyCode(code) {
+    const textarea = document.createElement('textarea');
+    textarea.value = code;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    showToast('✅ Código copiado: ' + code);
+}
+
+// Función legacy
+function copyShortCode(studentId) {
+    // Ya no se usa - redirigir a copyClassCode
+    const course = courses.find(c => String(c.id) === String(currentAttendanceCourseId));
+    if (!course) return;
+    const cls = (course.classes || []).find(cl => String(cl.id) === String(currentAttendanceClassId));
+    if (!cls) return;
+    
+    copyClassCode(cls.classCode || cls.blockCode);
+    
         const ta = document.createElement('textarea');
         ta.value = codeToCopy;
         document.body.appendChild(ta);
