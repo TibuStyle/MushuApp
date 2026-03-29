@@ -2540,7 +2540,7 @@ function renderGeneratedCodes(cls, course) {
     const html = `
         <div style="background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%); border-radius: 12px; padding: 24px; color: white; margin: 16px 0; box-shadow: 0 4px 15px rgba(255, 117, 140, 0.3);">
             <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-                <div style="font-size: 32px;">🎟️</div>
+                <div style="font-size: 32px;">🐈‍⬛</div>
                 <div>
                     <div style="font-size: 18px; font-weight: 600;">Código de la Clase</div>
                     <div style="font-size: 13px; opacity: 0.9;">Comparte este código con tus alumnas</div>
