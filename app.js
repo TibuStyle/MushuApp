@@ -2322,48 +2322,73 @@ function generateCodes() {
     const mod = modules.find(m => String(m.id) === String(course.moduleId));
     const modulePrefix = mod ? mod.prefix : 'MOD';
 
+    // 🔥 NUEVO: Un solo código por clase (sin studentCode)
+    const visibleCode = buildVisibleShortCode(cls.blockCode || generateClassBlockCode());
+    
+    // Guardar el código de la clase
+    cls.classCode = visibleCode;
+    cls.fullCode = `${modulePrefix}-${visibleCode}`;
+    
+    // Datos del código (sin info de alumna específica)
+    const codeData = {
+        code: visibleCode,
+        fullCode: cls.fullCode,
+        className: cls.name,
+        courseId: course.id,
+        courseName: course.name,
+        moduleId: course.moduleId,
+        moduleName: course.moduleName || mod.name,
+        modulePrefix: modulePrefix,
+        classId: cls.id,
+        blockCode: cls.blockCode,
+        date: cls.date,
+        tips: cls.tips || '',
+        photos: cls.photos || [],
+        linkedRecipe: cls.linkedRecipe,
+        linkedRecipes: cls.linkedRecipes || [],
+        expiry: cls.codeExpiry > 0 ? new Date(Date.now() + cls.codeExpiry * 3600000).toISOString() : null
+    };
+
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(codeData))));
+    cls.encodedClassCode = encoded;
+
+    // 🔥 Inicializar asistencia de todas las alumnas como AUSENTE (0)
+    // La profesora puede cambiar a PRESENTE (1) manualmente
     currentAttendanceData.forEach(a => {
-        const visibleCode = buildVisibleShortCode(
-            modulePrefix,
-            cls.blockCode || 'R75T',
-            a.studentCode || '00',
-            a.present
-        );
-
-        const codeData = {
-            code: visibleCode,
-            className: cls.name,
-            courseId: course.id,
-            courseName: course.name,
-            moduleId: course.moduleId,
-            moduleName: course.moduleName,
-            classId: cls.id,
-            studentId: a.studentId,
-            studentName: a.studentName,
-            studentCode: a.studentCode,
-            present: a.present,
-            date: cls.date,
-            tips: cls.tips,
-            photos: cls.photos,
-            linkedRecipe: cls.linkedRecipe,
-            expiry: cls.codeExpiry > 0 ? new Date(Date.now() + cls.codeExpiry * 3600000).toISOString() : null
-        };
-
-        const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(codeData))));
-        a.shortCode = visibleCode;
-        a.code = encoded;
-        a.codeData = encoded;
-        a.codeUsed = false;
+        a.shortCode = visibleCode;  // Mismo código para todas
+        a.presente = 0;              // Por defecto ausente
+        a.escaneado = false;         // No ha escaneado aún
     });
 
     cls.attendance = JSON.parse(JSON.stringify(currentAttendanceData));
     cls.codesGenerated = true;
+    
+    // 🔥 Guardar código en Firebase
+    const codigoRef = firebaseDB.ref(`codigos/${modulePrefix}-${visibleCode}`);
+    codigoRef.set({
+        claseId: cls.blockCode || visibleCode,
+        moduloId: modulePrefix,
+        claseNombre: cls.name,
+        fecha: cls.date,
+        courseId: course.id,
+        courseName: course.name,
+        activo: true,
+        createdAt: new Date().toISOString(),
+        asistencias: {}  // Se llenará cuando las alumnas escaneen
+    }).then(() => {
+        console.log('✅ Código guardado en Firebase:', `${modulePrefix}-${visibleCode}`);
+    }).catch(err => {
+        console.error('❌ Error guardando código:', err);
+    });
+    
     saveCourses();
 
     const codesSection = document.getElementById('generated-codes-section');
     codesSection.style.display = 'block';
     renderGeneratedCodes(cls, course);
     renderAttendanceList();
+    
+    showToast(`Código generado: ${visibleCode} 🎟️`);
 }
 
 function regenerateCodes() {
