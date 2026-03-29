@@ -823,11 +823,11 @@
             </div>
         </div>
 
-        <!-- Import Class Modal -->
+<!-- Modal Importar Clase -->
 <div id="modal-import-class" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeModal('modal-import-class')">&times;</span>
-        <h2><i class='bx bx-key' style="color:#ff758c;"></i> Desbloquear Clase</h2>
+        <h2 style="text-align: center;"><i class='bx bx-key' style="color:#ff758c;"></i> Desbloquear Clase</h2>
         
         <p style="text-align: center; color: var(--text-muted); font-size: 14px;">
             Ingresa el código de 5 letras de la clase actual. <br>
@@ -836,7 +836,7 @@
         
         <input type="text" id="short-code-input" class="pink-code-input" placeholder="EJ: U833H" maxlength="5">
         
-        <button class="btn-primary" onclick="processImportShortCode()" style="background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%); width: 100%; font-size: 16px; padding: 12px;">
+        <button class="btn-primary" onclick="importClassFromShortCode(document.getElementById('short-code-input').value)" style="background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%); width: 100%; font-size: 16px; padding: 12px; margin-top: 10px; border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: bold;">
             Desbloquear Clase 🔓
         </button>
     </div>
