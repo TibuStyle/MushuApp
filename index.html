@@ -823,52 +823,6 @@
             </div>
         </div>
 
-    <!-- Modal Importar Clase -->
-    <div id="modal-import-class" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('modal-import-class')">&times;</span>
-            <h2 style="text-align: center;"><i class='bx bx-key' style="color:#ff758c;"></i> Desbloquear Clase</h2>
-            
-            <p style="text-align: center; color: var(--text-muted); font-size: 14px;">
-                Ingresa el código de 5 letras de la clase actual. <br>
-                <small>(El módulo se detecta automáticamente)</small>
-            </p>
-            
-            <style>
-                .pink-code-input {
-                    border: 2px solid #ff7eb3 !important;
-                    border-radius: 8px;
-                    padding: 15px !important;
-                    font-size: 24px !important;
-                    text-align: center;
-                    letter-spacing: 4px;
-                    text-transform: uppercase;
-                    width: 100%;
-                    margin: 15px 0;
-                    font-family: 'Courier New', Courier, monospace;
-                    font-weight: bold;
-                    color: #ff758c;
-                    transition: all 0.3s;
-                    box-sizing: border-box;
-                }
-                .pink-code-input:focus {
-                    outline: none;
-                    box-shadow: 0 0 0 4px rgba(255, 126, 179, 0.2);
-                }
-                .pink-code-input::placeholder {
-                    color: #fca5a5;
-                    opacity: 0.6;
-                }
-            </style>
-            
-            <input type="text" id="short-code-input" class="pink-code-input" placeholder="EJ: U833H" maxlength="5">
-            
-            <button class="btn-primary" onclick="importClassFromShortCode(document.getElementById('short-code-input').value)" style="background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%); width: 100%; font-size: 16px; padding: 12px; margin-top: 10px; border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: bold;">
-                Desbloquear Clase 🔓
-            </button>
-        </div>
-    </div>
-
                 <div class="form-group">
                     <label>Pega tu código de clase</label>
                     <textarea id="import-class-code" rows="4" placeholder="Ej: PA1R75T01" class="class-textarea"></textarea>
@@ -1151,6 +1105,29 @@
         <button style="position:fixed; top:20px; right:20px; background:rgba(255,255,255,0.2); border:none; color:white; width:40px; height:40px; border-radius:50%; font-size:24px; cursor:pointer; z-index:9001; display:flex; justify-content:center; align-items:center;" onclick="closePhotoFullscreen()">
             <i class='bx bx-x'></i>
         </button>
+    </div>
+
+    <!-- MODAL DESBLOQUEAR CLASE (CORREGIDO) -->
+    <div id="modal-import-class" class="modal" style="display: none;">
+        <div class="modal-content" style="text-align: center; border-radius: 16px; padding: 24px;">
+            <span class="close" onclick="closeModal('modal-import-class')" style="float: right; font-size: 28px; cursor: pointer; color: #888;">&times;</span>
+            <h2 style="margin-top: 0; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                <i class='bx bx-key' style="color:#ff758c; font-size: 28px;"></i> Desbloquear Clase
+            </h2>
+            
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
+                Ingresa el código de 5 letras de la clase actual. <br>
+                <small style="opacity: 0.7;">(El módulo se detecta automáticamente)</small>
+            </p>
+            
+            <input type="text" id="short-code-input" placeholder="EJ: U833H" maxlength="5" 
+                   style="border: 2px solid #ff7eb3; border-radius: 8px; padding: 15px; font-size: 24px; text-align: center; letter-spacing: 4px; text-transform: uppercase; width: 100%; margin-bottom: 24px; font-family: 'Courier New', monospace; font-weight: bold; color: #ff758c; box-sizing: border-box; outline: none;">
+            
+            <button onclick="importClassFromShortCode(document.getElementById('short-code-input').value)" 
+                    style="background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%); width: 100%; font-size: 16px; padding: 15px; border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(255, 117, 140, 0.4); text-transform: uppercase; letter-spacing: 1px;">
+                Desbloquear 🔓
+            </button>
+        </div>
     </div>
     
     <!-- Toast -->
