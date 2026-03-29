@@ -210,13 +210,11 @@ function generateClassBlockCode() {
     return `${l1}${n}${l2}`;
 }
 
-function buildVisibleShortCode(modulePrefix, blockCode, studentCode, present) {
-    const oddDigits = [1, 3, 5, 7, 9];
-    const evenDigits = [0, 2, 4, 6, 8];
-    const attendanceDigit = present
-        ? oddDigits[Math.floor(Math.random() * oddDigits.length)]
-        : evenDigits[Math.floor(Math.random() * evenDigits.length)];
-    return `${modulePrefix}${blockCode}${attendanceDigit}${studentCode}`;
+function buildVisibleShortCode(blockCode) {
+    // Código simplificado: solo el ID de la clase (ej: U833H)
+    // El módulo se obtiene automáticamente del contexto donde está la alumna
+    // La asistencia se maneja internamente en Firebase (0=ausente, 1=presente)
+    return blockCode;
 }
 
 function readAttendanceFromCode(code, modulePrefix, blockCode) {
