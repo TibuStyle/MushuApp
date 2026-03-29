@@ -2935,172 +2935,199 @@ function importClassFromLongCode(codeInput) {
 }
 
 function importClassFromShortCode(code) {
-    if (code.length < 10) {
+    // 🔥 NUEVO: Código corto (ej: U833H)
+    // El módulo se obtiene del contexto donde está la alumna
+    
+    const shortCode = code.trim().toUpperCase();
+    
+    if (shortCode.length < 3) {
         showToast('Código muy corto', true);
         return;
     }
 
-    const studentCode = code.slice(-2);
-    const attendanceDigit = parseInt(code.slice(-3, -2));
-    const blockCode = code.slice(-8, -3);
-    const prefix = code.slice(0, -8);
-
-    if (!prefix || prefix.length < 2) {
-        showToast('Código inválido (prefijo)', true);
+    // Obtener datos de la alumna actual
+    const studentId = localStorage.getItem('mushu_student_id');
+    const studentName = localStorage.getItem('mushu_student_name');
+    const currentModule = localStorage.getItem('mushu_current_module'); // Debe setearse al abrir un módulo
+    
+    if (!studentId || !studentName) {
+        showToast('Primero debes registrarte', true);
+        return;
+    }
+    
+    if (!currentModule) {
+        showToast('Abre primero el módulo donde quieres importar la clase', true);
         return;
     }
 
-    if (isNaN(attendanceDigit)) {
-        showToast('Código inválido (asistencia)', true);
-        return;
-    }
-
-    const isPresent = attendanceDigit % 2 !== 0;
-
-    const fileName = prefix.toLowerCase() + '-module.json';
-    const url = 'https://tibustyle.github.io/MushuApp/modules/' + fileName + '?v=' + Date.now();
-
+    const modulePrefix = currentModule; // Ejemplo: "PA1"
+    const fullCode = `${modulePrefix}-${shortCode}`; // Ejemplo: "PA1-U833H"
+    
     showToast('⏳ Buscando clase...', false);
 
-    fetch(url)
-        .then(response => {
-            if (!response.ok) throw new Error('Módulo no encontrado');
-            return response.json();
-        })
-        .then(data => {
-            if (!data.type || data.type !== 'module') {
-                showToast('Módulo no válido', true);
+    // 🔥 Buscar en Firebase
+    firebaseDB.ref(`codigos/${fullCode}`).once('value')
+        .then(codigoSnap => {
+            if (!codigoSnap.exists()) {
+                showToast('Código no encontrado o inválido', true);
                 return;
             }
-
-            let classData = null;
-            let courseData = null;
-
-            firebaseDB.ref(`modulos/${prefix}/clases`).once('value')
-                .then(clasesSnap => {
-                    let classesList = [];
-
-                    if (clasesSnap.exists()) {
-                        const clasesVal = clasesSnap.val();
-                        classesList = Array.isArray(clasesVal) ? clasesVal.filter(Boolean) : Object.values(clasesVal);
+            
+            const codigoData = codigoSnap.val();
+            
+            if (!codigoData.activo) {
+                showToast('Este código ya no está activo', true);
+                return;
+            }
+            
+            // Registrar que la alumna escaneó el código
+            const asistenciaRef = firebaseDB.ref(`codigos/${fullCode}/asistencias/${studentId}`);
+            
+            asistenciaRef.set({
+                nombre: studentName,
+                escaneadoEn: new Date().toISOString(),
+                presente: 1  // Por defecto presente (la profesora puede cambiar)
+            }).then(() => {
+                console.log('✅ Asistencia registrada en Firebase');
+            }).catch(err => {
+                console.error('❌ Error registrando asistencia:', err);
+            });
+            
+            // Buscar los datos completos de la clase en Firebase
+            const claseId = codigoData.claseId || shortCode;
+            
+            return firebaseDB.ref(`modulos/${modulePrefix}/clases`).once('value');
+        })
+        .then(clasesSnap => {
+            if (!clasesSnap || !clasesSnap.exists()) {
+                showToast('No se encontraron clases en este módulo', true);
+                return;
+            }
+            
+            const clasesVal = clasesSnap.val();
+            const classesList = Array.isArray(clasesVal) ? clasesVal.filter(Boolean) : Object.values(clasesVal);
+            
+            const classData = classesList.find(cls => cls.blockCode === shortCode || cls.classCode === shortCode);
+            
+            if (!classData) {
+                console.log('❌ No se encontró clase con código:', shortCode);
+                console.log('Clases disponibles:', classesList);
+                showToast('Clase no encontrada', true);
+                return;
+            }
+            
+            // 🔥 Guardar en el perfil de la alumna en Firebase
+            return firebaseDB.ref(`alumnas/${modulePrefix}`).once('value')
+                .then(moduloSnap => {
+                    let alumnaRef = null;
+                    let cursoId = null;
+                    
+                    if (moduloSnap.exists()) {
+                        // Buscar a la alumna en todos los cursos del módulo
+                        moduloSnap.forEach(cursoSnap => {
+                            cursoSnap.forEach(alumnaSnap => {
+                                if (String(alumnaSnap.key) === String(studentId)) {
+                                    alumnaRef = alumnaSnap.ref;
+                                    cursoId = cursoSnap.key;
+                                }
+                            });
+                        });
                     }
-
-                    classData = classesList.find(cls => cls.blockCode === blockCode);
-
-                    if (!classData) {
-                        console.log('❌ No se encontró clase con blockCode:', blockCode);
-                        console.log('Clases Firebase disponibles:', classesList);
-                        showToast('Clase no encontrada con ese código', true);
-                        return;
-                    }
-
-                    return firebaseDB.ref(`modulos/${prefix}/cursos`).once('value')
-                        .then(cursosSnap => {
-                            let cursosList = [];
-
-                            if (cursosSnap.exists()) {
-                                const cursosVal = cursosSnap.val();
-                                cursosList = Array.isArray(cursosVal) ? cursosVal.filter(Boolean) : Object.values(cursosVal);
-                            }
-
-                            courseData = cursosList.find(c => String(c.id) === String(classData.courseId)) || null;
-
-                            const studentData = (classData.attendance || []).find(a =>
-                                String(a.studentCode) === String(studentCode)
-                            );
-
-                            if (!studentData) {
-                                console.log('❌ Alumno no encontrado con ese código:', studentCode);
-                                console.log('Asistencia disponible:', classData.attendance || []);
-                                showToast('Alumno no encontrado con ese código', true);
-                                return;
-                            }
-
-                            const existing = importedClasses.find(ic =>
-    String(ic.classId) === String(classData.classId || classData.id || blockCode) &&
-    normalizeText(ic.studentName || '') === normalizeText(studentData.studentName || '')
-);
-
-                            if (existing) {
-                                showToast('Ya importaste esta clase', true);
-                                return;
-                            }
-
-                            const decoded = {
-                                code: code,
-                                className: classData.className || classData.name || 'Clase',
-                                courseId: classData.courseId || (courseData ? courseData.id : ''),
-                                courseName: classData.courseName || (courseData ? (courseData.nombre || courseData.name) : ''),
-                                moduleId: prefix,
-                                moduleName: data.module?.name || prefix,
-                                classId: classData.classId || classData.id || blockCode,
-                                studentId: studentData.studentId || studentCode,
-                                studentName: studentData.studentName || '',
-                                studentCode: studentCode,
-                                present: isPresent,
-                                date: classData.date || '',
-                                tips: classData.tips || '',
-                                photos: classData.photos || classData.fotos || [],
-                                linkedRecipe: classData.linkedRecipe || null,
-                                linkedRecipes: classData.linkedRecipes || [],
-                                expiry: null
-                              };
-                            
-                            const linkedRecipes = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
-                            const allMissing = [];
-
-                            linkedRecipes.forEach(r => {
-                                const missing = getMissingMaterialsForRecipe(r);
-                                missing.forEach(m => {
-                                    if (!allMissing.find(am => normalizeText(am.name) === normalizeText(m.name))) {
-                                        allMissing.push(m);
-                                    }
+                    
+                    if (alumnaRef) {
+                        // Actualizar clases desbloqueadas
+                        return alumnaRef.child('clasesDesbloqueadas').once('value')
+                            .then(desbSnap => {
+                                const desbloqueadas = desbSnap.exists() ? desbSnap.val() : [];
+                                
+                                if (!desbloqueadas.includes(shortCode)) {
+                                    desbloqueadas.push(shortCode);
+                                }
+                                
+                                return alumnaRef.update({
+                                    clasesDesbloqueadas: desbloqueadas,
+                                    ultimaConexion: new Date().toISOString()
+                                });
+                            })
+                            .then(() => {
+                                // Actualizar asistencia
+                                return alumnaRef.child('asistencia').push({
+                                    claseId: shortCode,
+                                    codigo: fullCode,
+                                    fecha: new Date().toISOString(),
+                                    presente: 1
                                 });
                             });
-
-                            if (allMissing.length > 0) {
-                                pendingImportClassData = decoded;
-                                showMissingMaterialsModal(allMissing);
-                                closeModal('modal-import-class');
-                                return;
-                            }
-
-                            completeClassImport(decoded);
-                        });
-                })
-                .catch(err => {
-                    console.error(err);
-                    showToast('No se encontró el módulo "' + prefix + '". ¿Ya lo subieron?', true);
-                });
-
-            return;
-
-            const linkedRecipes = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
-            const allMissing = [];
-
-            linkedRecipes.forEach(r => {
-                const missing = getMissingMaterialsForRecipe(r);
-                missing.forEach(m => {
-                    if (!allMissing.find(am => normalizeText(am.name) === normalizeText(m.name))) {
-                        allMissing.push(m);
+                    } else {
+                        console.log('⚠️ Alumna no encontrada en Firebase - continuando con datos locales');
+                        return Promise.resolve();
                     }
+                })
+                .then(() => {
+                    // Importar recetas localmente
+                    const recipesToImport = classData.linkedRecipes || (classData.linkedRecipe ? [classData.linkedRecipe] : []);
+                    
+                    recipesToImport.forEach(recipe => {
+                        const recipeCopy = JSON.parse(JSON.stringify(recipe));
+                        
+                        // Recalcular costos con los materiales locales
+                        (recipeCopy.ingredients || []).forEach(i => {
+                            const localMat = materials.find(m => normalizeText(m.name) === normalizeText(i.name));
+                            if (localMat) {
+                                i.matId = String(localMat.id);
+                                i.pending = localMat.pending || false;
+                                if (!localMat.pending) {
+                                    i.cost = calculateIngredientCost(localMat, i.qty, i.unit);
+                                }
+                            }
+                        });
+                        
+                        (recipeCopy.decorations || []).forEach(d => {
+                            const localMat = materials.find(m => normalizeText(m.name) === normalizeText(d.name));
+                            if (localMat) {
+                                d.matId = String(localMat.id);
+                                d.pending = localMat.pending || false;
+                                if (!localMat.pending) {
+                                    d.cost = calculateIngredientCost(localMat, d.qty, d.unit);
+                                }
+                            }
+                        });
+                        
+                        // Recalcular costo total
+                        const ic = (recipeCopy.ingredients || []).reduce((s, i) => s + (i.cost || 0), 0);
+                        const dc = (recipeCopy.decorations || []).reduce((s, d) => s + (d.cost || 0), 0);
+                        recipeCopy.totalCost = ic + dc;
+                        
+                        // Evitar duplicados
+                        const exists = recipes.find(r => 
+                            r.name === recipeCopy.name && 
+                            r.recipeFolder === recipeCopy.recipeFolder
+                        );
+                        
+                        if (!exists) {
+                            recipes.push(recipeCopy);
+                        }
+                    });
+                    
+                    saveRecipesToStorage();
+                    updateRecipesView();
+                    updateClassesView();
+                    
+                    showToast(`✅ Clase "${classData.name || classData.moduleClassName}" importada!`);
+                    closeModal('modal-import-class');
                 });
-            });
-
-            if (allMissing.length > 0) {
-                pendingImportClassData = decoded;
-                showMissingMaterialsModal(allMissing);
-                closeModal('modal-import-class');
-                return;
-            }
-
-            completeClassImport(decoded);
         })
-        .catch(err => {
-            console.error(err);
-            showToast('No se encontró el módulo "' + prefix + '". ¿Ya lo subieron?', true);
+        .catch(error => {
+            console.error('Error importando clase:', error);
+            showToast('Error importando clase', true);
         });
 }
+
+function setCurrentModule(modulePrefix) {
+    localStorage.setItem('mushu_current_module', modulePrefix);
+    console.log('📚 Módulo actual:', modulePrefix);
+}
+
 function showMissingMaterialsModal(missing) {
     const list = document.getElementById('missing-materials-list');
     list.innerHTML = missing.map((m, i) => {
