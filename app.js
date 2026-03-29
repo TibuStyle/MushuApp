@@ -291,6 +291,31 @@ function saveCourses() {
             
             const modulePrefix = mod.prefix || 'MOD';
             
+            // 🔥 NUEVO: SINCRONIZAR ALUMNAS EN FIREBASE
+            if (course.students && course.students.length > 0) {
+                course.students.forEach(student => {
+                    const alumnaRef = firebaseDB.ref(`alumnas/${modulePrefix}/${course.id}/${student.studentCode}`);
+                    
+                    alumnaRef.set({
+                        id: student.studentCode,
+                        nombre: student.name,
+                        cursoId: course.id,
+                        cursoNombre: course.name,
+                        modulo: modulePrefix,
+                        activa: true,
+                        fechaRegistro: new Date().toISOString(),
+                        clasesDesbloqueadas: [],
+                        asistencia: {}
+                    })
+                    .then(() => {
+                        console.log(`✅ Alumna sincronizada: ${student.name} (${student.studentCode}) en ${modulePrefix}`);
+                    })
+                    .catch(err => {
+                        console.error('❌ Error sincronizando alumna:', student.name, err);
+                    });
+                });
+            }
+            
             // Sincronizar cada clase con Firebase
             (course.classes || []).forEach((cls, index) => {
                 const claseRef = firebaseDB.ref(`modulos/${modulePrefix}/clases/${index}`);
@@ -345,7 +370,8 @@ function saveCourses() {
             // Actualizar metadata del módulo
             firebaseDB.ref(`modulos/${modulePrefix}/metadata`).update({
                 ultimaActualizacion: new Date().toISOString(),
-                totalClases: (course.classes || []).length
+                totalClases: (course.classes || []).length,
+                totalAlumnas: course.students ? course.students.length : 0
             });
         });
     }
