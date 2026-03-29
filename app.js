@@ -2952,7 +2952,10 @@ function viewImportedClass(classId) {
 }
 
 function showImportClassModal() {
-    document.getElementById('import-class-code').value = '';
+    const input = document.getElementById('short-code-input');
+    if (input) {
+        input.value = '';
+    }
     document.getElementById('modal-import-class').classList.add('active');
 }
 
