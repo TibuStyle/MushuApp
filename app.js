@@ -2481,18 +2481,6 @@ function copyShortCode(studentId) {
     if (!cls) return;
     
     copyClassCode(cls.classCode || cls.blockCode);
-    
-        const ta = document.createElement('textarea');
-        ta.value = codeToCopy;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        a.codeUsed = true;
-        saveAttendanceOnly();
-        renderAttendanceList();
-        showToast('Código ' + codeToCopy + ' copiado!');
-    }
 }
 
 function copyAllCodes() {
