@@ -2532,35 +2532,36 @@ function renderGeneratedCodes(cls, course) {
     const mod = modules.find(m => String(m.id) === String(course.moduleId));
     const modulePrefix = mod ? mod.prefix : 'MOD';
     
-    // 🔥 NUEVO: Mostrar UN SOLO código para toda la clase
+    // Mostrar UN SOLO código para toda la clase
     const classCode = cls.classCode || cls.blockCode || 'Sin código';
     const fullCode = cls.fullCode || `${modulePrefix}-${classCode}`;
     
+    // 🔥 Degradado rosado inyectado directamente para evitar caché
     const html = `
-        <div class="single-class-code">
-            <div class="class-code-header">
-                <div class="class-code-icon">🎟️</div>
-                <div class="class-code-info">
-                    <div class="class-code-title">Código de la Clase</div>
-                    <div class="class-code-subtitle">Comparte este código con tus alumnas</div>
+        <div style="background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%); border-radius: 12px; padding: 24px; color: white; margin: 16px 0; box-shadow: 0 4px 15px rgba(255, 117, 140, 0.3);">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <div style="font-size: 32px;">🎟️</div>
+                <div>
+                    <div style="font-size: 18px; font-weight: 600;">Código de la Clase</div>
+                    <div style="font-size: 13px; opacity: 0.9;">Comparte este código con tus alumnas</div>
                 </div>
             </div>
             
-            <div class="class-code-display">
-                <div class="class-code-main">${classCode}</div>
-                <div class="class-code-full">Código completo: ${fullCode}</div>
+            <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 20px; text-align: center; margin: 16px 0;">
+                <div style="font-size: 36px; font-weight: 700; letter-spacing: 4px; font-family: 'Courier New', monospace;">${classCode}</div>
+                <div style="font-size: 14px; margin-top: 8px; opacity: 0.8;">Código completo: ${fullCode}</div>
             </div>
             
-            <div class="class-code-actions">
-                <button class="btn-primary" onclick="copyClassCode('${classCode}')">
+            <div style="display: flex; gap: 12px; margin: 16px 0;">
+                <button onclick="copyClassCode('${classCode}')" style="flex: 1; padding: 12px; border: none; border-radius: 6px; background: white; color: #ff758c; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                     📋 Copiar Código
                 </button>
-                <button class="btn-secondary" onclick="copyClassCode('${fullCode}')">
-                    📋 Copiar Código Completo
+                <button onclick="copyClassCode('${fullCode}')" style="flex: 1; padding: 12px; border: 1px solid white; border-radius: 6px; background: rgba(255,255,255,0.15); color: white; font-weight: bold; cursor: pointer;">
+                    📋 Copiar Completo
                 </button>
             </div>
             
-            <div class="class-code-note">
+            <div style="background: rgba(255,255,255,0.15); border-radius: 6px; padding: 12px; font-size: 13px; text-align: center;">
                 💡 Las alumnas solo necesitan ingresar: <strong>${classCode}</strong>
             </div>
         </div>
