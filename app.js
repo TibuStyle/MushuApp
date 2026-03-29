@@ -3032,7 +3032,6 @@ function importClassFromShortCode(code) {
         return;
     }
 
-    // 🔥 CORRECCIÓN: Buscar a la alumna en sus perfiles registrados
     const profile = studentProfiles.find(p => p.modulePrefix === currentModule);
     
     if (!profile) {
@@ -3040,16 +3039,13 @@ function importClassFromShortCode(code) {
         return;
     }
 
-    // Obtener los datos exactos del perfil
     const studentId = profile.id || profile.studentCode || '01';
     const studentName = profile.name || localStorage.getItem('mushu_student_name');
-    
     const modulePrefix = currentModule; 
     const fullCode = `${modulePrefix}-${shortCode}`; 
     
     showToast('⏳ Buscando clase...', false);
 
-    // 🔥 Buscar en Firebase
     firebaseDB.ref(`codigos/${fullCode}`).once('value')
         .then(codigoSnap => {
             if (!codigoSnap.exists()) {
@@ -3064,142 +3060,103 @@ function importClassFromShortCode(code) {
                 return;
             }
             
-            // Registrar que la alumna escaneó el código
-            const asistenciaRef = firebaseDB.ref(`codigos/${fullCode}/asistencias/${studentId}`);
-            
-            asistenciaRef.set({
+            // Registrar asistencia en Firebase
+            firebaseDB.ref(`codigos/${fullCode}/asistencias/${studentId}`).set({
                 nombre: studentName,
                 escaneadoEn: new Date().toISOString(),
-                presente: 1  // Por defecto presente (la profesora puede cambiar)
-            }).then(() => {
-                console.log('✅ Asistencia registrada en Firebase');
-            }).catch(err => {
-                console.error('❌ Error registrando asistencia:', err);
+                presente: 1
             });
-            
-            // Buscar los datos completos de la clase en Firebase
-            const claseId = codigoData.claseId || shortCode;
             
             return firebaseDB.ref(`modulos/${modulePrefix}/clases`).once('value');
         })
         .then(clasesSnap => {
             if (!clasesSnap || !clasesSnap.exists()) {
-                showToast('No se encontraron clases en este módulo', true);
+                showToast('No se encontraron clases', true);
                 return;
             }
             
             const clasesVal = clasesSnap.val();
             const classesList = Array.isArray(clasesVal) ? clasesVal.filter(Boolean) : Object.values(clasesVal);
-            
             const classData = classesList.find(cls => cls.blockCode === shortCode || cls.classCode === shortCode);
             
             if (!classData) {
-                console.log('❌ No se encontró clase con código:', shortCode);
-                console.log('Clases disponibles:', classesList);
                 showToast('Clase no encontrada', true);
                 return;
             }
             
-            // 🔥 Guardar en el perfil de la alumna en Firebase
-            return firebaseDB.ref(`alumnas/${modulePrefix}`).once('value')
-                .then(moduloSnap => {
-                    let alumnaRef = null;
-                    let cursoId = null;
-                    
-                    if (moduloSnap.exists()) {
-                        // Buscar a la alumna en todos los cursos del módulo
-                        moduloSnap.forEach(cursoSnap => {
-                            cursoSnap.forEach(alumnaSnap => {
-                                if (String(alumnaSnap.key) === String(studentId)) {
-                                    alumnaRef = alumnaSnap.ref;
-                                    cursoId = cursoSnap.key;
-                                }
-                            });
-                        });
-                    }
-                    
-                    if (alumnaRef) {
-                        // Actualizar clases desbloqueadas
-                        return alumnaRef.child('clasesDesbloqueadas').once('value')
-                            .then(desbSnap => {
-                                const desbloqueadas = desbSnap.exists() ? desbSnap.val() : [];
-                                
-                                if (!desbloqueadas.includes(shortCode)) {
-                                    desbloqueadas.push(shortCode);
-                                }
-                                
-                                return alumnaRef.update({
-                                    clasesDesbloqueadas: desbloqueadas,
-                                    ultimaConexion: new Date().toISOString()
+            // Actualizar perfil de alumna en Firebase (en segundo plano)
+            firebaseDB.ref(`alumnas/${modulePrefix}`).once('value').then(moduloSnap => {
+                if (moduloSnap.exists()) {
+                    moduloSnap.forEach(cursoSnap => {
+                        cursoSnap.forEach(alumnaSnap => {
+                            if (String(alumnaSnap.key) === String(studentId)) {
+                                const alumnaRef = alumnaSnap.ref;
+                                alumnaRef.child('clasesDesbloqueadas').once('value').then(desbSnap => {
+                                    const desbloqueadas = desbSnap.exists() ? desbSnap.val() : [];
+                                    if (!desbloqueadas.includes(shortCode)) desbloqueadas.push(shortCode);
+                                    alumnaRef.update({ clasesDesbloqueadas: desbloqueadas, ultimaConexion: new Date().toISOString() });
                                 });
-                            })
-                            .then(() => {
-                                // Actualizar asistencia
-                                return alumnaRef.child('asistencia').push({
+                                alumnaRef.child('asistencia').push({
                                     claseId: shortCode,
                                     codigo: fullCode,
                                     fecha: new Date().toISOString(),
                                     presente: 1
                                 });
-                            });
-                    } else {
-                        console.log('⚠️ Alumna no encontrada en Firebase - continuando con datos locales');
-                        return Promise.resolve();
-                    }
-                })
-                .then(() => {
-                    // Importar recetas localmente
-                    const recipesToImport = classData.linkedRecipes || (classData.linkedRecipe ? [classData.linkedRecipe] : []);
-                    
-                    recipesToImport.forEach(recipe => {
-                        const recipeCopy = JSON.parse(JSON.stringify(recipe));
-                        
-                        // Recalcular costos con los materiales locales
-                        (recipeCopy.ingredients || []).forEach(i => {
-                            const localMat = materials.find(m => normalizeText(m.name) === normalizeText(i.name));
-                            if (localMat) {
-                                i.matId = String(localMat.id);
-                                i.pending = localMat.pending || false;
-                                if (!localMat.pending) {
-                                    i.cost = calculateIngredientCost(localMat, i.qty, i.unit);
-                                }
                             }
                         });
-                        
-                        (recipeCopy.decorations || []).forEach(d => {
-                            const localMat = materials.find(m => normalizeText(m.name) === normalizeText(d.name));
-                            if (localMat) {
-                                d.matId = String(localMat.id);
-                                d.pending = localMat.pending || false;
-                                if (!localMat.pending) {
-                                    d.cost = calculateIngredientCost(localMat, d.qty, d.unit);
-                                }
-                            }
-                        });
-                        
-                        // Recalcular costo total
-                        const ic = (recipeCopy.ingredients || []).reduce((s, i) => s + (i.cost || 0), 0);
-                        const dc = (recipeCopy.decorations || []).reduce((s, d) => s + (d.cost || 0), 0);
-                        recipeCopy.totalCost = ic + dc;
-                        
-                        // Evitar duplicados
-                        const exists = recipes.find(r => 
-                            r.name === recipeCopy.name && 
-                            r.recipeFolder === recipeCopy.recipeFolder
-                        );
-                        
-                        if (!exists) {
-                            recipes.push(recipeCopy);
-                        }
                     });
-                    
-                    saveRecipesToStorage();
-                    updateRecipesView();
-                    updateClassesView();
-                    
-                    showToast(`✅ Clase "${classData.name || classData.moduleClassName}" importada!`);
-                    closeModal('modal-import-class');
+                }
+            });
+
+            // 🔥 AQUÍ RESTAURAMOS LA LÓGICA DE INVENTARIO Y MATERIALES FALTANTES 🔥
+            const decoded = {
+                classId: classData.id || shortCode,
+                className: classData.name || classData.moduleClassName,
+                courseName: classData.courseName || 'Curso',
+                moduleId: modulePrefix,
+                studentName: studentName,
+                studentCode: profile.studentCode || '',
+                code: shortCode,
+                present: true,
+                date: classData.fecha || classData.date || new Date().toISOString(),
+                tips: classData.tips || '',           // 🔥 NUEVO
+                photos: classData.photos || [],       // 🔥 NUEVO
+                linkedRecipe: classData.linkedRecipe,
+                linkedRecipes: classData.linkedRecipes
+            };
+
+            let missing = [];
+            const recipesToCheck = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
+            
+            // Buscar qué le falta a la alumna en su inventario
+            recipesToCheck.forEach(r => {
+                (r.ingredients || []).forEach(i => {
+                    if (!materials.find(m => normalizeText(m.name) === normalizeText(i.name))) {
+                        if (!missing.find(m => m.name === i.name)) missing.push({name: i.name, category: 'ingredient'});
+                    }
                 });
+                (r.decorations || []).forEach(d => {
+                    if (!materials.find(m => normalizeText(m.name) === normalizeText(d.name))) {
+                        if (!missing.find(m => m.name === d.name)) missing.push({name: d.name, category: 'decoration'});
+                    }
+                });
+                if (r.extraSubcategory) {
+                    const extraItemsLocal = materials.filter(m => m.category === 'extra' && normalizeText(m.subcategory) === normalizeText(r.extraSubcategory));
+                    if (extraItemsLocal.length === 0) {
+                        if (!missing.find(m => m.name === r.extraSubcategory)) missing.push({name: r.extraSubcategory, category: 'extra'});
+                    }
+                }
+            });
+
+            closeModal('modal-import-class');
+
+            // Lanzar modal de faltantes o guardar directamente con los precios locales
+            if (missing.length > 0) {
+                pendingImportClassData = decoded;
+                renderMissingMaterials(missing);
+            } else {
+                completeClassImport(decoded);
+            }
         })
         .catch(error => {
             console.error('Error importando clase:', error);
@@ -3355,6 +3312,30 @@ function saveMissingMaterialsAndContinue() {
 
 
 function completeClassImport(decoded) {
+    // 🔥 1. GUARDAR LA CLASE EN LA PESTAÑA DEL ALUMNO (Esto faltaba)
+    const newImportedClass = {
+        id: Date.now().toString(),
+        classId: decoded.classId,
+        className: decoded.className,
+        courseName: decoded.courseName,
+        moduleId: decoded.moduleId,
+        studentName: decoded.studentName,
+        studentCode: decoded.studentCode || '',
+        visibleCode: decoded.code || '',
+        present: decoded.present,
+        date: decoded.date,
+        tips: decoded.tips || '',
+        photos: decoded.photos || [],
+        linkedRecipe: decoded.linkedRecipe,
+        linkedRecipes: decoded.linkedRecipes,
+        importedAt: new Date().toISOString()
+    };
+
+    // Agregarla a la lista de clases y guardar
+    importedClasses.push(newImportedClass);
+    saveImportedClasses();
+
+    // 🔥 2. PROCESAR LAS RECETAS Y PRECIOS (Lo que ya tenías)
     const recipesToProcess = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
 
     recipesToProcess.forEach(r => {
@@ -3365,31 +3346,27 @@ function completeClassImport(decoded) {
         recipeCopy.sourceCourseName = decoded.courseName;
         recipeCopy.sourceClassDate = decoded.date;
 
-        // Actualizar IDs y RECALCULAR COSTOS de los ingredientes
+        // Recalcular ingredientes
         (recipeCopy.ingredients || []).forEach(i => {
             const localMat = materials.find(m => normalizeText(m.name) === normalizeText(i.name));
             if (localMat) {
                 i.matId = String(localMat.id);
                 i.pending = localMat.pending || false;
-                if (!localMat.pending) {
-                    i.cost = calculateIngredientCost(localMat, i.qty, i.unit);
-                }
+                if (!localMat.pending) i.cost = calculateIngredientCost(localMat, i.qty, i.unit);
             }
         });
 
-        // Actualizar IDs y RECALCULAR COSTOS de las decoraciones
+        // Recalcular decoraciones
         (recipeCopy.decorations || []).forEach(d => {
             const localMat = materials.find(m => normalizeText(m.name) === normalizeText(d.name));
             if (localMat) {
                 d.matId = String(localMat.id);
                 d.pending = localMat.pending || false;
-                if (!localMat.pending) {
-                    d.cost = calculateIngredientCost(localMat, d.qty, d.unit);
-                }
+                if (!localMat.pending) d.cost = calculateIngredientCost(localMat, d.qty, d.unit);
             }
         });
 
-        // Recalcular el costo extra y el costo total de la receta final
+        // Recalcular el costo total
         const ic = (recipeCopy.ingredients || []).reduce((s, i) => s + (i.cost || 0), 0);
         const dc = (recipeCopy.decorations || []).reduce((s, d) => s + (d.cost || 0), 0);
         let ec = 0;
@@ -3405,31 +3382,25 @@ function completeClassImport(decoded) {
             rec.sourceClassDate === recipeCopy.sourceClassDate
         );
 
-        if (!alreadyExists) {
-            recipes.push(recipeCopy);
-        }
+        if (!alreadyExists) recipes.push(recipeCopy);
     });
 
     saveRecipesToStorage();
     
-    // Actualizar toda la información en las 3 pestañas
+    // Actualizar toda la información en las pestañas
     renderMaterials();
     updateRecipesView();
     updateClassesView();
     
-    // Auto-abrir la carpeta del curso en el dashboard del alumno
+    // Auto-abrir la carpeta del curso en el dashboard
     setTimeout(() => {
         if (decoded.moduleId) {
             const folderId = 'student-mod-' + decoded.moduleId.replace(/[^a-zA-Z0-9]/g, '_');
             const bodyElement = document.getElementById(`${folderId}-body-main`);
-            if (bodyElement) {
-                bodyElement.classList.add('open');
-            }
+            if (bodyElement) bodyElement.classList.add('open');
         }
     }, 100);
     
-    closeModal('modal-import-class');
-
     if (decoded.present) {
         showToast('Clase importada! 🎓');
     } else {
