@@ -2660,7 +2660,7 @@ const classesHTML = sortedClasses.length > 0
 
                 ${classesHTML}
 
-                <button class="btn-add-class" onclick="showImportClassModal()">
+                <button class="btn-add-class" onclick="setCurrentModule('${p.modulePrefix}'); showImportClassModal()">
                     <i class='bx bx-key'></i> Ingresar Código de Clase
                 </button>
             </div>
