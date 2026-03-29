@@ -1555,3 +1555,71 @@ input:checked + .slider:before { transform: translateX(16px); }
 #modal-material {
     z-index: 500;
 }
+
+.single-class-code {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    padding: 24px;
+    color: white;
+    margin: 16px 0;
+}
+
+.class-code-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.class-code-icon {
+    font-size: 32px;
+}
+
+.class-code-title {
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.class-code-subtitle {
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+.class-code-display {
+    background: rgba(255,255,255,0.2);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    margin: 16px 0;
+}
+
+.class-code-main {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    font-family: 'Courier New', monospace;
+}
+
+.class-code-full {
+    font-size: 14px;
+    margin-top: 8px;
+    opacity: 0.8;
+}
+
+.class-code-actions {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+}
+
+.class-code-actions button {
+    flex: 1;
+}
+
+.class-code-note {
+    background: rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 13px;
+    text-align: center;
+}
