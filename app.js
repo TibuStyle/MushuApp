@@ -3206,64 +3206,6 @@ function saveMissingMaterialsAndContinue() {
     }
 }
 
-const importedClass = {
-    id: Date.now().toString(),
-    classId: decoded.classId,
-    className: decoded.className,
-    courseName: decoded.courseName,
-    moduleName: decoded.moduleName || '',
-    studentName: decoded.studentName,
-    studentCode: decoded.studentCode || '',
-    visibleCode: decoded.code || '',
-    present: decoded.present,
-    date: decoded.date,
-    tips: decoded.tips || '',
-    photos: decoded.photos || [],
-    linkedRecipe: decoded.linkedRecipe,
-    linkedRecipes: decoded.linkedRecipes,
-    importedAt: new Date().toISOString()
-};
-
-    importedClasses.push(importedClass);
-    saveImportedClasses();
-
-        importedClasses.push(importedClass);
-    saveImportedClasses();
-
-    // 🔥 PROCESAR CÓDIGO EN FIREBASE
-    // Formato real del código: PA1U833H901
-    if (decoded.code) {
-        const codigoPlano = decoded.code.trim().toUpperCase();
-
-        // Estructura:
-        // PA1 = módulo (3)
-        // U833H = clase (5)
-        // 9 = asistencia (1)
-        // 01 = alumna (2)
-        if (codigoPlano.length >= 11) {
-            const codigoData = {
-                modulePrefix: codigoPlano.substring(0, 3),   // PA1
-                classId: codigoPlano.substring(3, 8),        // U833H
-                attendance: codigoPlano.substring(8, 9),     // 9
-                studentId: codigoPlano.substring(9, 11)      // 01
-            };
-            
-            console.log('🔍 Código decodificado:', codigoData);
-
-            procesarCodigoEnFirebase(decoded.code, codigoData)
-                .then(success => {
-                    if (success) {
-                        console.log('✅ Código procesado en Firebase');
-                    }
-                })
-                .catch(err => {
-                    console.error('Error procesando código en Firebase:', err);
-                });
-        } else {
-            console.error('❌ Código inválido:', codigoPlano);
-        }
-    }
-
     const recipesToProcess = decoded.linkedRecipes || (decoded.linkedRecipe ? [decoded.linkedRecipe] : []);
 
     recipesToProcess.forEach(r => {
