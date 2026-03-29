@@ -2258,21 +2258,18 @@ function showAttendanceModal(courseId, classId) {
 
 function toggleAttendance(studentId) {
     const student = currentAttendanceData.find(a => String(a.studentId) === String(studentId));
-    if (student) {
-        student.present = !student.present;
-        renderAttendanceList();
-
-        // guardar inmediatamente en el curso/clase real
-        const course = courses.find(c => String(c.id) === String(currentAttendanceCourseId));
-        if (!course) return;
-
-        const cls = (course.classes || []).find(cl => String(cl.id) === String(currentAttendanceClassId));
-        if (!cls) return;
-
-        cls.attendance = JSON.parse(JSON.stringify(currentAttendanceData));
-        saveCourses();
-        renderCourses();
-    }
+    if (!student) return;
+    
+    const course = courses.find(c => String(c.id) === String(currentAttendanceCourseId));
+    const cls = course ? (course.classes || []).find(cl => String(cl.id) === String(currentAttendanceClassId)) : null;
+    const mod = course ? modules.find(m => String(m.id) === String(course.moduleId)) : null;
+    const modulePrefix = mod ? mod.prefix : 'MOD';
+    const classCode = cls ? (cls.classCode || cls.blockCode) : '';
+    
+    const currentPresent = student.presente === 1 || student.present === true;
+    const newPresent = currentPresent ? 0 : 1;
+    
+    setAttendance(studentId, newPresent, modulePrefix, classCode);
 }
 
 function saveAttendanceOnly() {
@@ -2295,22 +2292,108 @@ function saveAttendanceOnly() {
 
 function renderAttendanceList() {
     const list = document.getElementById('attendance-list');
+    
+    const course = courses.find(c => String(c.id) === String(currentAttendanceCourseId));
+    const cls = course ? (course.classes || []).find(cl => String(cl.id) === String(currentAttendanceClassId)) : null;
+    const mod = course ? modules.find(m => String(m.id) === String(course.moduleId)) : null;
+    const modulePrefix = mod ? mod.prefix : 'MOD';
+    const classCode = cls ? (cls.classCode || cls.blockCode) : '';
+    
     list.innerHTML = currentAttendanceData.map(a => {
-        const statusIcon = a.present ? '✅' : '❌';
-        let codeStatus = '';
-        if (a.code && a.codeUsed) {
-            codeStatus = `<span class="attendance-code-status sent">📋 copiado</span>`;
-        }
+        const isPresent = a.presente === 1 || a.present === true;
+        const hasScanned = a.escaneado || a.codeUsed;
+        
         return `
-            <div class="attendance-item">
+            <div class="attendance-item ${isPresent ? 'present' : 'absent'}">
                 <div class="attendance-left">
-                    <span class="attendance-status" onclick="toggleAttendance('${a.studentId}')">${statusIcon}</span>
-                    <span class="attendance-name">${a.studentName}</span>
-                    <span class="student-code-badge">${a.studentCode || '--'}</span>
+                    <div class="attendance-info">
+                        <span class="attendance-name">${sanitizeHTML(a.studentName)}</span>
+                        <span class="student-code-badge">${a.studentCode || '--'}</span>
+                    </div>
+                    <div class="attendance-scan-status">
+                        ${hasScanned 
+                            ? '<span class="scan-badge scanned">📱 Escaneó</span>' 
+                            : '<span class="scan-badge not-scanned">⏳ No escaneó</span>'}
+                    </div>
                 </div>
-                ${codeStatus}
+                <div class="attendance-right">
+                    <div class="attendance-toggle">
+                        <button class="att-btn ${isPresent ? 'active' : ''}" 
+                                onclick="setAttendance('${a.studentId}', 1, '${modulePrefix}', '${classCode}')">
+                            ✅ Presente
+                        </button>
+                        <button class="att-btn ${!isPresent ? 'active absent-btn' : ''}" 
+                                onclick="setAttendance('${a.studentId}', 0, '${modulePrefix}', '${classCode}')">
+                            ❌ Ausente
+                        </button>
+                    </div>
+                </div>
             </div>`;
     }).join('');
+}
+
+function setAttendance(studentId, presente, modulePrefix, classCode) {
+    // Actualizar datos locales
+    const student = currentAttendanceData.find(a => String(a.studentId) === String(studentId));
+    if (student) {
+        student.presente = presente;
+        student.present = presente === 1;
+    }
+    
+    // Guardar en curso local
+    const course = courses.find(c => String(c.id) === String(currentAttendanceCourseId));
+    if (course) {
+        const cls = (course.classes || []).find(cl => String(cl.id) === String(currentAttendanceClassId));
+        if (cls) {
+            cls.attendance = JSON.parse(JSON.stringify(currentAttendanceData));
+        }
+    }
+    saveCourses();
+    
+    // 🔥 Actualizar en Firebase
+    const fullCode = `${modulePrefix}-${classCode}`;
+    
+    // Actualizar en codigos/
+    const asistenciaRef = firebaseDB.ref(`codigos/${fullCode}/asistencias/${studentId}`);
+    asistenciaRef.update({
+        presente: presente,
+        modificadoPor: 'profesora',
+        modificadoEn: new Date().toISOString()
+    }).then(() => {
+        console.log(`✅ Asistencia actualizada: ${student.studentName} = ${presente === 1 ? 'Presente' : 'Ausente'}`);
+    }).catch(err => {
+        console.error('❌ Error actualizando asistencia:', err);
+    });
+    
+    // También actualizar en el perfil de la alumna
+    firebaseDB.ref(`alumnas/${modulePrefix}`).once('value')
+        .then(moduloSnap => {
+            if (!moduloSnap.exists()) return;
+            
+            moduloSnap.forEach(cursoSnap => {
+                cursoSnap.forEach(alumnaSnap => {
+                    if (String(alumnaSnap.key) === String(studentId)) {
+                        // Buscar y actualizar la asistencia de esta clase
+                        const asistenciaAlumnaRef = alumnaSnap.ref.child('asistencia');
+                        asistenciaAlumnaRef.once('value').then(asistSnap => {
+                            if (asistSnap.exists()) {
+                                asistSnap.forEach(regSnap => {
+                                    const reg = regSnap.val();
+                                    if (reg.claseId === classCode || reg.codigo === fullCode) {
+                                        regSnap.ref.update({ presente: presente });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+        });
+    
+    // Actualizar UI
+    renderAttendanceList();
+    
+    showToast(`${student ? student.studentName : 'Alumna'}: ${presente === 1 ? '✅ Presente' : '❌ Ausente'}`);
 }
 
 function generateCodes() {
