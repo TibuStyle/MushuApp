@@ -55,7 +55,6 @@ let currentAttendanceCourseId = null;
 let currentAttendanceClassId = null;
 let currentAttendanceData = [];
 let currentSelectedClassRecipe = null;
-let pendingImportClassData = null;
 
 // Confirm modal
 let currentConfirmAction = null;
@@ -3130,11 +3129,6 @@ function forceCompleteImport() {
         showToast('No hay clase pendiente', true);
     }
 }
-
-// ================================
-// 🔥 VARIABLE GLOBAL para datos pendientes
-// ================================
-let pendingImportClassData = null;
 
 function showImportClassModal() {
     const input = document.getElementById('short-code-input');
