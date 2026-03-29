@@ -824,14 +824,23 @@
         </div>
 
         <!-- Import Class Modal -->
-        <div class="modal-overlay" id="modal-import-class" onclick="closeModal('modal-import-class')">
-            <div class="modal-content" onclick="event.stopPropagation()">
-                <div class="modal-header">
-                    <h3>📥 Ingresar Código</h3>
-                    <button class="btn-close" type="button" onclick="closeModal('modal-import-class')">
-                        <i class='bx bx-x'></i>
-                    </button>
-                </div>
+<div id="modal-import-class" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('modal-import-class')">&times;</span>
+        <h2><i class='bx bx-key' style="color:#ff758c;"></i> Desbloquear Clase</h2>
+        
+        <p style="text-align: center; color: var(--text-muted); font-size: 14px;">
+            Ingresa el código de 5 letras de la clase actual. <br>
+            <small>(El módulo se detecta automáticamente)</small>
+        </p>
+        
+        <input type="text" id="short-code-input" class="pink-code-input" placeholder="EJ: U833H" maxlength="5">
+        
+        <button class="btn-primary" onclick="processImportShortCode()" style="background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%); width: 100%; font-size: 16px; padding: 12px;">
+            Desbloquear Clase 🔓
+        </button>
+    </div>
+</div>
 
                 <div class="form-group">
                     <label>Pega tu código de clase</label>
