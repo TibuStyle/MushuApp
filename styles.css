@@ -1556,12 +1556,41 @@ input:checked + .slider:before { transform: translateX(16px); }
     z-index: 500;
 }
 
+/* Tarjeta de código para la profesora (Rosado) */
 .single-class-code {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
     border-radius: 12px;
     padding: 24px;
     color: white;
     margin: 16px 0;
+    box-shadow: 0 4px 15px rgba(255, 117, 140, 0.3);
+}
+
+/* Input de código para la alumna (Rosado) */
+.pink-code-input {
+    border: 2px solid #ff7eb3 !important;
+    border-radius: 8px;
+    padding: 15px !important;
+    font-size: 24px !important;
+    text-align: center;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    width: 100%;
+    margin: 15px 0;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    color: #ff758c;
+    transition: all 0.3s;
+}
+
+.pink-code-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(255, 126, 179, 0.2);
+}
+
+.pink-code-input::placeholder {
+    color: #fca5a5;
+    opacity: 0.6;
 }
 
 .class-code-header {
