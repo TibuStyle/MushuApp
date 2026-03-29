@@ -1099,8 +1099,8 @@
     </div>
 
     <!-- MODAL DESBLOQUEAR CLASE -->
-    <div id="modal-import-class" class="modal-overlay" onclick="closeModal('modal-import-class')" style="display:none;">
-        <div class="modal-content" onclick="event.stopPropagation()" style="text-align:center; border-radius:16px; padding:24px; max-width:420px; margin:auto;">
+    <div id="modal-import-class" onclick="closeModal('modal-import-class')" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.45); z-index:9999; justify-content:center; align-items:center; padding:20px; box-sizing:border-box;">
+        <div onclick="event.stopPropagation()" style="position:relative; background:white; width:100%; max-width:420px; border-radius:16px; padding:24px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.25);">
             <button class="btn-close" type="button" onclick="closeModal('modal-import-class')" style="position:absolute; right:16px; top:16px; background:none; border:none; font-size:24px; cursor:pointer; color:#888;">
                 <i class='bx bx-x'></i>
             </button>
