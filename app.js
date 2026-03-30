@@ -3466,23 +3466,27 @@ function setCurrentModule(modulePrefix) {
 
 function showMissingMaterialsModal(missing) {
     const list = document.getElementById('missing-materials-list');
+    
     list.innerHTML = missing.map((m, i) => {
         const catLabel = m.category === 'decoracion' ? 'Decoración' : (m.category === 'extra' ? 'Extra' : 'Ingrediente');
+        
         return `
-        <div class="missing-material-item" style="background:#fff; padding:15px; margin-bottom:10px; border-radius:8px; border-left:4px solid #ff758c;">
-            <h4 style="margin:0 0 10px 0; color:#333;"><i class='bx bx-error-circle'></i> ${catLabel}: ${m.name}</h4>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
-                <div>
-                    <label style="font-size:12px; color:#666;">Precio</label>
-                    <input type="number" id="missing-price-${i}" placeholder="0.00" min="0" step="0.01" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <div class="missing-material-item">
+            <h4><i class='bx bx-error-circle'></i> ${catLabel}: ${sanitizeHTML(m.name)}</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Precio</label>
+                    <input type="number" id="missing-price-${i}" placeholder="0.00" min="0" step="0.01">
                 </div>
-                <div>
-                    <label style="font-size:12px; color:#666;">Cantidad</label>
-                    <input type="number" id="missing-qty-${i}" placeholder="1" min="0.01" step="0.01" value="1" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Cantidad Base</label>
+                    <input type="number" id="missing-qty-${i}" placeholder="1" min="0.01" step="0.01" value="1">
                 </div>
-                <div>
-                    <label style="font-size:12px; color:#666;">Unidad</label>
-                    <select id="missing-unit-${i}" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+                <div class="form-group">
+                    <label>Unidad</label>
+                    <select id="missing-unit-${i}">
                         <option value="kg">kg</option>
                         <option value="g">g</option>
                         <option value="L">L</option>
@@ -3497,21 +3501,8 @@ function showMissingMaterialsModal(missing) {
         `;
     }).join('');
     
-    // 🔥 FORZAR VISIBILIDAD DEL MODAL
-    const modal = document.getElementById('modal-missing-materials');
-    modal.classList.add('active');
-    modal.style.cssText = `
-        display: flex !important;
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        background: rgba(0,0,0,0.6) !important;
-        justify-content: center !important;
-        align-items: center !important;
-        z-index: 99999 !important;
-    `;
+    // Abrir el modal
+    document.getElementById('modal-missing-materials').classList.add('active');
     
     console.log('✅ Modal de materiales faltantes abierto');
 }
