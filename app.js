@@ -2743,8 +2743,8 @@ const classesHTML = sortedClasses.length > 0
 
                 ${classesHTML}
 
-                <button class="btn-add-class" onclick="setCurrentModule('${p.modulePrefix}'); showImportClassModal()">
-                    <i class='bx bx-key'></i> Ingresar Código de Clase
+                <button class="btn-add-class" onclick="abrirModalCodigo('${p.modulePrefix}')">
+                <i class='bx bx-key'></i> Ingresar Código de Clase
                 </button>
             </div>
         </div>`;
@@ -3222,6 +3222,50 @@ function forceCompleteImport() {
     } else {
         showToast('No hay clase pendiente', true);
     }
+}
+
+// ================================
+// 🔥 FUNCIÓN: abrirModalCodigo (SOLUCIÓN DEFINITIVA)
+// ================================
+function abrirModalCodigo(modulePrefix) {
+    // 1. Guardar el módulo actual
+    localStorage.setItem('mushu_current_module', modulePrefix);
+    console.log('📚 Módulo actual:', modulePrefix);
+    
+    // 2. Obtener el modal
+    const modal = document.getElementById('modal-import-class');
+    
+    if (!modal) {
+        console.error('❌ Modal no encontrado');
+        showToast('Error: Modal no encontrado', true);
+        return;
+    }
+    
+    // 3. Forzar visibilidad del modal
+    modal.className = 'modal-overlay active';
+    modal.style.cssText = `
+        display: flex !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: rgba(0,0,0,0.6) !important;
+        justify-content: center !important;
+        align-items: center !important;
+        z-index: 99999 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    `;
+    
+    // 4. Limpiar y enfocar el input
+    const input = document.getElementById('short-code-input');
+    if (input) {
+        input.value = '';
+        setTimeout(() => input.focus(), 100);
+    }
+    
+    console.log('✅ Modal de código abierto');
 }
 
 // ================================
