@@ -2316,15 +2316,49 @@ function showAttendanceModal(courseId, classId) {
 
     const mod = modules.find(m => String(m.id) === String(course.moduleId));
     const modulePrefix = mod ? mod.prefix : '---';
+    const classCode = cls.blockCode || cls.classCode || '';
 
     document.getElementById('attendance-class-info').innerHTML = `
         <div style="text-align:center;margin-bottom:16px;">
             <h4 style="margin:0 0 4px;">${cls.name}</h4>
             <p style="font-size:13px;color:var(--text-muted);margin:0;">📅 ${formatDate(cls.date)} • ${course.name}</p>
-            <p style="font-size:12px;color:var(--secondary-color);font-weight:700;margin:6px 0 0;">Prefijo: ${modulePrefix} • Bloque: ${cls.blockCode || '----'}</p>
+            <p style="font-size:12px;color:var(--secondary-color);font-weight:700;margin:6px 0 0;">Prefijo: ${modulePrefix} • Bloque: ${classCode || '----'}</p>
         </div>`;
 
-    renderAttendanceList();
+    // 🔥 CONSULTAR FIREBASE PARA VER QUIÉN ESCANEÓ
+    if (classCode && modulePrefix) {
+        const fullCode = `${modulePrefix}-${classCode}`;
+        firebaseDB.ref(`codigos/${fullCode}/asistencias`).once('value')
+            .then(snap => {
+                if (snap.exists()) {
+                    const asistenciasFirebase = snap.val();
+                    
+                    // Actualizar currentAttendanceData con los datos de Firebase
+                    currentAttendanceData.forEach(a => {
+                        const studentCode = a.studentCode || '01';
+                        const firebaseData = asistenciasFirebase[studentCode];
+                        
+                        if (firebaseData && firebaseData.escaneadoEn) {
+                            a.escaneado = true;
+                            a.codeUsed = true;
+                            a.activatedAt = firebaseData.escaneadoEn;
+                            // Si Firebase dice presente, actualizar
+                            if (firebaseData.presente === 1) {
+                                a.presente = 1;
+                                a.present = true;
+                            }
+                        }
+                    });
+                }
+                renderAttendanceList();
+            })
+            .catch(err => {
+                console.error('Error consultando asistencias:', err);
+                renderAttendanceList();
+            });
+    } else {
+        renderAttendanceList();
+    }
 
     // Mostrar códigos solo si ya se generaron
     const codesSection = document.getElementById('generated-codes-section');
