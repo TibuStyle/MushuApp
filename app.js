@@ -3452,30 +3452,30 @@ function setCurrentModule(modulePrefix) {
 function showMissingMaterialsModal(missing) {
     const list = document.getElementById('missing-materials-list');
     list.innerHTML = missing.map((m, i) => {
-       const catLabel = m.category === 'decoracion' ? 'Decoración' : (m.category === 'extra' ? 'Extra' : 'Ingrediente');
+        const catLabel = m.category === 'decoracion' ? 'Decoración' : (m.category === 'extra' ? 'Extra' : 'Ingrediente');
         
         return `
         <div class="missing-material-item">
             <h4><i class='bx bx-error-circle'></i> ${catLabel}: ${sanitizeHTML(m.name)}</h4>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Precio (CLP)</label>
-                    <input type="number" id="missing-price-${i}" placeholder="990" min="0">
+                    <label>Precio</label>
+                    <input type="number" id="missing-price-${i}" placeholder="0.00" min="0" step="0.01">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label>Cantidad Base</label>
-                    <input type="number" id="missing-qty-${i}" placeholder="1" min="0.01" step="0.01">
+                    <input type="number" id="missing-qty-${i}" placeholder="1" min="0.01" step="0.01" value="1">
                 </div>
                 <div class="form-group">
                     <label>Unidad</label>
                     <select id="missing-unit-${i}">
                         <option value="kg">kg</option>
                         <option value="g">g</option>
-                        <option value="l">L</option>
-                        <option value="cm3">mL</option>
-                        <option value="u">u</option>
+                        <option value="L">L</option>
+                        <option value="ml">mL</option>
+                        <option value="unidad" selected>unidad</option>
                     </select>
                 </div>
             </div>
@@ -3484,7 +3484,26 @@ function showMissingMaterialsModal(missing) {
         </div>
         `;
     }).join('');
-    document.getElementById('modal-missing-materials').classList.add('active');
+    
+    // 🔥 FORZAR VISIBILIDAD DEL MODAL
+    const modal = document.getElementById('modal-missing-materials');
+    modal.classList.add('active');
+    modal.style.cssText = `
+        display: flex !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        background: rgba(0,0,0,0.6) !important;
+        justify-content: center !important;
+        align-items: center !important;
+        z-index: 99999 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    `;
+    
+    console.log('✅ Modal de materiales faltantes abierto');
 }
 
 function saveMissingMaterialsAndContinue() {
