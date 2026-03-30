@@ -1735,3 +1735,12 @@ input:checked + .slider:before { transform: translateX(16px); }
     background: #ef4444;
     border-color: #ef4444;
 }
+
+/* ================================
+   FIX GLOBAL PARA MODALES
+   ================================ */
+.modal-overlay.active {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
