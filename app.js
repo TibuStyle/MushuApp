@@ -350,15 +350,15 @@ function saveCourses() {
                 if (cls.blockCode) {
                     const codigoRef = firebaseDB.ref(`codigos/${modulePrefix}-${cls.blockCode}`);
                     
-                    codigoRef.update({
-                        claseId: cls.blockCode,
-                        moduloId: modulePrefix,
-                        claseNombre: cls.name || cls.moduleClassName,
-                        fecha: cls.date || '',
-                        activo: true,
-                        courseId: course.id,
-                        courseName: course.name,
-                        createdAt: new Date().toISOString()
+               codigoRef.update({
+                    claseId: cls.blockCode,
+                    moduloId: modulePrefix,
+                    claseNombre: cls.name || cls.moduleClassName || 'Sin nombre', // <-- FIX
+                    fecha: cls.date || '',
+                    activo: true,
+                    courseId: course.id,
+                    courseName: course.name,
+                    createdAt: new Date().toISOString()
                     }).then(() => {
                         console.log('✅ Código registrado:', `${modulePrefix}-${cls.blockCode}`);
                     }).catch(err => {
