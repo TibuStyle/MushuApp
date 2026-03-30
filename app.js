@@ -4152,6 +4152,46 @@ function deleteModule(moduleId) {
                     .catch(err => {
                         console.error('Error eliminando alumnas de Firebase:', err);
                     });
+
+// 🔥 Eliminar todos los códigos de este módulo
+firebaseDB.ref('codigos').orderByChild('moduloId').equalTo(prefix).once('value')
+    .then(snap => {
+        if (snap.exists()) {
+            const updates = {};
+            snap.forEach(child => {
+                updates[child.key] = null;
+            });
+            return firebaseDB.ref('codigos').update(updates);
+        }
+    })
+    .then(() => {
+        console.log('✅ Códigos del módulo eliminados de Firebase:', prefix);
+    })
+    .catch(err => {
+        console.error('Error eliminando códigos de Firebase:', err);
+    });
+
+// También eliminar códigos por prefijo directo (PA1-XXXXX)
+firebaseDB.ref('codigos').once('value')
+    .then(snap => {
+        if (snap.exists()) {
+            const updates = {};
+            snap.forEach(child => {
+                if (child.key.startsWith(prefix + '-')) {
+                    updates[child.key] = null;
+                }
+            });
+            if (Object.keys(updates).length > 0) {
+                return firebaseDB.ref('codigos').update(updates);
+            }
+        }
+    })
+    .then(() => {
+        console.log('✅ Códigos con prefijo eliminados:', prefix);
+    })
+    .catch(err => {
+        console.error('Error eliminando códigos por prefijo:', err);
+    });
                 
                 // Eliminar cursos relacionados de la lista local
                 courses = courses.filter(c => String(c.moduleId) !== String(moduleId));
