@@ -3228,7 +3228,10 @@ function forceCompleteImport() {
 // 🔥 FUNCIÓN: showImportClassModal
 // ================================
 function showImportClassModal() {
-    document.getElementById('modal-import-class').classList.add('active');
+    const modal = document.getElementById('modal-import-class');
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+    
     const input = document.getElementById('short-code-input');
     if (input) {
         input.value = '';
