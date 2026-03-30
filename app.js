@@ -1694,22 +1694,41 @@ function deleteCourse(courseId) {
                 const mod = modules.find(m => String(m.id) === String(courseToDelete.moduleId));
                 const modulePrefix = mod ? mod.prefix : 'MOD';
                 
-                // 🔥 Borrar todas las clases de este curso en Firebase
-                (courseToDelete.classes || []).forEach((cls, index) => {
-                    // Borrar la clase
-                    firebaseDB.ref(`modulos/${modulePrefix}/clases/${index}`).remove();
-                    // Borrar el código asociado
+                // 🔥 Borrar los códigos asociados a las clases de este curso
+                (courseToDelete.classes || []).forEach(cls => {
                     if (cls.blockCode || cls.classCode) {
                         const codeToDel = cls.classCode || cls.blockCode;
-                        firebaseDB.ref(`codigos/${modulePrefix}-${codeToDel}`).remove();
+                        firebaseDB.ref(`codigos/${modulePrefix}-${codeToDel}`).remove()
+                            .then(() => console.log('✅ Código eliminado:', `${modulePrefix}-${codeToDel}`))
+                            .catch(err => console.error('Error eliminando código:', err));
                     }
                 });
                 
-                // 🔥 Borrar el curso de Firebase
-                firebaseDB.ref(`modulos/${modulePrefix}/cursos/${courseId}`).remove();
+                // 🔥 Borrar las clases de este curso en Firebase (por courseId, no por index)
+                firebaseDB.ref(`modulos/${modulePrefix}/clases`).once('value').then(snap => {
+                    if (snap.exists()) {
+                        const clases = snap.val();
+                        const updates = {};
+                        
+                        // Buscar clases que pertenecen a este curso
+                        Object.keys(clases).forEach(key => {
+                            if (clases[key] && String(clases[key].courseId) === String(courseId)) {
+                                updates[key] = null; // Marcar para eliminar
+                            }
+                        });
+                        
+                        if (Object.keys(updates).length > 0) {
+                            firebaseDB.ref(`modulos/${modulePrefix}/clases`).update(updates)
+                                .then(() => console.log('✅ Clases del curso eliminadas de Firebase'))
+                                .catch(err => console.error('Error eliminando clases:', err));
+                        }
+                    }
+                });
                 
-                // 🔥 Borrar la lista de alumnas de ese curso para limpiar espacio
-                firebaseDB.ref(`alumnas/${modulePrefix}/${courseId}`).remove();
+                // 🔥 Borrar la lista de alumnas de ese curso
+                firebaseDB.ref(`alumnas/${modulePrefix}/${courseId}`).remove()
+                    .then(() => console.log('✅ Alumnas del curso eliminadas:', courseId))
+                    .catch(err => console.error('Error eliminando alumnas:', err));
             }
 
             // Borrar localmente
