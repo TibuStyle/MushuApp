@@ -6226,7 +6226,10 @@ async function confirmSyncModuleDownload() {
         const allMissing = [];
         
         for (const claseData of Object.values(data.clases || {})) {
-            for (const receta of Object.values(claseData.recetas || {})) {
+    // Usar linkedRecipes en lugar de recetas
+    const recetas = claseData.linkedRecipes || claseData.recetas || [];
+    
+    for (const receta of recetas) {
                 // Soportar ambos formatos (inglés/español)
                 const ingredientes = receta.ingredientes || receta.ingredients || [];
                 const decoraciones = receta.decoraciones || receta.decorations || [];
