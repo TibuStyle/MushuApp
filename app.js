@@ -2997,7 +2997,22 @@ function closeModal(modalId) {
 
     modal.classList.remove('active');
     modal.style.display = 'none';
+    
+    // 🔥 Limpiar cualquier modal fantasma (con active pero display none)
+    document.querySelectorAll('.modal-overlay.active').forEach(m => {
+        const style = window.getComputedStyle(m);
+        if (style.display === 'none') {
+            m.classList.remove('active');
+        }
+    });
 }
+
+// 🔥 Limpiar modales fantasma al hacer clic en overlay
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal-overlay') && e.target.classList.contains('active')) {
+        closeModal(e.target.id);
+    }
+});
 
 function normalizeText(str) {
     if (!str) return '';
