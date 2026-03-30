@@ -3362,7 +3362,7 @@ function showMissingMaterialsModal(missing) {
                 </div>
             </div>
             <input type="hidden" id="missing-name-${i}" value="${m.name}">
-            <input type="hidden" id="missing-category-${i}" value="${m.category}">
+            <input type="hidden" id="missing-category-${i}" value="${m.category === 'ingredient' ? 'productos' : (m.category === 'decoration' ? 'decoracion' : m.category)}">
         </div>
         `;
     }).join('');
