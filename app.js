@@ -3342,13 +3342,13 @@ function showMissingMaterialsModal(missing) {
             <div class="form-row">
                 <div class="form-group">
                     <label>Precio</label>
-                    <input type="number" id="missing-price-${i}" placeholder="0.00" min="0" step="0.01">
+                    <input type="number" id="missing-price-${i}" placeholder="990" min="0">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label>Cantidad Base</label>
-                    <input type="number" id="missing-qty-${i}" placeholder="1" min="0.01" step="0.01" value="1">
+                    <input type="number" id="missing-qty-${i}" placeholder="1" min="0.01" step="0.01">
                 </div>
                 <div class="form-group">
                     <label>Unidad</label>
