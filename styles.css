@@ -1744,3 +1744,168 @@ input:checked + .slider:before { transform: translateX(16px); }
     opacity: 1 !important;
     visibility: visible !important;
 }
+
+/* ============================================
+   SISTEMA DE PRUEBAS / EXÁMENES
+   ============================================ */
+
+/* Card de prueba en lista (profesora y alumna) */
+.exam-card {
+    background: linear-gradient(135deg, #fff0f5, #ffd6e8);
+    border: 2px solid #ff69b4;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(255, 105, 180, 0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: box-shadow 0.2s;
+}
+
+.exam-card:active {
+    box-shadow: 0 1px 4px rgba(255, 105, 180, 0.2);
+}
+
+.exam-card.pending {
+    border: 2px dashed #ff69b4;
+    background: linear-gradient(135deg, #fff5f8, #ffe8f0);
+    box-shadow: none;
+}
+
+.exam-card.failed {
+    border: 2px solid #ccc;
+    background: linear-gradient(135deg, #f5f5f5, #fafafa);
+    box-shadow: none;
+}
+
+/* Línea 1: icono + nombre + fecha */
+.exam-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 0.95em;
+    color: #d63384;
+}
+
+.exam-card.failed .exam-card-header {
+    color: #888;
+}
+
+/* Línea 2: receta + badge nota */
+.exam-card-body {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85em;
+    color: #555;
+}
+
+/* Badge inline nota - aprobada */
+.exam-grade-inline.approved {
+    background: linear-gradient(135deg, #ff69b4, #ff1493);
+    color: white;
+    font-weight: bold;
+    font-size: 0.85em;
+    padding: 3px 10px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(255, 20, 147, 0.35);
+    animation: examPulse 2s ease-in-out infinite;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Badge inline nota - reprobada */
+.exam-grade-inline.failed {
+    background: #e8e8e8;
+    color: #888;
+    font-weight: bold;
+    font-size: 0.85em;
+    padding: 3px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+/* Badge inline nota - pendiente */
+.exam-grade-inline.pending {
+    border: 1.5px dashed #ff69b4;
+    color: #ff69b4;
+    font-size: 0.8em;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: transparent;
+    white-space: nowrap;
+}
+
+@keyframes examPulse {
+    0%, 100% { box-shadow: 0 2px 8px rgba(255, 20, 147, 0.35); }
+    50%       { box-shadow: 0 2px 14px rgba(255, 20, 147, 0.6); }
+}
+
+/* Botones de acción en exam card (profesora) */
+.exam-card .action-buttons-group {
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 105, 180, 0.2);
+}
+
+/* Modal calificaciones */
+.exam-grade-input {
+    width: 70px;
+    padding: 6px 8px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.exam-grade-input:focus {
+    border-color: #ff69b4;
+}
+
+.exam-grade-input.valid {
+    border-color: #4CAF50;
+    background: #f0fff0;
+}
+
+.exam-grade-input.invalid {
+    border-color: #f44336;
+    background: #fff0f0;
+}
+
+.exam-student-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    gap: 8px;
+}
+
+.exam-student-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.exam-student-info .student-name {
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.exam-student-info .student-recipe {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
