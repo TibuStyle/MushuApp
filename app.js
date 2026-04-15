@@ -55,6 +55,9 @@ let currentAttendanceCourseId = null;
 let currentAttendanceClassId = null;
 let currentAttendanceData = [];
 let currentSelectedClassRecipe = null;
+// Exam / Prueba
+let currentEditingExamId = null;
+let currentExamCourseId = null;
 
 // Confirm modal
 let currentConfirmAction = null;
@@ -1780,6 +1783,9 @@ function renderCourses() {
         const classesHTML = (course.classes || [])
             .sort((a, b) => new Date(b.date) - new Date(a.date))
             .map(cls => {
+                if (cls.type === 'exam') {
+                    return renderExamCardTeacher(course, cls);
+                }
                 const att = cls.attendance || [];
                 const present = att.filter(a => a.present).length;
                 const total = att.length;
@@ -1846,6 +1852,9 @@ function renderCourses() {
 
                     <button class="btn-add-class" onclick="showCreateClassModal('${course.id}')">
                         <i class='bx bx-plus'></i> Nueva Clase
+                    </button>
+                    <button class="btn-add-class" onclick="showCreateExamModal('${course.id}')" style="border-color:#ff69b4; color:#d63384; background:linear-gradient(135deg, #fff0f5, #ffe8f0);">
+                        <i class='bx bx-edit'></i> Nueva Prueba
                     </button>
                 </div>
             </div>
@@ -6967,3 +6976,826 @@ async function procesarCodigoEnFirebase(codigoCompleto, decodedData) {
         return false;
     }
 }
+
+// ============================================
+// 🎯 SISTEMA DE PRUEBAS / EXÁMENES
+// ============================================
+
+function validateNota(value) {
+    if (!value || value === '') return null;
+    const nota = parseFloat(String(value).replace(',', '.'));
+    if (isNaN(nota)) return null;
+    if (nota < 1.0 || nota > 7.0) return null;
+    return Math.round(nota * 10) / 10;
+}
+
+function getExamGradeBadge(nota) {
+    if (nota === null || nota === undefined) {
+        return '<span class="exam-grade-inline pending">⏳</span>';
+    }
+    const n = parseFloat(nota);
+    if (n >= 4.0) {
+        return `<span class="exam-grade-inline approved">⭐ ${n.toFixed(1)} ✅</span>`;
+    }
+    return `<span class="exam-grade-inline failed">${n.toFixed(1)}</span>`;
+}
+
+function renderExamCardTeacher(course, exam) {
+    const assignments = exam.examAssignments || [];
+    const graded = assignments.filter(a => a.nota !== null && a.nota !== undefined).length;
+    const total = assignments.length;
+    const allGraded = total > 0 && graded === total;
+    
+    let statusText = '';
+    if (total === 0) {
+        statusText = 'Sin alumnos asignados';
+    } else if (allGraded) {
+        statusText = `✅ ${graded}/${total} calificados`;
+    } else if (graded > 0) {
+        statusText = `📊 ${graded}/${total} calificados`;
+    } else {
+        statusText = `⏳ ${total} alumnos por calificar`;
+    }
+
+    return `
+    <div class="exam-card" style="margin-bottom:8px;">
+        <div class="exam-card-header">
+            <span>📝 ${sanitizeHTML(exam.name)}</span>
+            <span style="font-size:0.85em; font-weight:400;">${formatDate(exam.date)}</span>
+        </div>
+        <div class="exam-card-body">
+            <span>${statusText}</span>
+            <span style="font-size:0.8em; color:#ff69b4;">${exam.blockCode || '----'}</span>
+        </div>
+        <div class="action-buttons-group" style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,105,180,0.2);">
+            <button class="btn-icon" onclick="showCreateExamModal('${course.id}', '${exam.id}')" title="Editar"><i class='bx bx-edit'></i></button>
+            <button class="btn-icon" onclick="showGradeExamModal('${course.id}', '${exam.id}')" title="Calificar" style="background:#ff69b4; color:white;"><i class='bx bx-star'></i></button>
+            <button class="btn-icon" onclick="showExamAttendance('${course.id}', '${exam.id}')" title="Asistencia"><i class='bx bx-clipboard'></i></button>
+            <button class="btn-icon danger" onclick="deleteExam('${course.id}', '${exam.id}')" title="Eliminar"><i class='bx bx-trash'></i></button>
+        </div>
+    </div>`;
+}
+
+function showCreateExamModal(courseId, examId = null) {
+    const course = courses.find(c => String(c.id) === String(courseId));
+    if (!course) return;
+
+    currentExamCourseId = courseId;
+    currentEditingExamId = null;
+
+    document.getElementById('exam-course-id').value = courseId;
+    document.getElementById('exam-name').value = '';
+    document.getElementById('exam-date').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('exam-tips').value = '';
+    document.getElementById('modal-exam-title').textContent = '📝 Nueva Prueba';
+
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    const moduleRecipes = mod ? recipes.filter(r =>
+        r.recipeFolder === mod.name &&
+        (r.recipeSource === 'module' || r.recipeSource === 'class')
+    ) : [];
+
+    if (examId) {
+        const exam = (course.classes || []).find(cl => String(cl.id) === String(examId) && cl.type === 'exam');
+        if (exam) {
+            currentEditingExamId = examId;
+            document.getElementById('exam-name').value = exam.name;
+            document.getElementById('exam-date').value = exam.date;
+            document.getElementById('exam-tips').value = exam.tips || '';
+            document.getElementById('exam-code-expiry').value = exam.codeExpiry || 168;
+            document.getElementById('modal-exam-title').textContent = '📝 Editar Prueba';
+        }
+    }
+
+    const existingAssignments = examId
+        ? ((course.classes || []).find(cl => String(cl.id) === String(examId))?.examAssignments || [])
+        : [];
+
+    const list = document.getElementById('exam-assignments-list');
+    list.innerHTML = (course.students || []).map(student => {
+        const existing = existingAssignments.find(a => String(a.studentCode) === String(student.studentCode));
+        const selectedRecipeId = existing ? existing.recipeId : '';
+
+        const recipeOptions = moduleRecipes.map(r =>
+            `<option value="${r.id}" ${String(r.id) === String(selectedRecipeId) ? 'selected' : ''}>${sanitizeHTML(r.name)}</option>`
+        ).join('');
+
+        return `
+        <div class="exam-student-row">
+            <div class="exam-student-info">
+                <div class="student-name">
+                    <span class="student-code-badge">${student.studentCode}</span>
+                    ${sanitizeHTML(student.name)}
+                </div>
+            </div>
+            <div style="flex:1; min-width:120px;">
+                <select id="exam-recipe-${student.studentCode}" style="width:100%; font-size:13px;">
+                    <option value="">Sin receta</option>
+                    ${recipeOptions}
+                </select>
+            </div>
+        </div>`;
+    }).join('');
+
+    if ((course.students || []).length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:var(--text-muted); font-size:13px;">Este curso no tiene alumnos.</p>';
+    }
+
+    document.getElementById('modal-create-exam').classList.add('active');
+}
+
+function saveExam() {
+    const courseId = document.getElementById('exam-course-id').value;
+    const name = document.getElementById('exam-name').value.trim();
+    const date = document.getElementById('exam-date').value;
+    const tips = document.getElementById('exam-tips').value.trim();
+    const codeExpiry = parseInt(document.getElementById('exam-code-expiry').value);
+
+    if (!name) { showToast('Ingresa nombre de la prueba', true); return; }
+    if (!date) { showToast('Selecciona una fecha', true); return; }
+
+    const course = courses.find(c => String(c.id) === String(courseId));
+    if (!course) return;
+
+    const assignments = (course.students || []).map(student => {
+        const select = document.getElementById(`exam-recipe-${student.studentCode}`);
+        const recipeId = select ? select.value : '';
+        const recipe = recipeId ? recipes.find(r => String(r.id) === String(recipeId)) : null;
+
+        return {
+            studentCode: student.studentCode,
+            studentName: student.name,
+            recipeId: recipeId || null,
+            recipeName: recipe ? recipe.name : '',
+            nota: null
+        };
+    });
+
+    if (currentEditingExamId) {
+        const exam = (course.classes || []).find(cl => String(cl.id) === String(currentEditingExamId));
+        if (exam) {
+            exam.name = name;
+            exam.date = date;
+            exam.tips = tips;
+            exam.codeExpiry = codeExpiry;
+
+            const oldAssignments = exam.examAssignments || [];
+            exam.examAssignments = assignments.map(a => {
+                const old = oldAssignments.find(o => String(o.studentCode) === String(a.studentCode));
+                return { ...a, nota: old ? old.nota : null };
+            });
+
+            showToast('Prueba actualizada! 📝');
+        }
+    } else {
+        const mod = modules.find(m => String(m.id) === String(course.moduleId));
+        const blockCode = generateClassBlockCode();
+
+        const newExam = {
+            id: Date.now().toString(),
+            type: 'exam',
+            name: name,
+            date: date,
+            tips: tips,
+            photos: [],
+            blockCode: blockCode,
+            codeExpiry: codeExpiry,
+            linkedRecipes: [],
+            examAssignments: assignments,
+            attendance: [],
+            codesGenerated: false
+        };
+
+        if (!course.classes) course.classes = [];
+        course.classes.push(newExam);
+        showToast('Prueba creada! Código: ' + blockCode + ' 📝');
+    }
+
+    saveCourses();
+    renderCourses();
+    closeModal('modal-create-exam');
+}
+
+function deleteExam(courseId, examId) {
+    showConfirmModal('Eliminar Prueba', '¿Eliminar esta prueba y sus calificaciones?', () => {
+        const course = courses.find(c => String(c.id) === String(courseId));
+        if (course) {
+            const exam = (course.classes || []).find(cl => String(cl.id) === String(examId));
+            if (exam && exam.blockCode) {
+                const mod = modules.find(m => String(m.id) === String(course.moduleId));
+                if (mod) {
+                    firebaseDB.ref(`codigos/${mod.prefix}-${exam.blockCode}`).remove();
+                }
+            }
+            course.classes = (course.classes || []).filter(cl => String(cl.id) !== String(examId));
+            saveCourses();
+            renderCourses();
+            showToast('Prueba eliminada 🗑️');
+        }
+    });
+}
+
+function showGradeExamModal(courseId, examId) {
+    const course = courses.find(c => String(c.id) === String(courseId));
+    if (!course) return;
+    const exam = (course.classes || []).find(cl => String(cl.id) === String(examId) && cl.type === 'exam');
+    if (!exam) return;
+
+    currentExamCourseId = courseId;
+    currentEditingExamId = examId;
+
+    document.getElementById('grade-exam-info').innerHTML = `
+        <h4 style="margin:0 0 4px;">${sanitizeHTML(exam.name)}</h4>
+        <p style="font-size:13px; color:var(--text-muted); margin:0;">📅 ${formatDate(exam.date)}</p>
+        <p style="font-size:12px; color:#ff69b4; font-weight:600; margin:4px 0 0;">Código: ${exam.blockCode || '----'}</p>
+    `;
+
+    const list = document.getElementById('grade-exam-list');
+    list.innerHTML = (exam.examAssignments || []).map(a => {
+        const currentNota = (a.nota !== null && a.nota !== undefined) ? a.nota.toFixed(1) : '';
+        const notaClass = currentNota ? (parseFloat(currentNota) >= 4.0 ? 'valid' : 'invalid') : '';
+
+        return `
+        <div class="exam-student-row">
+            <div class="exam-student-info">
+                <div class="student-name">
+                    <span class="student-code-badge">${a.studentCode}</span>
+                    ${sanitizeHTML(a.studentName)}
+                </div>
+                <div class="student-recipe">${a.recipeName ? '📖 ' + sanitizeHTML(a.recipeName) : 'Sin receta'}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <input type="text" 
+                    id="grade-input-${a.studentCode}" 
+                    class="exam-grade-input ${notaClass}" 
+                    value="${currentNota}" 
+                    placeholder="—"
+                    maxlength="3"
+                    oninput="onGradeInput(this)"
+                >
+                <span style="font-size:12px; color:var(--text-muted);">/7.0</span>
+            </div>
+        </div>`;
+    }).join('');
+
+    if ((exam.examAssignments || []).length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:var(--text-muted);">No hay alumnos asignados.</p>';
+    }
+
+    document.getElementById('modal-grade-exam').classList.add('active');
+}
+
+function onGradeInput(input) {
+    const val = input.value.replace(',', '.');
+    const nota = parseFloat(val);
+    input.classList.remove('valid', 'invalid');
+    if (val === '') return;
+    if (!isNaN(nota) && nota >= 1.0 && nota <= 7.0) {
+        input.classList.add('valid');
+    } else {
+        input.classList.add('invalid');
+    }
+}
+
+function saveExamGrades() {
+    const course = courses.find(c => String(c.id) === String(currentExamCourseId));
+    if (!course) return;
+    const exam = (course.classes || []).find(cl => String(cl.id) === String(currentEditingExamId) && cl.type === 'exam');
+    if (!exam) return;
+
+    let hasError = false;
+    let gradesUpdated = 0;
+
+    (exam.examAssignments || []).forEach(a => {
+        const input = document.getElementById(`grade-input-${a.studentCode}`);
+        if (!input) return;
+        const raw = input.value.trim();
+
+        if (raw === '') {
+            a.nota = null;
+            return;
+        }
+
+        const nota = validateNota(raw);
+        if (nota === null) {
+            hasError = true;
+            input.classList.add('invalid');
+            return;
+        }
+
+        a.nota = nota;
+        gradesUpdated++;
+    });
+
+    if (hasError) {
+        showToast('Algunas notas son inválidas (1.0 - 7.0)', true);
+        return;
+    }
+
+    // Actualizar asistencia basada en notas
+    exam.examAssignments.forEach(a => {
+        if (a.nota !== null) {
+            const existing = (exam.attendance || []).find(att => String(att.studentCode) === String(a.studentCode));
+            if (existing) {
+                existing.present = true;
+                existing.presente = 1;
+            } else {
+                if (!exam.attendance) exam.attendance = [];
+                const student = (course.students || []).find(s => String(s.studentCode) === String(a.studentCode));
+                exam.attendance.push({
+                    studentId: student ? student.id : a.studentCode,
+                    studentName: a.studentName,
+                    studentCode: a.studentCode,
+                    present: true,
+                    presente: 1
+                });
+            }
+        }
+    });
+
+    saveCourses();
+    renderCourses();
+    closeModal('modal-grade-exam');
+    showToast(`${gradesUpdated} nota${gradesUpdated !== 1 ? 's' : ''} guardada${gradesUpdated !== 1 ? 's' : ''} ✅`);
+}
+
+function showExamAttendance(courseId, examId) {
+    showAttendanceModal(courseId, examId);
+}
+
+// ============================================
+// 🎯 PRUEBAS EN VISTA ALUMNA
+// ============================================
+
+function renderExamCardStudent(importedExam) {
+    const nota = importedExam.myNota;
+    const recipeName = importedExam.myRecipeName || 'Sin receta';
+    
+    let cardClass = 'exam-card';
+    if (nota === null || nota === undefined) {
+        cardClass += ' pending';
+    } else if (parseFloat(nota) < 4.0) {
+        cardClass += ' failed';
+    }
+
+    const badge = getExamGradeBadge(nota);
+
+    return `
+    <div class="${cardClass}" onclick="viewExamAsStudent('${importedExam.id}')" style="margin-bottom:8px;">
+        <div class="exam-card-header">
+            <span>📝 ${sanitizeHTML(importedExam.className)}</span>
+            <span style="font-size:0.85em; font-weight:400;">${importedExam.date ? formatDate(importedExam.date) : ''}</span>
+        </div>
+        <div class="exam-card-body">
+            <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📖 ${sanitizeHTML(recipeName)}</span>
+            ${badge}
+        </div>
+    </div>`;
+}
+
+function viewExamAsStudent(importedClassId) {
+    const ic = importedClasses.find(x => String(x.id) === String(importedClassId));
+    if (!ic || ic.type !== 'exam') {
+        viewImportedClass(importedClassId);
+        return;
+    }
+
+    const watermarkName = (studentName || ic.studentName || 'Alumno') + ' • MushuApp';
+    document.getElementById('view-class-title').textContent = sanitizeHTML(ic.className || 'Prueba');
+
+    let html = `<div style="margin-bottom:12px; font-size:13px; color:var(--text-muted);">
+        📅 ${ic.date ? formatDate(ic.date) : ''} | 📌 ${sanitizeHTML(ic.moduleId || '')}
+    </div>`;
+
+    // Nota
+    const nota = ic.myNota;
+    if (nota !== null && nota !== undefined) {
+        const n = parseFloat(nota);
+        if (n >= 4.0) {
+            html += `<div style="text-align:center; margin:16px 0;">
+                <div style="display:inline-block; background:linear-gradient(135deg, #ff69b4, #ff1493); color:white; font-weight:bold; font-size:1.3em; padding:10px 24px; border-radius:16px; box-shadow:0 4px 20px rgba(255,20,147,0.4);">
+                    ⭐ ${n.toFixed(1)} ✅
+                </div>
+            </div>`;
+        } else {
+            html += `<div style="text-align:center; margin:16px 0;">
+                <div style="display:inline-block; background:#efefef; color:#888; font-weight:bold; font-size:1.2em; padding:8px 20px; border-radius:12px;">
+                    ${n.toFixed(1)}
+                </div>
+            </div>`;
+        }
+    } else {
+        html += `<div style="text-align:center; margin:16px 0;">
+            <div style="display:inline-block; border:2px dashed #ff69b4; color:#ff69b4; font-size:0.95em; padding:8px 20px; border-radius:12px;">
+                ⏳ Nota pendiente
+            </div>
+        </div>`;
+    }
+
+    if (ic.tips) {
+        html += `<div class="class-content-tips" style="margin:12px 0 16px;">
+            <strong style="color:var(--secondary-color); font-size:13px; display:block; margin-bottom:4px;">💡 Instrucciones:</strong>
+            ${sanitizeHTML(ic.tips).replace(/\n/g, '<br>')}
+        </div>`;
+    }
+
+    // Receta asignada
+    const myRecipes = ic.linkedRecipes || [];
+    if (myRecipes.length > 0) {
+        myRecipes.forEach(r => {
+            const fullR = recipes.find(rr => normalizeText(rr.name) === normalizeText(r.name || r.nombre || ''));
+            const recipeId = fullR ? fullR.id : null;
+
+            html += `<div style="border:1px solid var(--border-color); border-radius:var(--radius-md); padding:12px; margin-bottom:12px;">
+                <h4 style="margin:0 0 8px;">${sanitizeHTML(r.name || r.nombre || 'Receta')}</h4>`;
+
+            if (r.recipePhoto) {
+                html += `<img src="${r.recipePhoto}" style="width:100%; border-radius:8px; margin-bottom:8px; cursor:pointer;" 
+                    onclick="event.stopPropagation(); openPhotoFullscreen('${r.recipePhoto}', '${sanitizeHTML(watermarkName)}')" class="no-save-img" draggable="false" oncontextmenu="return false;">`;
+            }
+
+            if (recipeId) {
+                html += `<button class="btn-submit" style="margin-top:0; background:linear-gradient(135deg, var(--secondary-color), var(--secondary-hover));"
+                    onclick="closeModal('modal-view-class'); openRecipeFromClass('${recipeId}')">
+                    <i class='bx bx-book-open'></i> Ver costo de receta
+                </button>`;
+            }
+            html += `</div>`;
+        });
+    }
+
+    document.getElementById('view-class-content').innerHTML = html;
+    document.getElementById('modal-view-class').classList.add('active');
+}
+
+// ============================================
+// 🎯 IMPORTAR PRUEBA (alumna escanea código)
+// ============================================
+
+// Modificar importClassFromShortCode para detectar pruebas
+// Esta función se integra dentro del flujo existente.
+// Cuando Firebase devuelve type:"exam", procesamos diferente.
+
+const _originalImportClassFromShortCode = importClassFromShortCode;
+
+importClassFromShortCode = function(code) {
+    const shortCode = code.trim().toUpperCase();
+    if (shortCode.length < 3) {
+        showToast('Código muy corto', true);
+        return;
+    }
+
+    const currentModule = localStorage.getItem('mushu_current_module');
+    if (!currentModule) {
+        showToast('Abre primero el módulo donde quieres importar', true);
+        return;
+    }
+
+    const profile = studentProfiles.find(p => p.modulePrefix === currentModule);
+    if (!profile) {
+        showToast('No estás registrada en este módulo', true);
+        return;
+    }
+
+    const studentId = profile.id || profile.studentCode || '01';
+    const stName = profile.name || localStorage.getItem('mushu_student_name');
+    const modulePrefix = currentModule;
+    const fullCode = `${modulePrefix}-${shortCode}`;
+
+    showToast('⏳ Buscando...', false);
+
+    firebaseDB.ref(`codigos/${fullCode}`).once('value')
+        .then(codigoSnap => {
+            if (!codigoSnap.exists()) {
+                showToast('Código no encontrado', true);
+                return;
+            }
+            const codigoData = codigoSnap.val();
+            if (!codigoData.activo) {
+                showToast('Este código ya no está activo', true);
+                return;
+            }
+
+            return firebaseDB.ref(`modulos/${modulePrefix}/clases`).once('value');
+        })
+        .then(clasesSnap => {
+            if (!clasesSnap || !clasesSnap.exists()) {
+                showToast('No se encontraron clases', true);
+                return;
+            }
+
+            const clasesVal = clasesSnap.val();
+            const classesList = Array.isArray(clasesVal) ? clasesVal.filter(Boolean) : Object.values(clasesVal);
+            const classData = classesList.find(cls => cls.blockCode === shortCode || cls.classCode === shortCode);
+
+            if (!classData) {
+                showToast('Clase no encontrada', true);
+                return;
+            }
+
+            // 🎯 DETECTAR SI ES PRUEBA
+            if (classData.type === 'exam') {
+                importExamFromFirebase(classData, shortCode, fullCode, modulePrefix, profile, stName);
+                return;
+            }
+
+            // Si NO es prueba, seguir flujo normal
+            _originalImportClassFromShortCode(code);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Fallback al original
+            _originalImportClassFromShortCode(code);
+        });
+};
+
+function importExamFromFirebase(classData, shortCode, fullCode, modulePrefix, profile, stName) {
+    const studentCode = profile.studentCode || profile.code || profile.id || '01';
+
+    // Buscar asignación de esta alumna
+    const assignments = classData.examAssignments || [];
+    const myAssignment = assignments.find(a => String(a.studentCode) === String(studentCode));
+
+    if (!myAssignment) {
+        showToast('No tienes receta asignada en esta prueba', true);
+        closeModal('modal-import-class');
+        return;
+    }
+
+    // Registrar en Firebase
+    firebaseDB.ref(`codigos/${fullCode}/asistencias/${studentCode}`).set({
+        nombre: stName,
+        escaneadoEn: new Date().toISOString(),
+        presente: 1
+    });
+
+    // Buscar la receta completa
+    let myRecipes = [];
+    if (myAssignment.recipeId) {
+        const fullRecipe = recipes.find(r => String(r.id) === String(myAssignment.recipeId));
+        if (fullRecipe) {
+            myRecipes = [JSON.parse(JSON.stringify(fullRecipe))];
+        }
+    }
+
+    // Si no encontramos localmente, buscar en Firebase
+    if (myRecipes.length === 0 && myAssignment.recipeName) {
+        // Crear receta placeholder
+        myRecipes = [{
+            name: myAssignment.recipeName,
+            ingredients: [],
+            decorations: [],
+            totalCost: 0,
+            portions: 1
+        }];
+    }
+
+    // Verificar duplicado
+    const existing = importedClasses.find(ic =>
+        String(ic.classId) === String(shortCode) &&
+        ic.type === 'exam' &&
+        normalizeText(ic.studentName || '') === normalizeText(stName || '')
+    );
+
+    if (existing) {
+        // Actualizar nota si cambió
+        existing.myNota = myAssignment.nota;
+        saveImportedClasses();
+        closeModal('modal-import-class');
+        updateClassesView();
+        showToast('Prueba ya importada. Nota actualizada ✅');
+        return;
+    }
+
+    // Detectar materiales faltantes
+    let missing = [];
+    myRecipes.forEach(r => {
+        (r.ingredients || []).forEach(i => {
+            if (!materials.find(m => normalizeText(m.name) === normalizeText(i.name))) {
+                if (!missing.find(m => m.name === i.name)) missing.push({ name: i.name, category: 'ingredient' });
+            }
+        });
+        (r.decorations || []).forEach(d => {
+            if (!materials.find(m => normalizeText(m.name) === normalizeText(d.name))) {
+                if (!missing.find(m => m.name === d.name)) missing.push({ name: d.name, category: 'decoration' });
+            }
+        });
+    });
+
+    const examData = {
+        classId: shortCode,
+        className: classData.name || 'Prueba',
+        courseName: classData.courseName || 'Curso',
+        moduleId: modulePrefix,
+        studentName: stName,
+        studentCode: studentCode,
+        code: shortCode,
+        present: true,
+        date: classData.fecha || classData.date || '',
+        tips: classData.tips || '',
+        photos: [],
+        linkedRecipes: myRecipes,
+        type: 'exam',
+        myRecipeName: myAssignment.recipeName || '',
+        myNota: myAssignment.nota
+    };
+
+    closeModal('modal-import-class');
+
+    if (missing.length > 0) {
+        pendingImportClassData = examData;
+        showMissingMaterialsModal(missing);
+    } else {
+        completeExamImport(examData);
+    }
+}
+
+function completeExamImport(decoded) {
+    const newImported = {
+        id: Date.now().toString(),
+        classId: decoded.classId,
+        className: decoded.className,
+        courseName: decoded.courseName,
+        moduleId: decoded.moduleId,
+        studentName: decoded.studentName,
+        studentCode: decoded.studentCode,
+        visibleCode: decoded.code,
+        present: true,
+        date: decoded.date,
+        tips: decoded.tips,
+        photos: [],
+        linkedRecipes: decoded.linkedRecipes,
+        type: 'exam',
+        myRecipeName: decoded.myRecipeName,
+        myNota: decoded.myNota,
+        importedAt: new Date().toISOString()
+    };
+
+    importedClasses.push(newImported);
+    saveImportedClasses();
+
+    // Procesar recetas
+    (decoded.linkedRecipes || []).forEach(r => {
+        const recipeCopy = JSON.parse(JSON.stringify(r));
+        recipeCopy.id = Date.now().toString() + '-exam-' + Math.random().toString(36).substr(2, 5);
+        recipeCopy.recipeFolder = decoded.courseName;
+        recipeCopy.recipeSource = 'class';
+
+        (recipeCopy.ingredients || []).forEach(i => {
+            const localMat = materials.find(m => normalizeText(m.name) === normalizeText(i.name));
+            if (localMat) {
+                i.matId = String(localMat.id);
+                i.pending = localMat.pending || false;
+                if (!localMat.pending) i.cost = calculateIngredientCost(localMat, i.qty, i.unit);
+            }
+        });
+
+        (recipeCopy.decorations || []).forEach(d => {
+            const localMat = materials.find(m => normalizeText(m.name) === normalizeText(d.name));
+            if (localMat) {
+                d.matId = String(localMat.id);
+                d.pending = localMat.pending || false;
+                if (!localMat.pending) d.cost = calculateIngredientCost(localMat, d.qty, d.unit);
+            }
+        });
+
+        const ic = (recipeCopy.ingredients || []).reduce((s, i) => s + (i.cost || 0), 0);
+        const dc = (recipeCopy.decorations || []).reduce((s, d) => s + (d.cost || 0), 0);
+        recipeCopy.totalCost = ic + dc;
+
+        const exists = recipes.find(rec => rec.name === recipeCopy.name && rec.recipeFolder === recipeCopy.recipeFolder);
+        if (!exists) recipes.push(recipeCopy);
+    });
+
+    saveRecipesToStorage();
+    updateRecipesView();
+    updateClassesView();
+    showToast('Prueba importada! 📝');
+}
+
+// ============================================
+// 🎯 MODIFICAR renderStudentDashboard para mostrar pruebas
+// ============================================
+
+const _originalRenderStudentDashboard = renderStudentDashboard;
+
+renderStudentDashboard = function() {
+    _originalRenderStudentDashboard();
+
+    // Después de renderizar, reemplazar las cards de pruebas
+    setTimeout(() => {
+        importedClasses.forEach(ic => {
+            if (ic.type === 'exam') {
+                // Buscar la card genérica y reemplazarla
+                const cards = document.querySelectorAll('.imported-class-card');
+                cards.forEach(card => {
+                    if (card.getAttribute('onclick') && card.getAttribute('onclick').includes(ic.id)) {
+                        const parent = card.parentNode;
+                        const examHTML = renderExamCardStudent(ic);
+                        const temp = document.createElement('div');
+                        temp.innerHTML = examHTML;
+                        parent.replaceChild(temp.firstElementChild, card);
+                    }
+                });
+            }
+        });
+    }, 50);
+};
+
+// ============================================
+// 🎯 MODIFICAR saveCourses para sincronizar pruebas
+// ============================================
+
+const _originalSaveCourses = saveCourses;
+
+saveCourses = function() {
+    _originalSaveCourses();
+
+    // Sincronizar datos de pruebas en Firebase
+    if (teacherMode && teacherMode.active) {
+        courses.forEach(course => {
+            const mod = modules.find(m => String(m.id) === String(course.moduleId));
+            if (!mod) return;
+
+            (course.classes || []).forEach((cls, index) => {
+                if (cls.type === 'exam' && cls.blockCode) {
+                    firebaseDB.ref(`codigos/${mod.prefix}-${cls.blockCode}`).update({
+                        tipo: 'exam',
+                        examAssignments: cls.examAssignments || []
+                    }).catch(err => console.error('Error sync exam:', err));
+
+                    firebaseDB.ref(`modulos/${mod.prefix}/clases/${index}`).update({
+                        type: 'exam',
+                        examAssignments: cls.examAssignments || []
+                    }).catch(err => console.error('Error sync exam clase:', err));
+                }
+            });
+        });
+    }
+};
+
+// ============================================
+// 🎯 MODIFICAR completeClassImport para detectar pruebas
+// ============================================
+
+const _originalCompleteClassImport = completeClassImport;
+
+completeClassImport = function(decoded) {
+    if (decoded.type === 'exam') {
+        completeExamImport(decoded);
+        return;
+    }
+    _originalCompleteClassImport(decoded);
+};
+
+// ============================================
+// 🎯 FUNCIÓN: Consultar notas actualizadas
+// ============================================
+
+function checkExamGradeUpdates() {
+    if (!studentProfiles || studentProfiles.length === 0) return;
+    if (!navigator.onLine) return;
+
+    const examClasses = importedClasses.filter(ic => ic.type === 'exam');
+    if (examClasses.length === 0) return;
+
+    examClasses.forEach(ic => {
+        const modulePrefix = ic.moduleId;
+        const shortCode = ic.classId || ic.visibleCode;
+        const studentCode = ic.studentCode;
+
+        if (!modulePrefix || !shortCode) return;
+
+        firebaseDB.ref(`modulos/${modulePrefix}/clases`).once('value')
+            .then(snap => {
+                if (!snap.exists()) return;
+                const clases = snap.val();
+                const list = Array.isArray(clases) ? clases.filter(Boolean) : Object.values(clases);
+                const exam = list.find(c => c.type === 'exam' && (c.blockCode === shortCode || c.classCode === shortCode));
+
+                if (!exam || !exam.examAssignments) return;
+
+                const myAssignment = exam.examAssignments.find(a => String(a.studentCode) === String(studentCode));
+                if (myAssignment && myAssignment.nota !== null && myAssignment.nota !== undefined) {
+                    if (ic.myNota !== myAssignment.nota) {
+                        ic.myNota = myAssignment.nota;
+                        saveImportedClasses();
+                        updateClassesView();
+                        showToast(`📊 Nueva nota en ${ic.className}: ${myAssignment.nota.toFixed(1)}`);
+                    }
+                }
+            })
+            .catch(err => console.log('Error checking grades:', err));
+    });
+}
+
+// Verificar notas cada vez que se abre la pestaña de clases
+const _originalSwitchTab = switchTab;
+switchTab = function(tabName) {
+    _originalSwitchTab(tabName);
+    if (tabName === 'clases' && !teacherMode.active) {
+        checkExamGradeUpdates();
+    }
+};
+
+console.log('🎯 Sistema de Pruebas/Exámenes cargado');
