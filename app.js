@@ -1674,13 +1674,11 @@ function updateClassesView() {
         if (studentProfiles.length > 0) {
             if (loginContainer) loginContainer.style.display = 'none';
             if (dashboardContainer) dashboardContainer.style.display = 'block';
-                renderStudentDashboard();
+                 renderStudentDashboard();
             // Verificar cursos cerrados en background sin re-renderizar
             if (navigator.onLine) {
                 checkClosedCourses();
             }
-            renderStudentDashboard();
-            });
             document.getElementById('student-header-name-display').style.display = 'block';
             document.getElementById('student-header-name-display').textContent = 'Hola, ' + studentName;
         } else {
