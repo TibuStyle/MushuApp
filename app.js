@@ -1674,7 +1674,11 @@ function updateClassesView() {
         if (studentProfiles.length > 0) {
             if (loginContainer) loginContainer.style.display = 'none';
             if (dashboardContainer) dashboardContainer.style.display = 'block';
-            checkClosedCourses().then(() => {
+                renderStudentDashboard();
+            // Verificar cursos cerrados en background sin re-renderizar
+            if (navigator.onLine) {
+                checkClosedCourses();
+            }
             renderStudentDashboard();
             });
             document.getElementById('student-header-name-display').style.display = 'block';
@@ -8196,8 +8200,9 @@ async function checkClosedCourses() {
         }
     }
     
-    localStorage.setItem('studentProfiles', JSON.stringify(studentProfiles));
-    updateClassesView();
+        localStorage.setItem('studentProfiles', JSON.stringify(studentProfiles));
+    // Solo re-renderizar si hubo cambios
+    renderStudentDashboard();
 }
 
 function renderClosedCourseCard(profile) {
