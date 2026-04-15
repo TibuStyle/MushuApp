@@ -8245,13 +8245,13 @@ function renderClosedCourseCard(profile) {
         </div>
 
         <!-- Línea 3: botón ver clases -->
-        <button onclick="toggleClosedCourseClasses('${folderId}')" 
+            <button onclick="event.stopPropagation(); toggleClosedCourseClasses('${folderId}')" 
             style="width:100%; padding:7px; border:1.5px solid #ff69b4; border-radius:8px; background:transparent; color:#d63384; font-weight:600; font-size:13px; cursor:pointer;">
             <i class='bx bx-book-open'></i> Ver mis clases y recetas
         </button>
 
         <!-- Clases colapsadas -->
-        <div id="${folderId}-classes" style="display:none; margin-top:10px;">
+        <div id="${folderId}-classes" style="display:none; margin-top:10px;" onclick="event.stopPropagation()">
             ${renderClosedCourseClasses(profile)}
         </div>
     </div>`;
