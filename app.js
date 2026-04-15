@@ -8205,78 +8205,62 @@ function renderClosedCourseCard(profile) {
     if (!data) return '';
 
     const myStats = data.resumenAlumnas ? 
-        data.resumenAlumnas[profile.studentCode || profile.code] : null;
+        data.resumenAlumnas[profile.studentCode || profile.code || profile.id] : null;
 
     const notaPromedio = myStats ? myStats.notaPromedio : null;
     const notasPruebas = myStats ? (myStats.notasPruebas || []) : [];
     const clasesAsistidas = myStats ? myStats.clasesAsistidas : 0;
     const clasesTotales = myStats ? myStats.clasesTotales : 0;
     const porcentaje = myStats ? myStats.porcentajeAsistencia : 0;
-
-    const notaColor = notaPromedio !== null 
-        ? (notaPromedio >= 4.0 ? '#ff1493' : '#888') 
-        : '#888';
     const asistenciaColor = porcentaje >= 75 ? '#4CAF50' : '#f44336';
-    const folderId = 'closed-mod-' + (profile.modulePrefix || '').replace(/[^a-zA-Z0-9]/g, '_');
+    const folderId = 'closed-mod-' + (profile.modulePrefix || '').replace(/[^a-zA-Z0-9]/g, '_') + (profile.courseId || '');
 
     return `
-    <div style="background:linear-gradient(135deg, #fff0f5, #ffd6e8); border:2px solid #ff69b4; border-radius:16px; padding:20px; margin-bottom:12px; box-shadow:0 4px 15px rgba(255,105,180,0.2);">
+    <div style="background:linear-gradient(135deg, #fff0f5, #ffd6e8); border:2px solid #ff69b4; border-radius:12px; padding:12px 16px; margin-bottom:8px; box-shadow:0 2px 8px rgba(255,105,180,0.2);">
         
-        <!-- Header -->
-        <div style="text-align:center; margin-bottom:16px;">
-            <div style="font-size:40px; margin-bottom:8px;">🎓</div>
-            <h3 style="margin:0 0 4px; color:#d63384; font-size:18px;">
-                ${sanitizeHTML(data.courseName)}
-            </h3>
-            <p style="font-size:13px; color:#888; margin:0;">
-                ${data.modulePrefix} • Curso Finalizado
-            </p>
-            <p style="font-size:12px; color:#aaa; margin:4px 0 0;">
-                ${data.fechaCierre ? formatDate(data.fechaCierre.slice(0,10)) : ''}
-            </p>
+        <!-- Línea 1: nombre + badge finalizado -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:18px;">🎓</span>
+                <div>
+                    <span style="font-weight:600; font-size:14px; color:#d63384;">${sanitizeHTML(data.courseName)}</span>
+                    <span style="font-size:11px; background:#ff69b4; color:white; padding:1px 7px; border-radius:10px; margin-left:6px; font-weight:600;">FINALIZADO</span>
+                </div>
+            </div>
         </div>
 
-        <!-- Nota final -->
-        ${notaPromedio !== null ? `
-        <div style="text-align:center; margin-bottom:16px;">
-            <div style="display:inline-block; background:linear-gradient(135deg, #ff69b4, #ff1493); color:white; font-weight:bold; font-size:1.4em; padding:12px 32px; border-radius:16px; box-shadow:0 4px 15px rgba(255,20,147,0.35); animation:examPulse 2s ease-in-out infinite;">
-                ${notaPromedio >= 4.0 ? '⭐' : '📊'} ${notaPromedio.toFixed(1)} ${notaPromedio >= 4.0 ? '⭐' : ''}
-            </div>
-        </div>` : ''}
-
-        <!-- Stats -->
-        <div style="background:white; border-radius:10px; padding:12px; margin-bottom:16px;">
-            
+        <!-- Línea 2: nota + asistencia -->
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px; flex-wrap:wrap;">
+            ${notaPromedio !== null ? `
+                <span class="exam-grade-inline ${notaPromedio >= 4.0 ? 'approved' : 'failed'}">
+                    ${notaPromedio >= 4.0 ? '⭐' : '📊'} ${notaPromedio.toFixed(1)} ${notaPromedio >= 4.0 ? '✅' : ''}
+                </span>` : ''}
+            <span style="font-size:13px; color:${asistenciaColor}; font-weight:600;">
+                📅 ${clasesAsistidas}/${clasesTotales} (${porcentaje}%)
+            </span>
             ${notasPruebas.length > 0 ? `
-            <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(0,0,0,0.05); font-size:13px;">
-                <span style="color:#888;">📝 Pruebas</span>
-                <span style="font-weight:600;">${notasPruebas.map(n => n.toFixed(1)).join(' • ')}</span>
-            </div>` : ''}
-
-            <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(0,0,0,0.05); font-size:13px;">
-                <span style="color:#888;">📅 Asistencia</span>
-                <span style="font-weight:600; color:${asistenciaColor};">
-                    ${clasesAsistidas}/${clasesTotales} (${porcentaje}%)
-                </span>
-            </div>
-
-            <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:13px;">
-                <span style="color:#888;">📚 Total Clases</span>
-                <span style="font-weight:600;">${data.totalClases || clasesTotales}</span>
-            </div>
+                <span style="font-size:12px; color:#888;">
+                    📝 ${notasPruebas.map(n => n.toFixed(1)).join(' • ')}
+                </span>` : ''}
         </div>
 
-        <!-- Botón ver clases -->
-        <button onclick="toggleFolderBody('${folderId}','main')" 
-            style="width:100%; padding:10px; border:2px solid #ff69b4; border-radius:8px; background:transparent; color:#d63384; font-weight:600; font-size:14px; cursor:pointer;">
+        <!-- Línea 3: botón ver clases -->
+        <button onclick="toggleClosedCourseClasses('${folderId}')" 
+            style="width:100%; padding:7px; border:1.5px solid #ff69b4; border-radius:8px; background:transparent; color:#d63384; font-weight:600; font-size:13px; cursor:pointer;">
             <i class='bx bx-book-open'></i> Ver mis clases y recetas
         </button>
 
-        <!-- Clases ocultas -->
-        <div id="${folderId}-body-main" style="margin-top:12px; display:none;">
+        <!-- Clases colapsadas -->
+        <div id="${folderId}-classes" style="display:none; margin-top:10px;">
             ${renderClosedCourseClasses(profile)}
         </div>
     </div>`;
+}
+
+function toggleClosedCourseClasses(folderId) {
+    const el = document.getElementById(`${folderId}-classes`);
+    if (!el) return;
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
 function renderClosedCourseClasses(profile) {
