@@ -1850,7 +1850,7 @@ function renderCourses() {
 
                     ${classesHTML}
 
-                    <button class="btn-add-class" onclick="showCreateClassModal('${course.id}')">
+                    <button class="btn-add-class" onclick="showCreateClassModal('${course.id}')" style="border-color:#ff69b4; color:#d63384; background:linear-gradient(135deg, #fff0f5, #ffe8f0);">
                         <i class='bx bx-plus'></i> Nueva Clase
                     </button>
                     <button class="btn-add-class" onclick="showCreateExamModal('${course.id}')" style="border-color:#ff69b4; color:#d63384; background:linear-gradient(135deg, #fff0f5, #ffe8f0);">
