@@ -1836,8 +1836,12 @@ function renderCourses() {
                         </div>
                     </div>
                     <div class="action-buttons-group" onclick="event.stopPropagation()">
-                        <button class="btn-icon" onclick="showCreateCourseModal('${course.id}')"><i class='bx bx-edit'></i></button>
-                        <button class="btn-icon danger" onclick="deleteCourse('${course.id}')"><i class='bx bx-trash'></i></button>
+                    <button class="btn-icon" onclick="showCreateCourseModal('${course.id}')"><i class='bx bx-edit'></i></button>
+                    ${course.cerrado 
+                        ? `<button class="btn-icon danger" onclick="deleteCourseAfterFinish('${course.id}')"><i class='bx bx-trash'></i></button>`
+                        : `<button class="btn-icon" onclick="showFinishCourseModal('${course.id}')" style="background:linear-gradient(135deg,#ff69b4,#ff1493);color:white;" title="Finalizar Curso"><i class='bx bx-flag'></i></button>
+                           <button class="btn-icon danger" onclick="deleteCourse('${course.id}')"><i class='bx bx-trash'></i></button>`
+                    }
                     </div>
                 </div>
                 <div class="course-card-body" id="course-folder-body-${folderId}">
@@ -7889,5 +7893,268 @@ switchTab = function(tabName) {
         checkExamGradeUpdates();
     }
 };
+
+// ============================================
+// 🎓 SISTEMA DE CIERRE DE CURSO
+// ============================================
+
+let currentFinishCourseId = null;
+
+function calculateCourseStats(course) {
+    // Calcular notas de pruebas
+    const exams = (course.classes || []).filter(cl => cl.type === 'exam');
+    const allNotas = [];
+    
+    const examStats = exams.map(exam => {
+        const assignments = exam.examAssignments || [];
+        const notasExam = assignments
+            .filter(a => a.nota !== null && a.nota !== undefined)
+            .map(a => a.nota);
+        return {
+            name: exam.name,
+            date: exam.date,
+            assignments: assignments,
+            notasPromedio: notasExam.length > 0 
+                ? Math.round((notasExam.reduce((s, n) => s + n, 0) / notasExam.length) * 10) / 10 
+                : null
+        };
+    });
+
+    // Notas por alumna
+    const alumnaStats = (course.students || []).map(student => {
+        const notasAlumna = [];
+        
+        exams.forEach(exam => {
+            const assignment = (exam.examAssignments || []).find(
+                a => String(a.studentCode) === String(student.studentCode)
+            );
+            if (assignment && assignment.nota !== null && assignment.nota !== undefined) {
+                notasAlumna.push(assignment.nota);
+            }
+        });
+
+        const notaPromedio = notasAlumna.length > 0
+            ? Math.round((notasAlumna.reduce((s, n) => s + n, 0) / notasAlumna.length) * 10) / 10
+            : null;
+
+        // Calcular asistencia (solo clases normales)
+        const clasesNormales = (course.classes || []).filter(cl => cl.type !== 'exam');
+        let clasesAsistidas = 0;
+        clasesNormales.forEach(cls => {
+            const att = (cls.attendance || []).find(
+                a => String(a.studentCode) === String(student.studentCode)
+            );
+            if (att && (att.present || att.presente === 1)) clasesAsistidas++;
+        });
+
+        const totalClases = clasesNormales.length;
+        const porcentaje = totalClases > 0 
+            ? Math.round((clasesAsistidas / totalClases) * 100) 
+            : 100;
+
+        return {
+            studentCode: student.studentCode,
+            name: student.name,
+            notas: notasAlumna,
+            notaPromedio,
+            clasesAsistidas,
+            totalClases,
+            porcentaje
+        };
+    });
+
+    // Promedio general del curso
+    const promediosValidos = alumnaStats
+        .filter(a => a.notaPromedio !== null)
+        .map(a => a.notaPromedio);
+    
+    const promedioGeneral = promediosValidos.length > 0
+        ? Math.round((promediosValidos.reduce((s, n) => s + n, 0) / promediosValidos.length) * 10) / 10
+        : null;
+
+    return { examStats, alumnaStats, promedioGeneral };
+}
+
+function showFinishCourseModal(courseId) {
+    const course = courses.find(c => String(c.id) === String(courseId));
+    if (!course) return;
+
+    currentFinishCourseId = courseId;
+
+    const stats = calculateCourseStats(course);
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    const modulePrefix = mod ? mod.prefix : '---';
+    const clasesNormales = (course.classes || []).filter(cl => cl.type !== 'exam');
+    const exams = (course.classes || []).filter(cl => cl.type === 'exam');
+
+    // Construir HTML del resumen
+    let summaryHTML = `
+        <div style="background:linear-gradient(135deg, #fff0f5, #ffd6e8); border-radius:12px; padding:16px; margin-bottom:16px; border:2px solid #ff69b4;">
+            <div style="text-align:center; margin-bottom:16px;">
+                <div style="font-size:32px; margin-bottom:4px;">🎓</div>
+                <h3 style="margin:0 0 4px; color:#d63384;">${sanitizeHTML(course.name)}</h3>
+                <p style="font-size:13px; color:#888; margin:0;">${modulePrefix} • ${clasesNormales.length} clases • ${exams.length} prueba${exams.length !== 1 ? 's' : ''}</p>
+            </div>`;
+
+    // Promedio general
+    if (stats.promedioGeneral !== null) {
+        const color = stats.promedioGeneral >= 4.0 ? '#ff1493' : '#888';
+        summaryHTML += `
+            <div style="text-align:center; margin-bottom:16px;">
+                <div style="display:inline-block; background:linear-gradient(135deg, #ff69b4, #ff1493); color:white; font-weight:bold; font-size:1.4em; padding:10px 28px; border-radius:16px; box-shadow:0 4px 15px rgba(255,20,147,0.3);">
+                    ⭐ Promedio General: ${stats.promedioGeneral.toFixed(1)} ⭐
+                </div>
+            </div>`;
+    }
+
+    // Stats por alumna
+    summaryHTML += `<div style="margin-top:8px;">`;
+    stats.alumnaStats.forEach(a => {
+        const notaColor = a.notaPromedio !== null 
+            ? (a.notaPromedio >= 4.0 ? '#4CAF50' : '#f44336') 
+            : '#888';
+        const asistenciaColor = a.porcentaje >= 75 ? '#4CAF50' : '#f44336';
+
+        summaryHTML += `
+        <div style="background:white; border-radius:8px; padding:10px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-weight:600; font-size:14px;">
+                    <span class="student-code-badge">${a.studentCode}</span>
+                    ${sanitizeHTML(a.name)}
+                </div>
+                <div style="font-size:12px; color:#888; margin-top:2px;">
+                    📅 ${a.clasesAsistidas}/${a.totalClases} clases 
+                    <span style="color:${asistenciaColor}; font-weight:600;">(${a.porcentaje}%)</span>
+                </div>
+                ${a.notas.length > 0 ? `
+                <div style="font-size:12px; color:#888; margin-top:2px;">
+                    📝 ${a.notas.map(n => n.toFixed(1)).join(' • ')}
+                </div>` : ''}
+            </div>
+            <div style="text-align:right;">
+                ${a.notaPromedio !== null 
+                    ? `<div style="font-weight:700; font-size:1.2em; color:${notaColor};">
+                        ${a.notaPromedio >= 4.0 ? '⭐' : '📊'} ${a.notaPromedio.toFixed(1)}
+                       </div>`
+                    : `<div style="font-size:12px; color:#888;">Sin notas</div>`
+                }
+            </div>
+        </div>`;
+    });
+    summaryHTML += `</div></div>`;
+
+    document.getElementById('finish-course-summary').innerHTML = summaryHTML;
+    document.getElementById('finish-course-confirm-input').value = '';
+    document.getElementById('finish-course-error').style.display = 'none';
+    document.getElementById('finish-course-confirm-label').textContent = 
+        `Para confirmar escribe exactamente: "${course.name}"`;
+
+    document.getElementById('modal-finish-course').classList.add('active');
+}
+
+function confirmFinishCourse() {
+    const course = courses.find(c => String(c.id) === String(currentFinishCourseId));
+    if (!course) return;
+
+    const input = document.getElementById('finish-course-confirm-input').value.trim();
+    
+    if (normalizeText(input) !== normalizeText(course.name)) {
+        document.getElementById('finish-course-error').style.display = 'block';
+        return;
+    }
+
+    document.getElementById('finish-course-error').style.display = 'none';
+
+    const stats = calculateCourseStats(course);
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    const modulePrefix = mod ? mod.prefix : 'MOD';
+    const clasesNormales = (course.classes || []).filter(cl => cl.type !== 'exam');
+
+    // Construir resumen para Firebase y para alumnas
+    const resumenAlumnas = {};
+    stats.alumnaStats.forEach(a => {
+        resumenAlumnas[a.studentCode] = {
+            nombre: a.name,
+            notasPruebas: a.notas,
+            notaPromedio: a.notaPromedio,
+            clasesAsistidas: a.clasesAsistidas,
+            clasesTotales: a.totalClases,
+            porcentajeAsistencia: a.porcentaje
+        };
+    });
+
+    const cursoCerradoData = {
+        courseId: course.id,
+        courseName: course.name,
+        modulePrefix: modulePrefix,
+        moduleName: mod ? mod.name : '',
+        fechaCierre: new Date().toISOString(),
+        cerradoPor: 'profesora',
+        promedioGeneral: stats.promedioGeneral,
+        totalClases: clasesNormales.length,
+        totalPruebas: stats.examStats.length,
+        resumenAlumnas
+    };
+
+    // Guardar en Firebase permanente
+    const firebaseKey = `${modulePrefix}-${course.id}`;
+    firebaseDB.ref(`cursos_cerrados/${firebaseKey}`).set(cursoCerradoData)
+        .then(() => {
+            console.log('✅ Resumen guardado en Firebase:', firebaseKey);
+        })
+        .catch(err => console.error('Error guardando cierre:', err));
+
+    // Marcar curso como cerrado localmente
+    course.cerrado = true;
+    course.fechaCierre = new Date().toISOString();
+    course.resumenCierre = cursoCerradoData;
+    saveCourses();
+    renderCourses();
+    closeModal('modal-finish-course');
+    showToast('🎓 Curso finalizado! El resumen fue guardado.');
+}
+
+function deleteCourseAfterFinish(courseId) {
+    const course = courses.find(c => String(c.id) === String(courseId));
+    if (!course || !course.cerrado) {
+        showToast('Primero debes finalizar el curso', true);
+        return;
+    }
+
+    showConfirmModal(
+        'Eliminar Curso Finalizado',
+        `¿Eliminar "${course.name}" de tu app? El resumen ya está guardado en la nube para las alumnas.`,
+        () => {
+            const mod = modules.find(m => String(m.id) === String(course.moduleId));
+            const modulePrefix = mod ? mod.prefix : 'MOD';
+
+            // Eliminar clases y códigos de Firebase
+            (course.classes || []).forEach(cls => {
+                if (cls.blockCode) {
+                    firebaseDB.ref(`codigos/${modulePrefix}-${cls.blockCode}`).remove();
+                }
+            });
+            firebaseDB.ref(`alumnas/${modulePrefix}/${courseId}`).remove();
+            firebaseDB.ref(`modulos/${modulePrefix}/clases`).once('value').then(snap => {
+                if (snap.exists()) {
+                    const updates = {};
+                    snap.forEach(child => {
+                        if (child.val() && String(child.val().courseId) === String(courseId)) {
+                            updates[child.key] = null;
+                        }
+                    });
+                    if (Object.keys(updates).length > 0) {
+                        firebaseDB.ref(`modulos/${modulePrefix}/clases`).update(updates);
+                    }
+                }
+            });
+
+            courses = courses.filter(c => String(c.id) !== String(courseId));
+            saveCourses();
+            renderCourses();
+            showToast('Curso eliminado ✅ El resumen queda en la nube.');
+        }
+    );
+}
 
 console.log('🎯 Sistema de Pruebas/Exámenes cargado');
