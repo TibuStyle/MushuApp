@@ -3747,14 +3747,6 @@ function showSettingsModal() {
     if (tt) tt.checked = teacherMode.active;
 
     // Mostrar sección de Actualizar Clases solo para alumnos con al menos un perfil
-    const updateClassesSection = document.getElementById('student-update-classes-section');
-    if (updateClassesSection) {
-        if (!teacherMode.active && studentProfiles && studentProfiles.length > 0) {
-            updateClassesSection.style.display = 'block';
-        } else {
-            updateClassesSection.style.display = 'none';
-        }
-    }
 
     document.getElementById('modal-settings').classList.add('active');
 }
