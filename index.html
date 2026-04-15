@@ -862,6 +862,36 @@
 
     </div>
 
+<!-- Modal Finalizar Curso -->
+<div class="modal-overlay" id="modal-finish-course" onclick="closeModal('modal-finish-course')">
+    <div class="modal-content large-modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3>🎓 Finalizar Curso</h3>
+            <button class="btn-close" type="button" onclick="closeModal('modal-finish-course')">
+                <i class='bx bx-x'></i>
+            </button>
+        </div>
+
+        <!-- Resumen del curso -->
+        <div id="finish-course-summary"></div>
+
+        <!-- Confirmación escribiendo nombre -->
+        <div class="form-group" style="margin-top:16px;">
+            <label id="finish-course-confirm-label">Para confirmar escribe el nombre exacto del curso:</label>
+            <input type="text" id="finish-course-confirm-input" placeholder="Nombre del curso...">
+        </div>
+
+        <div id="finish-course-error" style="display:none; color:#f44336; font-size:13px; margin-bottom:8px;">
+            ❌ El nombre no coincide
+        </div>
+
+        <button type="button" class="btn-submit" onclick="confirmFinishCourse()" 
+            style="background:linear-gradient(135deg, #ff69b4, #ff1493);">
+            <i class='bx bx-check'></i> Finalizar Curso
+        </button>
+    </div>
+</div>
+    
 <!-- Modal Crear/Editar Prueba -->
 <div class="modal-overlay" id="modal-create-exam" onclick="closeModal('modal-create-exam')">
     <div class="modal-content large-modal" onclick="event.stopPropagation()">
