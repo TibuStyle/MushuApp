@@ -862,6 +862,76 @@
 
     </div>
 
+<!-- Modal Crear/Editar Prueba -->
+<div class="modal-overlay" id="modal-create-exam" onclick="closeModal('modal-create-exam')">
+    <div class="modal-content large-modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3 id="modal-exam-title">📝 Nueva Prueba</h3>
+            <button class="btn-close" type="button" onclick="closeModal('modal-create-exam')">
+                <i class='bx bx-x'></i>
+            </button>
+        </div>
+
+        <input type="hidden" id="exam-course-id" value="">
+
+        <div class="form-group">
+            <label>Nombre de la Prueba</label>
+            <input type="text" id="exam-name" placeholder="Ej: Prueba 1 🎯">
+        </div>
+
+        <div class="form-group">
+            <label>Fecha de la Prueba</label>
+            <input type="date" id="exam-date">
+        </div>
+
+        <div class="form-group">
+            <label>Tips / Instrucciones</label>
+            <textarea id="exam-tips" rows="3" placeholder="Ej: Tienen 2 horas. Traer delantal y materiales." class="class-textarea"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>⏰ Código vence en</label>
+            <select id="exam-code-expiry">
+                <option value="168">1 semana</option>
+                <option value="336">2 semanas</option>
+                <option value="0">Sin vencimiento</option>
+            </select>
+        </div>
+
+        <div style="margin-top:16px;">
+            <h4 style="font-size:14px; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                <i class='bx bx-user' style="color:var(--secondary-color);"></i> Asignar Recetas a cada Alumno
+            </h4>
+            <div id="exam-assignments-list"></div>
+        </div>
+
+        <button type="button" class="btn-submit" onclick="saveExam()">Guardar Prueba</button>
+    </div>
+</div>
+
+<!-- Modal Calificar Prueba -->
+<div class="modal-overlay" id="modal-grade-exam" onclick="closeModal('modal-grade-exam')">
+    <div class="modal-content large-modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3>📊 Calificar Prueba</h3>
+            <button class="btn-close" type="button" onclick="closeModal('modal-grade-exam')">
+                <i class='bx bx-x'></i>
+            </button>
+        </div>
+
+        <div id="grade-exam-info" style="text-align:center; margin-bottom:16px;"></div>
+        <div id="grade-exam-list"></div>
+
+        <p style="font-size:11px; color:var(--text-muted); text-align:center; margin-top:12px;">
+            Sistema chileno: 1.0 a 7.0 • Aprobación: 4.0
+        </p>
+
+        <button type="button" class="btn-submit" onclick="saveExamGrades()" style="background: linear-gradient(135deg, #ff69b4, #ff1493);">
+            <i class='bx bx-save'></i> Guardar Notas
+        </button>
+    </div>
+</div>
+    
         <!-- Modal Materiales Faltantes Módulo -->
         <div class="modal-overlay" id="modal-sync-missing" onclick="closeModal('modal-sync-missing')">
             <div class="modal-content large-modal" onclick="event.stopPropagation()">
