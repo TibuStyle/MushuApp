@@ -1674,7 +1674,9 @@ function updateClassesView() {
         if (studentProfiles.length > 0) {
             if (loginContainer) loginContainer.style.display = 'none';
             if (dashboardContainer) dashboardContainer.style.display = 'block';
+            checkClosedCourses().then(() => {
             renderStudentDashboard();
+            });
             document.getElementById('student-header-name-display').style.display = 'block';
             document.getElementById('student-header-name-display').textContent = 'Hola, ' + studentName;
         } else {
@@ -2747,7 +2749,11 @@ function renderStudentDashboard() {
 
     const modulesList = document.getElementById('student-modules-list');
 
-    modulesList.innerHTML = studentProfiles.map(p => {
+        modulesList.innerHTML = studentProfiles.map(p => {
+        // Si el curso está cerrado, mostrar resumen bonito
+        if (p.cursoCerrado && p.resumenCierre) {
+            return renderClosedCourseCard(p);
+        }
         const myClasses = importedClasses.filter(ic => ic.courseName === p.courseName);
         const attended = myClasses.filter(ic => ic.present).length;
         const totalClasses = Math.max(p.totalClassesInModule || 0, myClasses.length);
@@ -8155,6 +8161,143 @@ function deleteCourseAfterFinish(courseId) {
             showToast('Curso eliminado ✅ El resumen queda en la nube.');
         }
     );
+}
+
+// ============================================
+// 🎓 VISTA ALUMNA - CURSO CERRADO
+// ============================================
+
+async function checkClosedCourses() {
+    if (teacherMode.active) return;
+    if (studentProfiles.length === 0) return;
+    if (!navigator.onLine) return;
+
+    for (const profile of studentProfiles) {
+        const firebaseKey = `${profile.modulePrefix}-${profile.courseId}`;
+        
+        try {
+            const snap = await firebaseDB.ref(`cursos_cerrados/${firebaseKey}`).once('value');
+            
+            if (snap.exists()) {
+                const data = snap.val();
+                
+                // Guardar localmente
+                const closedKey = `mushu_closed_course_${firebaseKey}`;
+                localStorage.setItem(closedKey, JSON.stringify(data));
+                
+                // Marcar perfil como cerrado
+                profile.cursoCerrado = true;
+                profile.resumenCierre = data;
+                
+                console.log('🎓 Curso cerrado encontrado:', data.courseName);
+            }
+        } catch(err) {
+            console.log('Error verificando cierre:', err);
+        }
+    }
+    
+    localStorage.setItem('studentProfiles', JSON.stringify(studentProfiles));
+    updateClassesView();
+}
+
+function renderClosedCourseCard(profile) {
+    const data = profile.resumenCierre;
+    if (!data) return '';
+
+    const myStats = data.resumenAlumnas ? 
+        data.resumenAlumnas[profile.studentCode || profile.code] : null;
+
+    const notaPromedio = myStats ? myStats.notaPromedio : null;
+    const notasPruebas = myStats ? (myStats.notasPruebas || []) : [];
+    const clasesAsistidas = myStats ? myStats.clasesAsistidas : 0;
+    const clasesTotales = myStats ? myStats.clasesTotales : 0;
+    const porcentaje = myStats ? myStats.porcentajeAsistencia : 0;
+
+    const notaColor = notaPromedio !== null 
+        ? (notaPromedio >= 4.0 ? '#ff1493' : '#888') 
+        : '#888';
+    const asistenciaColor = porcentaje >= 75 ? '#4CAF50' : '#f44336';
+    const folderId = 'closed-mod-' + (profile.modulePrefix || '').replace(/[^a-zA-Z0-9]/g, '_');
+
+    return `
+    <div style="background:linear-gradient(135deg, #fff0f5, #ffd6e8); border:2px solid #ff69b4; border-radius:16px; padding:20px; margin-bottom:12px; box-shadow:0 4px 15px rgba(255,105,180,0.2);">
+        
+        <!-- Header -->
+        <div style="text-align:center; margin-bottom:16px;">
+            <div style="font-size:40px; margin-bottom:8px;">🎓</div>
+            <h3 style="margin:0 0 4px; color:#d63384; font-size:18px;">
+                ${sanitizeHTML(data.courseName)}
+            </h3>
+            <p style="font-size:13px; color:#888; margin:0;">
+                ${data.modulePrefix} • Curso Finalizado
+            </p>
+            <p style="font-size:12px; color:#aaa; margin:4px 0 0;">
+                ${data.fechaCierre ? formatDate(data.fechaCierre.slice(0,10)) : ''}
+            </p>
+        </div>
+
+        <!-- Nota final -->
+        ${notaPromedio !== null ? `
+        <div style="text-align:center; margin-bottom:16px;">
+            <div style="display:inline-block; background:linear-gradient(135deg, #ff69b4, #ff1493); color:white; font-weight:bold; font-size:1.4em; padding:12px 32px; border-radius:16px; box-shadow:0 4px 15px rgba(255,20,147,0.35); animation:examPulse 2s ease-in-out infinite;">
+                ${notaPromedio >= 4.0 ? '⭐' : '📊'} ${notaPromedio.toFixed(1)} ${notaPromedio >= 4.0 ? '⭐' : ''}
+            </div>
+        </div>` : ''}
+
+        <!-- Stats -->
+        <div style="background:white; border-radius:10px; padding:12px; margin-bottom:16px;">
+            
+            ${notasPruebas.length > 0 ? `
+            <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(0,0,0,0.05); font-size:13px;">
+                <span style="color:#888;">📝 Pruebas</span>
+                <span style="font-weight:600;">${notasPruebas.map(n => n.toFixed(1)).join(' • ')}</span>
+            </div>` : ''}
+
+            <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid rgba(0,0,0,0.05); font-size:13px;">
+                <span style="color:#888;">📅 Asistencia</span>
+                <span style="font-weight:600; color:${asistenciaColor};">
+                    ${clasesAsistidas}/${clasesTotales} (${porcentaje}%)
+                </span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:13px;">
+                <span style="color:#888;">📚 Total Clases</span>
+                <span style="font-weight:600;">${data.totalClases || clasesTotales}</span>
+            </div>
+        </div>
+
+        <!-- Botón ver clases -->
+        <button onclick="toggleFolderBody('${folderId}','main')" 
+            style="width:100%; padding:10px; border:2px solid #ff69b4; border-radius:8px; background:transparent; color:#d63384; font-weight:600; font-size:14px; cursor:pointer;">
+            <i class='bx bx-book-open'></i> Ver mis clases y recetas
+        </button>
+
+        <!-- Clases ocultas -->
+        <div id="${folderId}-body-main" style="margin-top:12px; display:none;">
+            ${renderClosedCourseClasses(profile)}
+        </div>
+    </div>`;
+}
+
+function renderClosedCourseClasses(profile) {
+    const myClasses = importedClasses.filter(ic => ic.courseName === profile.courseName);
+    
+    if (myClasses.length === 0) {
+        return '<p style="text-align:center; color:#888; font-size:13px; padding:12px;">No tienes clases descargadas.</p>';
+    }
+
+    const sorted = myClasses.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    return sorted.map(ic => {
+        if (ic.type === 'exam') {
+            return renderExamCardStudent(ic);
+        }
+        return `
+        <div class="imported-class-card" onclick="viewImportedClass('${ic.id}')" style="margin-bottom:8px;">
+            <h3>${sanitizeHTML(ic.className || ic.name || 'Clase')}</h3>
+            <p>📅 ${ic.date ? formatDate(ic.date) : 'Sin fecha'}</p>
+        </div>`;
+    }).join('');
 }
 
 console.log('🎯 Sistema de Pruebas/Exámenes cargado');
