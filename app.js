@@ -8259,8 +8259,15 @@ function renderClosedCourseCard(profile) {
 
 function toggleClosedCourseClasses(folderId) {
     const el = document.getElementById(`${folderId}-classes`);
-    if (!el) return;
-    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    if (!el) {
+        console.log('❌ No encontró elemento:', `${folderId}-classes`);
+        return;
+    }
+    if (el.style.display === 'none' || el.style.display === '') {
+        el.style.display = 'block';
+    } else {
+        el.style.display = 'none';
+    }
 }
 
 function renderClosedCourseClasses(profile) {
