@@ -7025,12 +7025,11 @@ function renderExamCardTeacher(course, exam) {
         </div>
         <div class="exam-card-body">
             <span>${statusText}</span>
-            <span style="font-size:0.8em; color:#ff69b4;">${exam.blockCode || '----'}</span>
         </div>
         <div class="action-buttons-group" style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,105,180,0.2);">
             <button class="btn-icon" onclick="showCreateExamModal('${course.id}', '${exam.id}')" title="Editar"><i class='bx bx-edit'></i></button>
             <button class="btn-icon" onclick="showGradeExamModal('${course.id}', '${exam.id}')" title="Calificar" style="background:#ff69b4; color:white;"><i class='bx bx-star'></i></button>
-            <button class="btn-icon" onclick="showExamAttendance('${course.id}', '${exam.id}')" title="Asistencia"><i class='bx bx-clipboard'></i></button>
+            <button class="btn-icon" onclick="showExamCode('${course.id}', '${exam.id}')" title="Ver Código" style="background:linear-gradient(135deg,#ff758c,#ff7eb3); color:white;"><i class='bx bx-key'></i></button>
             <button class="btn-icon danger" onclick="deleteExam('${course.id}', '${exam.id}')" title="Eliminar"><i class='bx bx-trash'></i></button>
         </div>
     </div>`;
@@ -7321,6 +7320,99 @@ function saveExamGrades() {
 
 function showExamAttendance(courseId, examId) {
     showAttendanceModal(courseId, examId);
+}
+
+function showExamCode(courseId, examId) {
+    const course = courses.find(c => String(c.id) === String(courseId));
+    if (!course) return;
+    const exam = (course.classes || []).find(cl => String(cl.id) === String(examId) && cl.type === 'exam');
+    if (!exam) return;
+
+    const mod = modules.find(m => String(m.id) === String(course.moduleId));
+    const modulePrefix = mod ? mod.prefix : 'MOD';
+    const examCode = exam.blockCode || '-----';
+    const fullCode = `${modulePrefix}-${examCode}`;
+
+    // Registrar código en Firebase si no está
+    firebaseDB.ref(`codigos/${fullCode}`).update({
+        claseId: examCode,
+        moduloId: modulePrefix,
+        claseNombre: exam.name || 'Prueba',
+        tipo: 'exam',
+        fecha: exam.date || '',
+        activo: true,
+        courseId: course.id,
+        courseName: course.name,
+        type: 'exam',
+        examAssignments: exam.examAssignments || [],
+        createdAt: new Date().toISOString()
+    }).catch(err => console.error('Error registrando código prueba:', err));
+
+    // Usar el modal de asistencia para mostrar el código
+    currentAttendanceCourseId = courseId;
+    currentAttendanceClassId = examId;
+
+    document.getElementById('attendance-class-info').innerHTML = `
+        <div style="text-align:center; margin-bottom:16px;">
+            <h4 style="margin:0 0 4px;">${sanitizeHTML(exam.name)}</h4>
+            <p style="font-size:13px; color:var(--text-muted); margin:0;">
+                📅 ${formatDate(exam.date)} • ${course.name}
+            </p>
+        </div>`;
+
+    // Ocultar lista de asistencia
+    document.getElementById('attendance-list').innerHTML = '';
+    document.getElementById('btn-save-attendance').style.display = 'none';
+
+    // Mostrar código
+    const codesSection = document.getElementById('generated-codes-section');
+    codesSection.style.display = 'block';
+
+    const list = document.getElementById('generated-codes-list');
+    list.innerHTML = `
+        <div style="background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%); border-radius: 12px; padding: 24px; color: white; margin: 16px 0; box-shadow: 0 4px 15px rgba(255, 117, 140, 0.3);">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <div style="font-size: 32px;">📝</div>
+                <div>
+                    <div style="font-size: 18px; font-weight: 600;">Código de la Prueba</div>
+                    <div style="font-size: 13px; opacity: 0.9;">Comparte este código con tus alumnas</div>
+                </div>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.2); border-radius: 8px; padding: 20px; text-align: center; margin: 16px 0;">
+                <div style="font-size: 36px; font-weight: 700; letter-spacing: 4px; font-family: 'Courier New', monospace;">
+                    ${examCode}
+                </div>
+                <div style="font-size: 14px; margin-top: 8px; opacity: 0.8;">
+                    Código completo: ${fullCode}
+                </div>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 12px; margin-bottom:16px;">
+                <div style="font-size:13px; font-weight:600; margin-bottom:8px;">📋 Recetas asignadas:</div>
+                ${(exam.examAssignments || []).map(a => `
+                    <div style="display:flex; justify-content:space-between; font-size:13px; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <span><span style="background:rgba(255,255,255,0.2); padding:1px 6px; border-radius:10px; font-size:11px; margin-right:6px;">${a.studentCode}</span>${sanitizeHTML(a.studentName)}</span>
+                        <span style="opacity:0.9;">${a.recipeName ? sanitizeHTML(a.recipeName) : 'Sin receta'}</span>
+                    </div>
+                `).join('')}
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+                <button onclick="copyClassCode('${examCode}')" style="flex: 1; padding: 12px; border: none; border-radius: 6px; background: white; color: #ff758c; font-weight: bold; cursor: pointer;">
+                    📋 Copiar Código
+                </button>
+                <button onclick="copyClassCode('${fullCode}')" style="flex: 1; padding: 12px; border: 1px solid white; border-radius: 6px; background: rgba(255,255,255,0.15); color: white; font-weight: bold; cursor: pointer;">
+                    📋 Copiar Completo
+                </button>
+            </div>
+
+            <div style="margin-top:12px; background: rgba(255,255,255,0.15); border-radius: 6px; padding: 12px; font-size: 13px; text-align: center;">
+                💡 Las alumnas ingresan: <strong>${examCode}</strong>
+            </div>
+        </div>`;
+
+    document.getElementById('modal-attendance').classList.add('active');
 }
 
 // ============================================
