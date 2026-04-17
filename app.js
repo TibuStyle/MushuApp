@@ -6198,27 +6198,29 @@ async function confirmSyncModuleDownload() {
         showToast('Por favor, ingresa un prefijo', true);
         return;
     }
-    
+
     closeModal('modal-enter-prefix-load');
     const cleanPrefix = prefixInput.trim().toUpperCase();
     showToast('⏳ Cargando módulo ' + cleanPrefix + ' desde Firebase...', false);
-    
+
     try {
         const moduloRef = firebaseDB.ref(`modulos/${cleanPrefix}`);
         const moduloSnap = await moduloRef.once('value');
-        
+
         if (!moduloSnap.exists()) {
             showToast('❌ Módulo ' + cleanPrefix + ' no encontrado en Firebase', true);
             return;
         }
-        
+
         const data = moduloSnap.val();
         if (!data.metadata || !data.clases) {
             showToast('❌ El módulo tiene una estructura inválida', true);
             return;
         }
-        
-        // 1. Crear o actualizar módulo local
+
+        // ==========================================
+        // 1. CREAR O ACTUALIZAR MÓDULO LOCAL
+        // ==========================================
         let modIdx = modules.findIndex(m => m.prefix.toUpperCase() === cleanPrefix);
         let currentModId;
         if (modIdx >= 0) {
@@ -6232,39 +6234,43 @@ async function confirmSyncModuleDownload() {
                 prefix: cleanPrefix
             });
         }
-        
+
         // ==========================================
-        // 2. REVISAR MATERIALES FALTANTES (CON NORMALIZACIÓN MEJORADA)
+        // 2. REVISAR MATERIALES FALTANTES
         // ==========================================
         const allMissing = [];
-        
+
         for (const claseData of Object.values(data.clases || {})) {
-    // Usar linkedRecipes en lugar de recetas
-    const recetas = claseData.linkedRecipes || claseData.recetas || [];
-    
-    for (const receta of recetas) {
-                // Soportar ambos formatos (inglés/español)
+            // Soportar linkedRecipes (formato saveCourses) y recetas (formato syncModuleUpload)
+            let recetasParaRevisar = [];
+            if (Array.isArray(claseData.linkedRecipes) && claseData.linkedRecipes.length > 0) {
+                recetasParaRevisar = claseData.linkedRecipes;
+            } else if (claseData.recetas && typeof claseData.recetas === 'object') {
+                recetasParaRevisar = Array.isArray(claseData.recetas)
+                    ? claseData.recetas
+                    : Object.values(claseData.recetas);
+            }
+
+            for (const receta of recetasParaRevisar) {
+                if (!receta || typeof receta !== 'object') continue;
+
                 const ingredientes = receta.ingredientes || receta.ingredients || [];
                 const decoraciones = receta.decoraciones || receta.decorations || [];
                 const allItems = [...ingredientes, ...decoraciones];
-                
+
                 allItems.forEach(item => {
                     const itemName = item.nombre || item.name || '';
-                    if (!itemName.trim()) return; // Ignorar vacíos
-                    
+                    if (!itemName.trim()) return;
+
                     const normName = normalizeText(itemName);
-                    
-                    // Buscar en inventario local usando texto normalizado
                     const found = materials.find(m => normalizeText(m.name) === normName);
-                    
-                    // Si no existe localmente Y no lo hemos agregado ya a la lista de faltantes
+
                     if (!found && !allMissing.find(mm => normalizeText(mm.name) === normName)) {
-                        
-                        // Determinar si es decoración
-                        const isDeco = decoraciones.some(d => normalizeText(d.nombre || d.name || '') === normName);
-                        
+                        const isDeco = decoraciones.some(
+                            d => normalizeText(d.nombre || d.name || '') === normName
+                        );
                         allMissing.push({
-                            name: itemName, // Guardar el nombre original para mostrarlo bonito
+                            name: itemName,
                             category: isDeco ? 'decoracion' : 'productos'
                         });
                     }
@@ -6272,11 +6278,12 @@ async function confirmSyncModuleDownload() {
             }
         }
 
-        // Crear los materiales pendientes locales solo si no existen ya
+        // Crear materiales pendientes locales
         allMissing.forEach(mm => {
             const normName = normalizeText(mm.name);
-            const alreadyPending = materials.find(m => normalizeText(m.name) === normName && m.pending === true);
-            
+            const alreadyPending = materials.find(
+                m => normalizeText(m.name) === normName && m.pending === true
+            );
             if (!alreadyPending) {
                 createPendingMaterial(mm.name, mm.category);
             }
@@ -6286,47 +6293,69 @@ async function confirmSyncModuleDownload() {
         // 3. IMPORTAR RECETAS Y CALCULAR COSTOS LOCALES
         // ==========================================
         let recetasImportadas = 0;
-        
+
         for (const [claseNum, claseData] of Object.entries(data.clases || {})) {
-            const recetasClase = Object.values(claseData.recetas || {});
-            
-            recetasClase.forEach(receta => {
-                const recetaName = receta.nombre || receta.name || 'Sin nombre';
-                let idx = recipes.findIndex(r => r.name === recetaName && r.recipeFolder === data.metadata.nombre);
-                
-                // Función para adaptar ingredientes al formato de la app y calcular precios
+            // Detectar formato de recetas
+            let recetasRaw = [];
+            if (claseData.recetas && typeof claseData.recetas === 'object') {
+                // Formato syncModuleUpload: objeto o array
+                recetasRaw = Array.isArray(claseData.recetas)
+                    ? claseData.recetas
+                    : Object.values(claseData.recetas);
+            } else if (Array.isArray(claseData.linkedRecipes) && claseData.linkedRecipes.length > 0) {
+                // Formato saveCourses: array de objetos de receta
+                recetasRaw = claseData.linkedRecipes;
+            }
+
+            const claseNombre = claseData.nombre || claseData.name || `Clase ${claseNum}`;
+
+            recetasRaw.forEach(receta => {
+                if (!receta || typeof receta !== 'object') return;
+
+                const recetaName = receta.nombre || receta.name || '';
+                if (!recetaName.trim()) return;
+
+                let idx = recipes.findIndex(
+                    r => r.name === recetaName && r.recipeFolder === data.metadata.nombre
+                );
+
                 const procesarItems = (items) => {
-                    return (items || []).map(item => {
+                    if (!items || !Array.isArray(items)) return [];
+                    return items.map(item => {
+                        if (!item || typeof item !== 'object') return null;
                         const itemName = item.nombre || item.name || '';
                         const itemQty = parseFloat(item.cantidad || item.qty || 0);
                         const itemUnit = item.unidad || item.unit || '';
-                        
                         if (!itemName.trim()) return null;
-                        
-                        // Buscar en inventario local usando texto normalizado
-                        const found = materials.find(m => normalizeText(m.name) === normalizeText(itemName));
-                        
+
+                        const found = materials.find(
+                            m => normalizeText(m.name) === normalizeText(itemName)
+                        );
                         return {
                             id: item.id || (Date.now().toString() + '-' + Math.random().toString(36).substr(2, 5)),
                             matId: found ? String(found.id) : '',
-                            name: itemName, // Mantener nombre original de la receta
+                            name: itemName,
                             qty: itemQty,
                             unit: itemUnit,
-                            cost: (found && !found.pending) ? calculateIngredientCost(found, itemQty, itemUnit) : 0,
+                            cost: (found && !found.pending)
+                                ? calculateIngredientCost(found, itemQty, itemUnit)
+                                : 0,
                             pending: found ? (found.pending || false) : true
                         };
-                    }).filter(Boolean); // Quitar nulos
+                    }).filter(Boolean);
                 };
 
-                const processedIngredients = procesarItems(receta.ingredientes || receta.ingredients);
-                const processedDecorations = procesarItems(receta.decoraciones || receta.decorations);
+                const processedIngredients = procesarItems(receta.ingredientes || receta.ingredients || []);
+                const processedDecorations = procesarItems(receta.decoraciones || receta.decorations || []);
 
                 const ic = processedIngredients.reduce((s, i) => s + (i.cost || 0), 0);
                 const dc = processedDecorations.reduce((s, d) => s + (d.cost || 0), 0);
                 const ec = parseFloat(receta.costoExtra || receta.extraCost || 0);
 
                 const newRecipeData = {
-                    id: (idx >= 0) ? recipes[idx].id : (Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9)),
+                    id: (idx >= 0)
+                        ? recipes[idx].id
+                        : (Date.now().toString() + '-' + Math.random().toString(36).substr(2, 9)),
                     name: recetaName,
                     ingredients: processedIngredients,
                     decorations: processedDecorations,
@@ -6342,7 +6371,7 @@ async function confirmSyncModuleDownload() {
                     recipePhoto: receta.foto || receta.recipePhoto || null,
                     recipeFolder: data.metadata.nombre,
                     recipeSource: 'module',
-                    moduleClass: claseData.nombre || `Clase ${claseNum}`,
+                    moduleClass: claseNombre,
                     isRestricted: false
                 };
 
@@ -6354,32 +6383,44 @@ async function confirmSyncModuleDownload() {
                 recetasImportadas++;
             });
         }
-        
+
         // ==========================================
         // 4. IMPORTAR CURSOS Y SUS CLASES (FOTOS Y TIPS)
         // ==========================================
         let cursosImportados = 0;
         let clasesImportadas = 0;
 
-        // Primero, armar un array con las clases que vienen de Firebase
-        const clasesFirebase = Object.values(data.clases || {}).map(claseData => ({
-            id: claseData.numero ? `clase_${claseData.numero}` : Date.now().toString(),
-            name: claseData.nombre,
-            tips: claseData.tips || '',
-            photos: claseData.fotos || [], // Aquí están las fotos
-            linkedRecipes: Object.values(claseData.recetas || {}).map(r => r.nombre || r.name),
-            moduleClassName: claseData.nombre
-        }));
+        // Armar mapa de clases desde Firebase (soportar ambos formatos)
+        const clasesFirebase = Object.values(data.clases || {})
+            .filter(c => c && typeof c === 'object')
+            .map(claseData => {
+                const nombre = claseData.name || claseData.nombre || 'Sin nombre';
+                const fotos = claseData.photos || claseData.fotos || [];
+                const linkedNames = (claseData.linkedRecipes || [])
+                    .map(r => (typeof r === 'string') ? r : (r.name || r.nombre || ''))
+                    .filter(Boolean);
+
+                return {
+                    id: claseData.id || Date.now().toString(),
+                    name: nombre,
+                    tips: claseData.tips || '',
+                    photos: fotos,
+                    blockCode: claseData.blockCode || '',
+                    linkedRecipes: linkedNames,
+                    moduleClassName: nombre
+                };
+            });
 
         clasesImportadas = clasesFirebase.length;
 
         for (const [cursoId, cursoData] of Object.entries(data.cursos || {})) {
-            const existeCursoIdx = courses.findIndex(c => c.name === cursoData.nombre && String(c.moduleId) === String(currentModId));
-            
+            const existeCursoIdx = courses.findIndex(
+                c => c.name === cursoData.nombre && String(c.moduleId) === String(currentModId)
+            );
+
             let cursoActual;
 
             if (existeCursoIdx >= 0) {
-                // Actualizar curso existente
                 courses[existeCursoIdx].day = cursoData.dia || '';
                 courses[existeCursoIdx].schedule = cursoData.horario || '';
                 courses[existeCursoIdx].students = (cursoData.estudiantes || []).map(est => ({
@@ -6389,7 +6430,6 @@ async function confirmSyncModuleDownload() {
                 }));
                 cursoActual = courses[existeCursoIdx];
             } else {
-                // Crear nuevo curso
                 cursoActual = {
                     id: cursoId,
                     name: cursoData.nombre,
@@ -6398,34 +6438,42 @@ async function confirmSyncModuleDownload() {
                     day: cursoData.dia || '',
                     schedule: cursoData.horario || '',
                     students: (cursoData.estudiantes || []).map(est => ({
-                        id: est.id, name: est.nombre, studentCode: est.codigo
+                        id: est.id,
+                        name: est.nombre,
+                        studentCode: est.codigo
                     })),
-                    classes: [] // Iniciar clases vacío
+                    classes: []
                 };
                 courses.push(cursoActual);
             }
 
-            // === ASIGNAR FOTOS Y TIPS A LAS CLASES DEL CURSO ===
             if (!cursoActual.classes) cursoActual.classes = [];
 
-            // Actualizar o crear clases dentro del curso basándose en la data de Firebase
             clasesFirebase.forEach(claseFB => {
-                const claseExistenteIdx = cursoActual.classes.findIndex(c => c.name === claseFB.name || c.moduleClassName === claseFB.name);
-                
+                const claseExistenteIdx = cursoActual.classes.findIndex(
+                    c => c.name === claseFB.name || c.moduleClassName === claseFB.name
+                );
+
                 if (claseExistenteIdx >= 0) {
-                    // Actualizar clase existente (respetando sus fechas y asistencia local)
+                    // Actualizar clase existente
                     cursoActual.classes[claseExistenteIdx].tips = claseFB.tips;
                     cursoActual.classes[claseExistenteIdx].photos = claseFB.photos;
-                    // Vincular recetas si no las tiene
-                    if (!cursoActual.classes[claseExistenteIdx].linkedRecipes || cursoActual.classes[claseExistenteIdx].linkedRecipes.length === 0) {
-                        // Buscar en base de recetas locales para sacar el objeto completo
-                        const recetasVinculadasObjects = recipes.filter(r => r.recipeFolder === data.metadata.nombre && claseFB.linkedRecipes.includes(r.name));
-                        cursoActual.classes[claseExistenteIdx].linkedRecipes = recetasVinculadasObjects;
+                    if (
+                        !cursoActual.classes[claseExistenteIdx].linkedRecipes ||
+                        cursoActual.classes[claseExistenteIdx].linkedRecipes.length === 0
+                    ) {
+                        const recetasVinculadas = recipes.filter(
+                            r => r.recipeFolder === data.metadata.nombre &&
+                                claseFB.linkedRecipes.includes(r.name)
+                        );
+                        cursoActual.classes[claseExistenteIdx].linkedRecipes = recetasVinculadas;
                     }
                 } else {
-                    // Crear clase nueva en el curso
-                    const recetasVinculadasObjects = recipes.filter(r => r.recipeFolder === data.metadata.nombre && claseFB.linkedRecipes.includes(r.name));
-                    
+                    // Crear clase nueva
+                    const recetasVinculadas = recipes.filter(
+                        r => r.recipeFolder === data.metadata.nombre &&
+                            claseFB.linkedRecipes.includes(r.name)
+                    );
                     cursoActual.classes.push({
                         id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
                         name: claseFB.name,
@@ -6433,9 +6481,11 @@ async function confirmSyncModuleDownload() {
                         date: new Date().toISOString().split('T')[0],
                         tips: claseFB.tips,
                         photos: claseFB.photos,
-                        linkedRecipes: recetasVinculadasObjects,
+                        linkedRecipes: recetasVinculadas,
                         attendance: [],
-                        blockCode: generateClassBlockCode ? generateClassBlockCode() : Math.random().toString(36).substr(2, 5).toUpperCase(),
+                        blockCode: claseFB.blockCode || (typeof generateClassBlockCode === 'function'
+                            ? generateClassBlockCode()
+                            : Math.random().toString(36).substr(2, 5).toUpperCase()),
                         codesGenerated: false
                     });
                 }
@@ -6443,33 +6493,38 @@ async function confirmSyncModuleDownload() {
 
             cursosImportados++;
         }
-        
-        // Guardar todo
+
+        // ==========================================
+        // 5. GUARDAR TODO
+        // ==========================================
         saveModules();
         saveRecipesToStorage();
         saveCourses();
-        saveMaterialsToStorage(); // Guardar los pendientes
+        saveMaterialsToStorage();
         renderMaterials();
         updateMaterialSelect();
         updateDecorationSelect();
         updateRecipesView();
         renderCourses();
-        
-        // MOSTRAR MENSAJES FINALES
+
+        // Mostrar resultado
         if (allMissing.length > 0) {
-            showSyncMissingModal(allMissing); // <- ¡AQUÍ ESTÁ LA VENTANA EMERGENTE!
+            showSyncMissingModal(allMissing);
             showToast(`✅ Módulo cargado! ⚠️ Faltan ${allMissing.length} materiales`);
         } else {
-            showToast(`✅ ¡Módulo ${cleanPrefix} descargado!\n\n` +
-                      `📝 ${recetasImportadas} recetas cargadas\n` +
-                      `👥 ${cursosImportados} cursos cargados`);
+            showToast(
+                `✅ ¡Módulo ${cleanPrefix} descargado!\n` +
+                `📝 ${recetasImportadas} recetas | ` +
+                `👥 ${cursosImportados} cursos | ` +
+                `📚 ${clasesImportadas} clases`
+            );
         }
-        
+
     } catch (error) {
         console.error('❌ Error descargando desde Firebase:', error);
         showToast('❌ Error al descargar. Verifica tu conexión.', true);
     }
-}  
+}
     
 // === MODAL NUEVO MATERIAL NOMBRE ===
 function showNewMaterialNameModal(category, callback) {
