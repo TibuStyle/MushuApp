@@ -3749,6 +3749,37 @@ function showSettingsModal() {
     document.getElementById('modal-settings').classList.add('active');
 }
 
+function renderPriceHistory(mat) {
+    const sec = document.getElementById('price-history-section');
+    const list = document.getElementById('price-history-list');
+    
+    if (!mat || !mat.priceHistory || mat.priceHistory.length < 1) {
+        sec.style.display = 'none';
+        return;
+    }
+    
+    sec.style.display = 'block';
+    
+    list.innerHTML = [...mat.priceHistory].reverse().map((e, i, a) => {
+        let ch = '';
+        const pi = i + 1;
+        if (pi < a.length) {
+            const p = a[pi].price;
+            const d = e.price - p;
+            const pc = Math.round(Math.abs(d) / p * 100);
+            if (d > 0) ch = `<span class="price-history-change up">+${pc}%</span>`;
+            else if (d < 0) ch = `<span class="price-history-change down">-${pc}%</span>`;
+        }
+        return `
+            <div class="price-history-item">
+                <span class="price-history-date">${formatDate(e.date)}</span>
+                <span class="price-history-value">$${formatCLP(e.price)}</span>
+                ${ch}
+            </div>
+        `;
+    }).join('');
+}
+
 function showAddMaterialModal(materialId = null, category = 'productos', subcategory = '') {
     document.getElementById('form-material').reset();
 
