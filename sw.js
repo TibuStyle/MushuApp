@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mushu-cache-v11';
+const CACHE_NAME = 'mushu-cache-v12';
 const DYNAMIC_CACHE = 'mushuapp-dynamic-v4.0'; 
 const STATIC_CACHE = 'mushuapp-static-v4.0';   
 const ASSETS = [
