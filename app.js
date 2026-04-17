@@ -6052,20 +6052,12 @@ async function syncModuleUpload() {
                 }))
             };
 
-            // Extraer TODA la info de cada clase del curso
             (curso.classes || []).forEach(cls => {
-                let cNum = 1;
-                const match = (cls.name || '').match(/\d+/);
-                if (match) {
-                    cNum = parseInt(match[0]);
-                } else if (cls.moduleClassName) {
-                    const match2 = cls.moduleClassName.match(/\d+/);
-                    if (match2) cNum = parseInt(match2[0]);
-                }
-
-                clasesDesdeCursos[cNum] = {
-                    numero: cNum,
-                    nombre: cls.name || `Clase ${cNum}`,
+                // ✅ FIX: usar el nombre completo como clave única
+                const claseKey = cls.name || cls.moduleClassName || '';
+                
+                clasesDesdeCursos[claseKey] = {
+                    nombre: claseKey,
                     activa: true,
                     fecha: cls.date || '',
                     tips: cls.tips || '',
@@ -6083,44 +6075,66 @@ async function syncModuleUpload() {
                         codeUsed: a.codeUsed || false
                     })),
                     linkedRecipe: cls.linkedRecipe || null,
-                    linkedRecipes: cls.linkedRecipes || [],
+                    linkedRecipes: [],  // ✅ siempre vacío, las recetas van en recetas{}
                     recetas: {}
                 };
             });
         });
 
-        // Crear clases en Firebase con toda la info real
-        Object.keys(clasesDesdeCursos).forEach(cNum => {
-            firebaseData.clases[cNum] = {
-                numero: clasesDesdeCursos[cNum].numero,
-                nombre: clasesDesdeCursos[cNum].nombre,
+        // ✅ Convertir a índices numéricos para Firebase
+        let claseIndex = 0;
+        const claseKeyToIndex = {}; // mapa nombre → índice
+        
+        Object.entries(clasesDesdeCursos).forEach(([claseKey, claseData]) => {
+            firebaseData.clases[claseIndex] = {
+                numero: claseIndex,
+                nombre: claseData.nombre,
                 activa: true,
-                fecha: clasesDesdeCursos[cNum].fecha,
-                tips: clasesDesdeCursos[cNum].tips || '',
-                fotos: clasesDesdeCursos[cNum].fotos || [],
-                blockCode: clasesDesdeCursos[cNum].blockCode || '',
-                codeExpiry: clasesDesdeCursos[cNum].codeExpiry || 0,
-                courseId: clasesDesdeCursos[cNum].courseId || '',
-                courseName: clasesDesdeCursos[cNum].courseName || '',
-                attendance: clasesDesdeCursos[cNum].attendance || [],
-                linkedRecipe: clasesDesdeCursos[cNum].linkedRecipe || null,
-                linkedRecipes: clasesDesdeCursos[cNum].linkedRecipes || [],
+                fecha: claseData.fecha,
+                tips: claseData.tips || '',
+                fotos: claseData.fotos || [],
+                blockCode: claseData.blockCode || '',
+                codeExpiry: claseData.codeExpiry || 0,
+                courseId: claseData.courseId || '',
+                courseName: claseData.courseName || '',
+                attendance: claseData.attendance || [],
+                linkedRecipe: claseData.linkedRecipe || null,
+                linkedRecipes: [],  // ✅ vacío siempre
                 recetas: {}
             };
+            claseKeyToIndex[claseKey] = claseIndex;
+            claseIndex++;
         });
 
-        // Agrupar recetas por clase
+        // ✅ Agrupar recetas por nombre de clase (matching exacto)
         moduleRecipes.forEach((receta, index) => {
-            let claseNum = 1;
+            // Buscar el índice de Firebase que corresponde a esta receta
+            let targetIndex = 0; // default clase 0
+            
             if (receta.moduleClass) {
-                const match = receta.moduleClass.match(/\d+/);
-                claseNum = match ? parseInt(match[0]) : 1;
+                // Buscar por nombre exacto primero
+                if (claseKeyToIndex[receta.moduleClass] !== undefined) {
+                    targetIndex = claseKeyToIndex[receta.moduleClass];
+                } else {
+                    // Buscar por número como fallback
+                    const match = receta.moduleClass.match(/\d+/);
+                    if (match) {
+                        const num = parseInt(match[0]);
+                        // Buscar la clase cuyo nombre contiene ese número
+                        const found = Object.entries(claseKeyToIndex).find(([key]) => {
+                            const m = key.match(/\d+/);
+                            return m && parseInt(m[0]) === num;
+                        });
+                        if (found) targetIndex = found[1];
+                    }
+                }
             }
 
-            if (!firebaseData.clases[claseNum]) {
-                firebaseData.clases[claseNum] = {
-                    numero: claseNum,
-                    nombre: `Clase ${claseNum}`,
+            // ✅ Crear la clase si no existe
+            if (!firebaseData.clases[targetIndex]) {
+                firebaseData.clases[targetIndex] = {
+                    numero: targetIndex,
+                    nombre: receta.moduleClass || `Clase ${targetIndex}`,
                     activa: true,
                     fecha: '',
                     tips: '',
@@ -6147,14 +6161,15 @@ async function syncModuleUpload() {
                 decoraciones: receta.decorations || [],
                 instrucciones: receta.instructions || '',
                 notas: receta.notes || '',
-                foto: receta.recipePhoto || null,
-                tips: receta.recipeTips || '',
+                foto: receta.recipePhoto || null,    // ✅ foto
+                tips: receta.recipeTips || '',       // ✅ tips
                 costoExtra: receta.extraCost || 0,
                 costoTotal: receta.totalCost || 0,
                 porciones: receta.portions || 1
             };
 
-            firebaseData.clases[claseNum].recetas[recetaId] = recetaEstructurada;
+            // ✅ Siempre en recetas{}, nunca en linkedRecipes
+            firebaseData.clases[targetIndex].recetas[recetaId] = recetaEstructurada;
             firebaseData.recetas[recetaId] = recetaEstructurada;
         });
 
@@ -6308,6 +6323,9 @@ async function confirmSyncModuleDownload() {
         // ==========================================
         let recetasImportadas = 0;
 
+        // ✅ FIX: Limpiar recetas del módulo antes de reimportar para evitar duplicados
+        recipes = recipes.filter(r => r.recipeFolder !== data.metadata.nombre);
+        
         for (const [claseNum, claseData] of Object.entries(data.clases || {})) {
             // Detectar formato de recetas
             let recetasRaw = [];
