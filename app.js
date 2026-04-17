@@ -401,38 +401,36 @@ function showToast(msg, err = false) {
 // MATERIALS
 // ========================================
 function getPriceBadgeHTML(mat) {
-    if (!mat.priceHistory || mat.priceHistory.length < 2) return '';
+    if (!mat.priceHistory || mat.priceHistory.length < 2) {
+        // Si solo tiene 1 registro, mostrar la fecha de ese precio
+        if (mat.priceHistory && mat.priceHistory.length === 1) {
+            const fecha = formatDate(mat.priceHistory[0].date);
+            return `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📅 ${fecha}</div>`;
+        }
+        return '';
+    }
+    
     const cur = mat.price;
-    const prev = mat.priceHistory[mat.priceHistory.length - 2].price;
+    const curEntry = mat.priceHistory[mat.priceHistory.length - 1];
+    const prevEntry = mat.priceHistory[mat.priceHistory.length - 2];
+    const prev = prevEntry.price;
     const diff = cur - prev;
     const pct = Math.round(Math.abs(diff) / prev * 100);
-    if (diff === 0) return '';
+    
+    const fechaAnterior = formatDate(prevEntry.date);
+    const fechaActual = formatDate(curEntry.date);
+    
+    if (diff === 0) {
+        return `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📅 ${fechaActual} — Mismo precio</div>`;
+    }
+    
     if (diff < 0) {
-        return `<div class="price-badge cheaper"><i class='bx bx-trending-down'></i> ${pct}% más barato - Ahorras $${formatCLP(Math.abs(diff))}</div>`;
+        return `<div class="price-badge cheaper"><i class='bx bx-trending-down'></i> ${pct}% más barato — Ahorras $${formatCLP(Math.abs(diff))}</div>` +
+               `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📅 ${fechaAnterior}: $${formatCLP(prev)} → ${fechaActual}: $${formatCLP(cur)}</div>`;
     }
-    return `<div class="price-badge expensive"><i class='bx bx-trending-up'></i> ${pct}% más caro - Pagas $${formatCLP(diff)} de más</div>`;
-}
-
-function renderPriceHistory(mat) {
-    const sec = document.getElementById('price-history-section');
-    const list = document.getElementById('price-history-list');
-    if (!mat || !mat.priceHistory || mat.priceHistory.length < 1) {
-        sec.style.display = 'none';
-        return;
-    }
-    sec.style.display = 'block';
-    list.innerHTML = [...mat.priceHistory].reverse().map((e, i, a) => {
-        let ch = '';
-        const pi = i + 1;
-        if (pi < a.length) {
-            const p = a[pi].price;
-            const d = e.price - p;
-            const pc = Math.round(Math.abs(d) / p * 100);
-            if (d > 0) ch = `<span class="price-history-change up">+${pc}%</span>`;
-            else if (d < 0) ch = `<span class="price-history-change down">-${pc}%</span>`;
-        }
-        return `<div class="price-history-item"><span class="price-history-date">${formatDate(e.date)}</span><span class="price-history-value">$${formatCLP(e.price)}</span>${ch}</div>`;
-    }).join('');
+    
+    return `<div class="price-badge expensive"><i class='bx bx-trending-up'></i> ${pct}% más caro — Pagas $${formatCLP(diff)} de más</div>` +
+           `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📅 ${fechaAnterior}: $${formatCLP(prev)} → ${fechaActual}: $${formatCLP(cur)}</div>`;
 }
 
 function filterMaterials() {
