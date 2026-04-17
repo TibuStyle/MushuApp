@@ -500,7 +500,10 @@ body {
 }
 .nav-item i { font-size: 24px; transition: transform 0.3s cubic-bezier(0.175,0.885,0.32,1.275); }
 .nav-item span { font-size: 12px; font-weight: 500; }
-.nav-item.active { color: var(--secondary-color); }
+.nav-item.active { 
+    color: var(--secondary-color); 
+    border-top: 3px solid #ff69b4;
+}
 .nav-item.active i { transform: translateY(-2px) scale(1.1); }
 
 /* --- Modals --- */
@@ -1909,4 +1912,13 @@ input:checked + .slider:before { transform: translateX(16px); }
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+/* === BORDE ROSADO UNIFICADO === */
+.recipe-folder,
+.folder-card,
+.category-block,
+.course-card,
+.imported-class-card {
+    border: 2px solid #ff69b4 !important;
 }
