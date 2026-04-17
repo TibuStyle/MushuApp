@@ -6254,9 +6254,24 @@ async function confirmSyncModuleDownload() {
             for (const receta of recetasParaRevisar) {
                 if (!receta || typeof receta !== 'object') continue;
 
-                const ingredientes = receta.ingredientes || receta.ingredients || [];
-                const decoraciones = receta.decoraciones || receta.decorations || [];
-                const allItems = [...ingredientes, ...decoraciones];
+                const todosIngredientes = receta.ingredientes || receta.ingredients || [];
+                const decoracionesSeparadas = receta.decoraciones || receta.decorations || [];
+
+                // Separar por campo "categoria" si no hay array separado
+                let ingredientesBrutos, decoracionesBrutas;
+                if (decoracionesSeparadas.length > 0) {
+                    ingredientesBrutos = todosIngredientes;
+                    decoracionesBrutas = decoracionesSeparadas;
+                } else {
+                    ingredientesBrutos = todosIngredientes.filter(
+                        item => (item.categoria || item.category || '') !== 'decoracion'
+                    );
+                    decoracionesBrutas = todosIngredientes.filter(
+                        item => (item.categoria || item.category || '') === 'decoracion'
+                    );
+                }
+
+                const allItems = [...ingredientesBrutos, ...decoracionesBrutas];
 
                 allItems.forEach(item => {
                     const itemName = item.nombre || item.name || '';
@@ -6266,9 +6281,10 @@ async function confirmSyncModuleDownload() {
                     const found = materials.find(m => normalizeText(m.name) === normName);
 
                     if (!found && !allMissing.find(mm => normalizeText(mm.name) === normName)) {
-                        const isDeco = decoraciones.some(
+                        const isDeco = decoracionesBrutas.some(
                             d => normalizeText(d.nombre || d.name || '') === normName
-                        );
+                        ) || (item.categoria || item.category || '') === 'decoracion';
+
                         allMissing.push({
                             name: itemName,
                             category: isDeco ? 'decoracion' : 'productos'
@@ -6345,8 +6361,27 @@ async function confirmSyncModuleDownload() {
                     }).filter(Boolean);
                 };
 
-                const processedIngredients = procesarItems(receta.ingredientes || receta.ingredients || []);
-                const processedDecorations = procesarItems(receta.decoraciones || receta.decorations || []);
+// ✅ REEMPLAZA con:
+const todosIngredientesReceta = receta.ingredientes || receta.ingredients || [];
+const decoracionesSeparadasReceta = receta.decoraciones || receta.decorations || [];
+
+let ingredientesFinal, decoracionesFinal;
+if (decoracionesSeparadasReceta.length > 0) {
+    // Formato con arrays separados (subido desde la app)
+    ingredientesFinal = todosIngredientesReceta;
+    decoracionesFinal = decoracionesSeparadasReceta;
+} else {
+    // Formato Firebase con campo "categoria" dentro del array
+    ingredientesFinal = todosIngredientesReceta.filter(
+        item => (item.categoria || item.category || '') !== 'decoracion'
+    );
+    decoracionesFinal = todosIngredientesReceta.filter(
+        item => (item.categoria || item.category || '') === 'decoracion'
+    );
+}
+
+const processedIngredients = procesarItems(ingredientesFinal);
+const processedDecorations = procesarItems(decoracionesFinal);
 
                 const ic = processedIngredients.reduce((s, i) => s + (i.cost || 0), 0);
                 const dc = processedDecorations.reduce((s, d) => s + (d.cost || 0), 0);
