@@ -296,7 +296,7 @@ body {
     padding: 16px;
     display: flex; justify-content: space-between; align-items: center;
     box-shadow: var(--shadow-sm);
-    border: 1px solid rgba(0,0,0,0.05);
+    border: 2px solid #ff69b4;  /* ✅ borde rosado */
     transition: transform 0.2s, box-shadow 0.2s;
 }
 .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--secondary-color); }
@@ -365,7 +365,7 @@ body {
     background-color: var(--surface-color);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
-    border: 1px solid rgba(0,0,0,0.05);
+    border: 2px solid #ff69b4;  /* ✅ borde rosado */
     transition: box-shadow 0.2s;
     overflow: hidden;
     margin-top: 10px;
@@ -1328,7 +1328,7 @@ input:checked + .slider:before { transform: translateX(16px); }
 
 /* === MATERIALES PENDIENTES === */
 .card.pending {
-    border: 1px dashed var(--warning-color);
+    border: 2px dashed var(--warning-color);  /* mantiene amarillo para pendientes */
     background: rgba(245, 158, 11, 0.05);
 }
 .card.pending:hover {
